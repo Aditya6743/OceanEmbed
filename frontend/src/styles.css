@@ -1,0 +1,621 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display: "Space Grotesk", "Avenir Next", sans-serif;
+  --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+}
+
+:root {
+  --radius: 0.375rem;
+  --background: oklch(0.12 0.028 247);
+  --foreground: oklch(0.95 0.018 210);
+  --card: oklch(0.2 0.035 236 / 55%);
+  --card-foreground: oklch(0.95 0.018 210);
+  --popover: oklch(0.16 0.035 240);
+  --popover-foreground: oklch(0.95 0.018 210);
+  --primary: oklch(0.8 0.15 205);
+  --primary-foreground: oklch(0.13 0.03 242);
+  --secondary: oklch(0.29 0.075 221);
+  --secondary-foreground: oklch(0.92 0.025 210);
+  --muted: oklch(0.21 0.035 237);
+  --muted-foreground: oklch(0.7 0.04 220);
+  --accent: oklch(0.72 0.14 207);
+  --accent-foreground: oklch(0.12 0.028 247);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(0.52 0.075 220 / 32%);
+  --input: oklch(0.3 0.05 225);
+  --ring: oklch(0.8 0.15 205);
+  --glow-soft: oklch(0.75 0.15 205 / 18%);
+  --glow-strong: oklch(0.8 0.15 205 / 52%);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-primary: oklch(0.208 0.042 265.755);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.968 0.007 247.896);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
+
+.dark {
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.984 0.003 247.858);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.984 0.003 247.858);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.984 0.003 247.858);
+  --primary: oklch(0.929 0.013 255.508);
+  --primary-foreground: oklch(0.208 0.042 265.755);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.984 0.003 247.858);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(0.279 0.041 260.031);
+  --accent-foreground: oklch(0.984 0.003 247.858);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.984 0.003 247.858);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.551 0.027 264.364);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.551 0.027 264.364);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .ocean-stage {
+    background: radial-gradient(circle at 50% 48%, oklch(0.23 0.07 225 / 38%), transparent 36%), linear-gradient(160deg, oklch(0.12 0.028 247), oklch(0.17 0.05 238));
+  }
+
+  .ocean-grid {
+    background-image: linear-gradient(oklch(0.65 0.08 220 / 4%) 1px, transparent 1px), linear-gradient(90deg, oklch(0.65 0.08 220 / 4%) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(circle at center, black 10%, transparent 74%);
+  }
+
+  .ocean-vignette {
+    background: radial-gradient(circle at center, transparent 44%, oklch(0.08 0.02 248 / 74%) 100%);
+    pointer-events: none;
+  }
+
+  .marine-ambience {
+    z-index: 1;
+  }
+
+  .marine-jelly {
+    filter: drop-shadow(0 0 8px var(--glow-soft));
+    opacity: 0.3;
+    will-change: transform;
+  }
+
+  .marine-jelly-glow {
+    animation: jelly-bioluminescence 5.8s ease-in-out infinite;
+    transform-origin: 50% 42%;
+  }
+
+  .marine-tentacles {
+    filter: drop-shadow(0 0 3px var(--glow-soft));
+    animation: jelly-tentacle-glow 5.8s ease-in-out -1.4s infinite;
+  }
+
+  .marine-jelly-left {
+    left: clamp(-2.5rem, 2vw, 2rem);
+    top: 24%;
+    width: clamp(3.8rem, 7vw, 6rem);
+    animation: marine-float-left 22s ease-in-out infinite;
+  }
+
+  .marine-jelly-right {
+    right: clamp(-2rem, 2vw, 2.5rem);
+    top: 52%;
+    width: clamp(4.5rem, 8vw, 7rem);
+    animation: marine-float-right 27s ease-in-out -8s infinite;
+  }
+
+  .marine-jelly-right .marine-jelly-glow,
+  .marine-jelly-right .marine-tentacles {
+    animation-delay: -3.2s;
+  }
+
+  .marine-jelly-top {
+    right: 13%;
+    top: 8%;
+    width: clamp(2.8rem, 5vw, 4.5rem);
+    opacity: 0.18;
+    animation: marine-float-top 24s ease-in-out -14s infinite;
+  }
+
+  .marine-jelly-top .marine-jelly-glow,
+  .marine-jelly-top .marine-tentacles {
+    animation-delay: -4.6s;
+  }
+
+  .marine-particle {
+    box-shadow: 0 0 7px var(--glow-strong);
+    opacity: 0;
+    animation: plankton-rise linear infinite;
+    will-change: transform, opacity;
+  }
+
+  .marine-starfish {
+    bottom: -0.75rem;
+    width: clamp(3.5rem, 6vw, 5rem);
+    opacity: 0.18;
+    filter: drop-shadow(0 0 8px var(--glow-soft));
+  }
+
+  .marine-starfish-left {
+    left: 4%;
+    transform: rotate(-18deg);
+    animation: marine-starfish-left 20s ease-in-out infinite;
+  }
+
+}
+
+@keyframes marine-float-left {
+  0%, 100% { transform: translate3d(0, 24px, 0) rotate(-3deg); }
+  50% { transform: translate3d(18px, -38px, 0) rotate(3deg); }
+}
+
+@keyframes marine-float-right {
+  0%, 100% { transform: translate3d(0, 30px, 0) rotate(4deg); }
+  50% { transform: translate3d(-20px, -42px, 0) rotate(-2deg); }
+}
+
+@keyframes marine-float-top {
+  0%, 100% { transform: translate3d(0, 14px, 0) rotate(2deg); }
+  50% { transform: translate3d(-14px, -24px, 0) rotate(-3deg); }
+}
+
+@keyframes jelly-bioluminescence {
+  0%, 100% { opacity: 0.68; transform: scale(0.985); filter: drop-shadow(0 0 2px var(--glow-soft)); }
+  50% { opacity: 1; transform: scale(1.02); filter: drop-shadow(0 0 8px var(--glow-strong)); }
+}
+
+@keyframes jelly-tentacle-glow {
+  0%, 100% { opacity: 0.62; }
+  50% { opacity: 0.9; }
+}
+
+@keyframes plankton-rise {
+  0% { opacity: 0; transform: translate3d(0, 24px, 0); }
+  18% { opacity: 0.26; }
+  78% { opacity: 0.1; }
+  100% { opacity: 0; transform: translate3d(12px, -160px, 0); }
+}
+
+@keyframes marine-starfish-left {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-18deg); }
+  50% { transform: translate3d(8px, -5px, 0) rotate(-15deg); }
+}
+
+@media (max-width: 639px) {
+  .marine-jelly-left {
+    left: -2.25rem;
+    top: 29%;
+  }
+
+  .marine-jelly-right {
+    right: -2.75rem;
+    top: 58%;
+  }
+
+  .marine-jelly-top {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Scientific workspace */
+:root { --status: #4ade80; }
+.dashboard-shell { background: radial-gradient(circle at 72% 10%, rgb(8 91 115 / .14), transparent 27rem), linear-gradient(145deg, #050b14, #081625 56%, #050b14); }
+.dashboard-header { background: rgb(5 11 20 / .76); backdrop-filter: blur(18px); position: sticky; top: 0; z-index: 1000; }
+.ocean-panel { border-color: rgb(103 232 249 / .16); background: linear-gradient(145deg, rgb(15 42 57 / .62), rgb(7 19 31 / .72)); box-shadow: inset 0 1px rgb(255 255 255 / .035), 0 20px 50px -10px rgb(0 0 0 / .5); backdrop-filter: blur(20px); position: relative; transition: border-color .3s ease, box-shadow .3s ease; }
+.ocean-panel-elevated { border-color: rgb(103 232 249 / .22); background: linear-gradient(155deg, rgb(16 46 64 / .72), rgb(5 16 27 / .82)); box-shadow: inset 0 1px rgb(255 255 255 / .08), 0 24px 60px -12px rgb(0 0 0 / .65), 0 0 25px -5px rgb(34 211 238 / .12); backdrop-filter: blur(24px); position: relative; }
+.tilt-card { transition: transform .2s cubic-bezier(.25, 1, .5, 1), box-shadow .25s ease, border-color .25s ease; transform-style: preserve-3d; will-change: transform; }
+.tilt-card:hover { border-color: rgb(103 232 249 / .38); box-shadow: 0 20px 45px -10px rgb(0 0 0 / .6), 0 0 30px -5px rgb(34 211 238 / .22); }
+.pulse-glow-border { animation: border-pulse 4s ease-in-out infinite; }
+@keyframes border-pulse { 0%, 100% { border-color: rgb(103 232 249 / .16); box-shadow: 0 0 15px -3px rgb(34 211 238 / .05); } 50% { border-color: rgb(103 232 249 / .35); box-shadow: 0 0 22px 0 rgb(34 211 238 / .18); } }
+.satellite-ping { position: relative; }
+.satellite-ping::after { content: ""; position: absolute; inset: -4px; border-radius: 9999px; border: 1px solid rgb(34 211 238 / .7); animation: ping-wave 2.2s cubic-bezier(0, 0, .2, 1) infinite; }
+@keyframes ping-wave { 0% { transform: scale(.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+.waveform-bar { display: inline-block; width: 2px; background: #22d3ee; border-radius: 1px; animation: waveform 1.2s ease-in-out infinite alternate; }
+@keyframes waveform { 0% { height: 3px; opacity: .4; } 100% { height: 12px; opacity: 1; } }
+.data-kicker, .control-label { display: flex; align-items: center; gap: .4rem; color: rgb(103 232 249 / .68); font-family: var(--font-mono); font-size: .58rem; letter-spacing: .16em; text-transform: uppercase; }
+.control-label { margin-bottom: .45rem; color: rgb(156 183 197 / .72); }
+.ocean-input { height: 2.65rem; border-color: rgb(103 232 249 / .14); background: rgb(2 13 23 / .58); color: #dffaff; }
+.loading-sonar { width: .55rem; height: .55rem; border-radius: 100%; background: #22d3ee; box-shadow: 0 0 0 0 rgb(34 211 238 / .45); animation: sonar 1.2s infinite; }
+@keyframes sonar { 70% { box-shadow: 0 0 0 9px rgb(34 211 238 / 0); } 100% { box-shadow: 0 0 0 0 rgb(34 211 238 / 0); } }
+.leaflet-container { background: #030a14; font-family: var(--font-mono); }
+.leaflet-tile-pane { filter: brightness(.95) contrast(1.1) hue-rotate(185deg) saturate(1.25); }
+.custom-ocean-pin { border: none !important; background: transparent !important; }
+.leaflet-control-zoom { border: none !important; margin: 12px !important; }
+.leaflet-control-zoom a { color: #9ceeff !important; background: rgb(3 14 26 / .92) !important; border-color: rgb(103 232 249 / .25) !important; backdrop-filter: blur(12px) !important; box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important; }
+.leaflet-control-attribution { color: rgb(160 190 200 / .45) !important; background: rgb(3 10 18 / .85) !important; font-size: 8px !important; backdrop-filter: blur(8px) !important; }
+.leaflet-control-attribution a { color: rgb(103 232 249 / .65) !important; }
+.leaflet-interactive { filter: drop-shadow(0 0 10px #22d3ee); }
+.map-coordinate-readout { position: absolute; z-index: 500; bottom: 1.1rem; left: 1.1rem; display: flex; align-items: center; gap: .55rem; border: 1px solid rgb(103 232 249 / .28); border-radius: .35rem; background: rgb(3 12 22 / .9); padding: .55rem .8rem; color: rgb(207 247 255 / .92); backdrop-filter: blur(16px); font: 10px var(--font-mono); box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+
+/* Temperature-driven vertical profile - multi-tone deep ocean palette */
+.depth-experience { --warm: calc(var(--depth-warmth) * 1%); min-height: 100vh; color: white; background: linear-gradient(180deg, #091326 0%, color-mix(in srgb, #0a213e calc(var(--depth-warmth) * 45%), #061124) 14%, color-mix(in srgb, #084357 calc(var(--depth-warmth) * 35%), #052436) 36%, #051627 62%, #090a1e 82%, #05010e 100%); position: relative; isolation: isolate; transition: background .3s linear; }
+.depth-experience::before { content: ""; position: fixed; inset: 0; z-index: -2; background: radial-gradient(circle at 50% 0%, rgb(56 189 248 / calc(.12 + var(--depth-warmth) * .18)), transparent 52%), linear-gradient(180deg, rgb(11 108 139 / calc(var(--depth-warmth) * .4)), rgb(16 4 32 / calc(var(--depth-progress) * .92))); pointer-events: none; }
+.depth-experience::after { content: ""; position: fixed; inset: 0; z-index: -1; background-image: linear-gradient(rgb(103 232 249 / .025) 1px, transparent 1px), linear-gradient(90deg, rgb(103 232 249 / .025) 1px, transparent 1px); background-size: 72px 72px; mask-image: linear-gradient(to bottom, black, transparent 78%); pointer-events: none; }
+.depth-nav { border: 1px solid rgb(103 232 249 / .2); background: rgb(2 11 20 / .45); color: rgb(255 255 255 / .8); backdrop-filter: blur(14px); }
+.depth-counter { position: fixed; z-index: 35; top: 5.5rem; right: 2rem; width: 12.5rem; border: 1px solid rgba(103, 232, 249, 0.25); border-radius: .5rem; background: linear-gradient(145deg, rgba(7, 20, 36, .78), rgba(16, 9, 30, .82)); padding: 1rem 1.2rem; backdrop-filter: blur(18px); box-shadow: 0 12px 35px rgba(0, 0, 0, .6), 0 0 20px -5px rgba(168, 85, 247, .2); animation: counter-warmth-pulse 4s ease-in-out infinite; }
+@keyframes counter-warmth-pulse { 0%, 100% { border-color: rgba(34, 211, 238, .28); box-shadow: 0 12px 35px rgba(0,0,0,.6), 0 0 16px -3px rgba(34, 211, 238, .2); } 50% { border-color: rgba(168, 85, 247, .48); box-shadow: 0 12px 35px rgba(0,0,0,.6), 0 0 26px rgba(168, 85, 247, .28); } }
+.depth-counter p, .depth-counter div { color: rgb(202 231 239 / .6); font: 9px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; }
+.depth-counter strong { display: block; margin: .25rem 0; font: 400 2.6rem var(--font-display); }
+.depth-counter strong span { margin-left: .25rem; color: #67e8f9; font: 12px var(--font-mono); }
+.depth-rail { position: fixed; z-index: 34; top: 8.5rem; bottom: 3.5rem; left: 1.8rem; width: 7.5rem; }
+.depth-rail-line { position: absolute; top: 0; bottom: 0; left: .5rem; width: 2px; background: rgba(103, 232, 249, .2); border-radius: 1px; }
+.depth-rail-line::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: calc(var(--depth-progress) * 100%); background: linear-gradient(180deg, #38bdf8 0%, #22d3ee 45%, #a855f7 100%); box-shadow: 0 0 12px rgba(34, 211, 238, .75); }
+.depth-rail-line i { position: absolute; left: 50%; width: .75rem; height: .75rem; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle, #ffffff 25%, #22d3ee 70%, #a855f7 100%); box-shadow: 0 0 18px #22d3ee, 0 0 28px #a855f7; animation: depth-rail-pulse 2.2s ease-out infinite; }
+.depth-rail-label { position: absolute; left: 0; color: rgb(202 231 239 / .5); font: 8px var(--font-mono); }
+.depth-tick { position: absolute; left: .35rem; translate: 0 -50%; display: flex; align-items: center; gap: .45rem; color: rgb(202 231 239 / .4); font: 8px var(--font-mono); }
+.depth-tick b { width: .45rem; height: 1px; background: rgb(103 232 249 / .35); }
+.depth-zone { position: absolute; left: 1.45rem; display: flex; align-items: center; gap: .35rem; color: rgb(165 243 252 / .65); font: 7.5px var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
+.depth-zone b { width: .32rem; height: .32rem; border: 1px solid currentColor; transform: rotate(45deg); }
+.depth-zone-surface { top: 4%; color: #67e8f9; }
+.depth-zone-thermocline { top: 22%; color: #38bdf8; }
+.depth-zone-deep { top: 56%; color: #818cf8; }
+.depth-zone-abyssal { top: 88%; color: #c084fc; }
+.sunlight-ray-field { position: fixed; inset: -10% -25%; pointer-events: none; z-index: 0; overflow: hidden; }
+.sunlight-ray-1 { position: absolute; inset: 0; background: repeating-linear-gradient(108deg, transparent 0%, transparent 8%, rgba(56, 189, 248, 0.08) 12%, transparent 16%, transparent 24%, rgba(34, 211, 238, 0.12) 28%, transparent 32%); mask-image: radial-gradient(ellipse at 50% 0%, black 15%, transparent 75%); filter: blur(14px); animation: ray-shimmer-1 14s ease-in-out infinite alternate; }
+.sunlight-ray-2 { position: absolute; inset: 0; background: repeating-linear-gradient(118deg, transparent 0%, transparent 12%, rgba(168, 85, 247, 0.07) 16%, transparent 22%, transparent 30%, rgba(103, 232, 249, 0.1) 34%, transparent 40%); mask-image: radial-gradient(ellipse at 45% 0%, black 20%, transparent 70%); filter: blur(18px); animation: ray-shimmer-2 18s ease-in-out -5s infinite alternate; }
+@keyframes ray-shimmer-1 { 0% { transform: scale(1) rotate(-3deg) translateX(-15px); opacity: .7; } 100% { transform: scale(1.05) rotate(3deg) translateX(25px); opacity: 1; } }
+@keyframes ray-shimmer-2 { 0% { transform: scale(1.05) rotate(4deg) translateX(20px); opacity: .6; } 100% { transform: scale(.98) rotate(-4deg) translateX(-20px); opacity: .95; } }
+.depth-hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 7rem 1.5rem; text-align: center; position: relative; z-index: 10; }
+.depth-hero h1 { margin: .8rem 0 1.2rem; font: 500 clamp(3rem, 8vw, 7rem)/.9 var(--font-display); letter-spacing: -.06em; background: linear-gradient(180deg, #ffffff 40%, rgba(207, 250, 254, .85) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.depth-hero > p:not(.data-kicker) { max-width: 36rem; color: rgb(217 241 247 / .7); font-size: .85rem; line-height: 1.8; }
+.depth-band { min-height: 78vh; display: flex; align-items: center; padding: 7rem max(8vw, 5rem); position: relative; z-index: 10; }
+.depth-band-right { justify-content: flex-end; }
+.depth-card { width: min(28rem, calc(100vw - 3rem)); border: 1px solid rgba(103, 232, 249, .2); border-radius: .5rem; background: linear-gradient(145deg, rgba(14, 42, 58, .62), rgba(10, 8, 24, .72)); padding: clamp(1.5rem, 4vw, 2.6rem); box-shadow: 0 25px 80px rgba(0, 0, 0, .4); backdrop-filter: blur(20px); }
+.depth-card > p { color: #67e8f9; font: 9px var(--font-mono); letter-spacing: .16em; text-transform: uppercase; }
+.depth-card > div:nth-child(2) { margin-top: 1.7rem; display: flex; align-items: baseline; gap: .5rem; }
+.depth-card > div:nth-child(2) strong { font: 500 3.5rem var(--font-display); }
+.depth-card > div:nth-child(2) span, .depth-temp span { color: rgb(205 234 241 / .44); font: 9px var(--font-mono); text-transform: uppercase; }
+.depth-temp { margin: 1rem 0; color: #9cf5ff; font: 300 2rem var(--font-mono); }
+.depth-card small { color: rgb(215 239 244 / .6); line-height: 1.7; }
+.depth-summary { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 7rem 1.5rem; text-align: center; position: relative; z-index: 10; }
+.depth-summary h2 { margin: .7rem 0 2rem; font: 500 clamp(2.2rem, 5vw, 4.5rem)/1 var(--font-display); letter-spacing: -.04em; }
+.depth-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); width: min(46rem, 100%); margin-bottom: 2.2rem; border-block: 1px solid rgb(103 232 249 / .14); }
+.depth-summary-grid div { padding: 1.3rem; border-right: 1px solid rgb(103 232 249 / .14); }
+.depth-summary-grid div:last-child { border: 0; }
+.depth-summary-grid p { color: rgb(205 234 241 / .44); font: 8px var(--font-mono); text-transform: uppercase; }
+.depth-summary-grid strong { display: block; margin-top: .4rem; font: 400 1.25rem var(--font-mono); color: #9cf5ff; }
+.depth-ambient { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: calc(.2 + var(--depth-progress) * .55); }
+.depth-ambient i { position: absolute; border-radius: 50%; animation: bioluminescent-spark linear infinite; will-change: transform, opacity; }
+@keyframes bioluminescent-spark { 0% { transform: translate3d(0, 40px, 0); opacity: 0; } 20% { opacity: .75; } 75% { opacity: .4; } 100% { transform: translate3d(14px, -180px, 0); opacity: 0; } }
+@media (max-width: 640px) { .depth-counter { top: auto; bottom: 1rem; right: 1rem; width: 9.5rem; padding: .7rem; } .depth-counter strong { font-size: 1.8rem; } .depth-rail { left: .65rem; top: 8rem; bottom: 2rem; } .depth-band { padding-inline: 1.5rem; } .depth-summary-grid { grid-template-columns: 1fr; } .depth-summary-grid div { border-right: 0; border-bottom: 1px solid rgb(103 232 249 / .14); } }
+@media (prefers-reduced-motion: reduce) { .loading-sonar, .depth-ambient i { animation: none !important; } html { scroll-behavior: auto !important; } }
+
+/* Layered ocean ambience */
+.marine-ambience { --marine-x: 0; --marine-y: 0; }
+.marine-rays { position: absolute; inset: -25%; transform: translate3d(calc(var(--marine-x) * -5px), calc(var(--marine-y) * -4px), 0) rotate(-12deg); transform-origin: top left; opacity: .23; background: repeating-linear-gradient(104deg, transparent 0 7%, color-mix(in oklab, var(--primary) 12%, transparent) 9%, transparent 15% 23%); mask-image: linear-gradient(135deg, black, transparent 65%); filter: blur(10px); animation: marine-rays-drift 24s ease-in-out infinite alternate; }
+.marine-wave-field { position: absolute; inset: -8%; opacity: .16; background-image: repeating-radial-gradient(ellipse at 50% -15%, transparent 0 38px, color-mix(in oklab, var(--primary) 12%, transparent) 40px, transparent 42px 74px); background-size: 160% 88%; transform: translate3d(calc(var(--marine-x) * -3px), calc(var(--marine-y) * -2px), 0); animation: marine-wave-shift 32s linear infinite; mask-image: linear-gradient(to bottom, black, transparent 82%); }
+.marine-particle-field { transform: translate3d(calc(var(--marine-x) * 4px), calc(var(--marine-y) * 4px), 0); transition: transform .7s ease-out; }
+.marine-particle { opacity: 0; }
+.marine-particle-layer-0 { filter: blur(.45px); animation-name: plankton-rise-far; }
+.marine-particle-layer-1 { box-shadow: 0 0 5px var(--glow-soft); animation-name: plankton-rise; }
+.marine-particle-layer-2 { box-shadow: 0 0 10px var(--glow-strong); animation-name: plankton-rise-near; }
+.marine-jelly-far { left: 19%; top: 70%; width: clamp(2.5rem, 4vw, 3.8rem); opacity: .1; animation: marine-float-top 31s ease-in-out -7s infinite; transform: translate3d(calc(var(--marine-x) * -3px), calc(var(--marine-y) * -3px), 0); }
+.marine-jelly-near { right: 17%; top: 18%; width: clamp(3rem, 5vw, 4.7rem); opacity: .16; animation: marine-float-right 29s ease-in-out -11s infinite; filter: blur(.2px) drop-shadow(0 0 12px var(--glow-soft)); }
+.marine-starfish-right { right: 5%; bottom: 2%; transform: rotate(20deg); animation: marine-starfish-right 28s ease-in-out -10s infinite; opacity: .11; }
+.marine-readout { position: absolute; padding-left: 1rem; color: color-mix(in oklab, var(--primary) 58%, transparent); font: 8px var(--font-mono); letter-spacing: .18em; text-transform: uppercase; animation: marine-readout-pulse 9s ease-in-out infinite; }
+.marine-readout::before { content: ""; position: absolute; left: 0; top: 50%; width: .55rem; height: 1px; background: currentColor; box-shadow: 0 0 6px currentColor; }
+.marine-readout-a { left: 9%; top: 17%; }
+.marine-readout-b { right: 8%; top: 31%; animation-delay: -3s; }
+.marine-readout-c { left: 13%; bottom: 23%; animation-delay: -6s; }
+.marine-readout-d { right: 11%; bottom: 13%; animation-delay: -4.5s; }
+
+.globe-orbit-stage::before,
+.globe-orbit-stage::after { content: ""; position: absolute; z-index: -1; pointer-events: none; left: 50%; top: 50%; width: min(76vw, 600px); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%) rotateX(66deg) rotateZ(8deg); }
+.globe-orbit-stage::before { border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent); box-shadow: inset 0 0 24px color-mix(in oklab, var(--primary) 7%, transparent), 0 0 18px color-mix(in oklab, var(--primary) 8%, transparent); animation: globe-orbit-spin 34s linear infinite; }
+.globe-orbit-stage::after { width: .45rem; border: 0; background: var(--primary); box-shadow: 0 0 12px var(--glow-strong), min(74vw, 580px) 0 0 -.08rem color-mix(in oklab, var(--primary) 65%, transparent), calc(min(74vw, 580px) / 2) calc(min(74vw, 580px) / 3) 0 -.12rem color-mix(in oklab, var(--primary) 55%, transparent); animation: globe-satellite-orbit 22s linear infinite; }
+
+@keyframes marine-rays-drift { to { transform: translate3d(calc(var(--marine-x) * -5px + 3%), calc(var(--marine-y) * -4px + 2%), 0) rotate(-9deg); opacity: .32; } }
+@keyframes marine-wave-shift { to { background-position: 120px 70px; } }
+@keyframes plankton-rise-far { 0% { opacity: 0; transform: translate3d(0, 18px, 0) scale(.7); } 35% { opacity: .12; } 100% { opacity: 0; transform: translate3d(7px, -100px, 0) scale(.8); } }
+@keyframes plankton-rise-near { 0% { opacity: 0; transform: translate3d(0, 35px, 0); } 30% { opacity: .42; } 55% { opacity: .16; } 75% { opacity: .45; } 100% { opacity: 0; transform: translate3d(18px, -190px, 0); } }
+@keyframes marine-readout-pulse { 0%, 18%, 100% { opacity: .08; transform: translateY(4px); } 35%, 68% { opacity: .48; transform: translateY(0); } }
+@keyframes marine-starfish-right { 0%, 100% { transform: translate3d(0, 0, 0) rotate(20deg); } 50% { transform: translate3d(-8px, -7px, 0) rotate(16deg); } }
+@keyframes globe-orbit-spin { to { transform: translate(-50%, -50%) rotateX(66deg) rotateZ(368deg); } }
+@keyframes globe-satellite-orbit { to { transform: translate(-50%, -50%) rotateX(66deg) rotateZ(-352deg); } }
+
+/* Immersive vertical water column */
+.depth-light-rays { position: fixed; inset: -12% -20%; opacity: calc((1 - var(--depth-progress)) * .34); background: repeating-linear-gradient(101deg, transparent 0 8%, color-mix(in oklab, var(--primary) 12%, transparent) 10%, transparent 15% 23%); filter: blur(8px); transform: translate3d(0, calc(var(--depth-progress) * -70px), 0); mask-image: linear-gradient(to bottom, black, transparent 58%); transition: opacity .2s linear; }
+.depth-water-fog { position: fixed; inset: -15% 0; opacity: .68; background: repeating-linear-gradient(180deg, color-mix(in oklab, var(--primary) 4%, transparent) 0 7%, transparent 13% 19%, color-mix(in oklab, var(--accent) 3%, transparent) 25% 31%); filter: blur(22px); transform: translate3d(0, calc(var(--depth-progress) * -110px), 0); animation: depth-fog-breathe 18s ease-in-out infinite alternate; }
+.depth-particle-field { position: fixed; inset: -8% 0; transform: translate3d(0, calc(var(--depth-progress) * -55px), 0); }
+.depth-speck { position: absolute; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--glow-strong); animation: depth-snow linear infinite; }
+.depth-speck-0 { width: 1px; height: 1px; opacity: .25; }
+.depth-speck-1 { width: 2px; height: 2px; opacity: .4; }
+.depth-speck-2 { width: 3px; height: 3px; opacity: calc(.18 + var(--depth-progress) * .34); filter: blur(.35px); }
+.depth-creature { position: fixed; display: block; width: clamp(2rem, 4vw, 4.5rem); aspect-ratio: 1.5; border-radius: 50% 52% 44% 48%; background: radial-gradient(ellipse at 62% 42%, color-mix(in oklab, var(--primary) 32%, transparent), transparent 68%); filter: blur(2px) drop-shadow(0 0 12px var(--glow-soft)); opacity: calc(.04 + var(--depth-progress) * .14); animation: depth-creature-drift 24s ease-in-out infinite; }
+.depth-creature::after { content: ""; position: absolute; right: -36%; top: 28%; width: 55%; height: 48%; clip-path: polygon(0 50%, 100% 0, 72% 50%, 100% 100%); background: color-mix(in oklab, var(--primary) 18%, transparent); }
+.depth-creature-1 { left: 13%; top: 25%; animation-delay: -8s; }
+.depth-creature-2 { right: 18%; top: 61%; animation-delay: -16s; scale: .65; }
+.depth-creature-3 { left: 27%; top: 78%; animation-delay: -4s; scale: .45; }
+.depth-creature-4 { right: 8%; top: 38%; animation-delay: -20s; scale: .8; }
+
+.depth-rail { width: 6.5rem; }
+.depth-rail-line { top: 0; bottom: 0; }
+.depth-rail-line i::after { content: ""; position: absolute; inset: -.4rem; border: 1px solid color-mix(in oklab, var(--primary) 48%, transparent); border-radius: 50%; animation: depth-rail-pulse 2.4s ease-out infinite; }
+.depth-tick { position: absolute; left: .35rem; translate: 0 -50%; display: flex; align-items: center; gap: .45rem; color: color-mix(in oklab, var(--foreground) 36%, transparent); font: 7px var(--font-mono); }
+.depth-tick b { width: .45rem; height: 1px; background: color-mix(in oklab, var(--primary) 32%, transparent); }
+.depth-zone { position: absolute; left: 1.45rem; display: flex; align-items: center; gap: .35rem; color: color-mix(in oklab, var(--primary) 55%, transparent); font: 7px var(--font-mono); text-transform: uppercase; }
+.depth-zone b { width: .3rem; height: .3rem; border: 1px solid currentColor; transform: rotate(45deg); }
+.depth-zone-surface { top: 3%; }.depth-zone-thermocline { top: 18%; }.depth-zone-deep { top: 52%; }.depth-zone-abyssal { top: 87%; }
+.depth-card { position: relative; overflow: hidden; animation: depth-card-pulse calc(7s - var(--card-warmth) * 2s) ease-in-out infinite; }
+.depth-card::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 80% 18%, color-mix(in oklab, var(--primary) calc(6% + var(--card-warmth) * 10%), transparent), transparent 48%); }
+
+@keyframes depth-snow { from { transform: translate3d(0, -30px, 0); opacity: 0; } 18% { opacity: calc(.16 + var(--depth-progress) * .38); } 82% { opacity: calc(.1 + var(--depth-progress) * .28); } to { transform: translate3d(14px, 150px, 0); opacity: 0; } }
+@keyframes depth-fog-breathe { to { transform: translate3d(0, calc(var(--depth-progress) * -110px + 22px), 0) scaleY(1.04); } }
+@keyframes depth-creature-drift { 0%, 100% { transform: translate3d(-15px, 20px, 0); } 50% { transform: translate3d(30px, -35px, 0); } }
+@keyframes depth-rail-pulse { from { opacity: .8; transform: scale(.55); } to { opacity: 0; transform: scale(1.65); } }
+@keyframes depth-card-pulse { 0%, 100% { border-color: color-mix(in oklab, var(--primary) 16%, transparent); box-shadow: 0 25px 80px color-mix(in oklab, var(--background) 48%, transparent), 0 0 0 transparent; } 50% { border-color: color-mix(in oklab, var(--primary) calc(20% + var(--card-warmth) * 12%), transparent); box-shadow: 0 25px 80px color-mix(in oklab, var(--background) 48%, transparent), 0 0 28px color-mix(in oklab, var(--primary) calc(5% + var(--card-warmth) * 8%), transparent); } }
+
+@media (max-width: 639px) {
+  .marine-readout-c, .marine-readout-d, .marine-jelly-near, .marine-starfish-right { display: none; }
+  .marine-particle:nth-child(2n) { display: none; }
+  .globe-orbit-stage::before { width: 92vw; }
+  .globe-orbit-stage::after { display: none; }
+  .depth-rail { width: 4.5rem; }
+  .depth-zone { display: none; }
+  .depth-tick { gap: .25rem; }
+  .depth-creature-3, .depth-creature-4 { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marine-rays, .marine-wave-field, .marine-readout, .globe-orbit-stage::before, .globe-orbit-stage::after,
+  .depth-water-fog, .depth-speck, .depth-creature, .depth-card, .depth-rail-line i::after { animation: none !important; }
+}
+
+/* Visual Richness Additions */
+.marine-rays {
+  background: repeating-linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 15%,
+    oklch(0.8 0.15 205 / 0.03) 20%,
+    transparent 25%
+  );
+  background-size: 200% 100%;
+  animation: ray-drift 25s linear infinite;
+  mask-image: radial-gradient(circle at 50% 0%, black, transparent 70%);
+}
+
+@keyframes ray-drift {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+.marine-manta {
+  left: 20%;
+  top: 65%;
+  width: clamp(12rem, 20vw, 18rem);
+  opacity: 0.12;
+  animation: manta-swim 45s ease-in-out infinite;
+  filter: blur(1px);
+}
+
+@keyframes manta-swim {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1) rotate(-2deg); }
+  50% { transform: translate3d(15vw, -10vh, 0) scale(1.05) rotate(2deg); }
+}
+
+.marine-data-fragment {
+  animation: fragment-pulse 8s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+@keyframes fragment-pulse {
+  0%, 100% { opacity: 0.05; transform: translateY(0); }
+  50% { opacity: 0.25; transform: translateY(-15px); }
+}
+
+/* Enhanced Depth Rail */
+.depth-rail-line::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 5px;
+  height: 100%;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, transparent, oklch(103 232 249 / 0.05), transparent);
+}
+
+.depth-rail-label {
+  transition: color 0.3s ease;
+}
+
+.depth-rail-label:hover {
+  color: #67e8f9;
+}
+
+/* Temperature Pulse */
+.depth-card {
+  transition: border-color 0.4s ease, transform 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.depth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), oklch(0.8 0.15 205 / 0.05), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.depth-card:hover::before {
+  opacity: 1;
+}
+
+.depth-temp {
+  animation: temp-glow calc(2s + (1 - var(--depth-warmth, 0.5)) * 3s) ease-in-out infinite;
+}
+
+@keyframes temp-glow {
+  0%, 100% { text-shadow: 0 0 5px oklch(0.8 0.15 205 / 0.2); opacity: 0.8; }
+  50% { text-shadow: 0 0 15px oklch(0.8 0.15 205 / 0.6); opacity: 1; }
+}
+
+/* Scroll Parallax Classes */
+.parallax-slow { transform: translateY(calc(var(--depth-progress) * -50px)); transition: transform 0.1s linear; }
+.parallax-fast { transform: translateY(calc(var(--depth-progress) * -120px)); transition: transform 0.1s linear; }
+
+/* Competition-Grade Interactive Micro-States */
+.ocean-card-hover {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.28s ease;
+}
+.ocean-card-hover:hover {
+  transform: translateY(-2px) scale(1.006);
+  border-color: rgba(34, 211, 238, 0.45) !important;
+  box-shadow: 0 20px 44px -12px rgba(0, 0, 0, 0.75), 0 0 25px rgba(34, 211, 238, 0.2) !important;
+}
+
+.ocean-interactive {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease, box-shadow 0.2s ease;
+}
+.ocean-interactive:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+.ocean-interactive:active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+/* Polished Multi-Phase Sonar Progress Indicator */
+.loading-sonar-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(34, 211, 238, 0.8);
+  flex-shrink: 0;
+}
+.loading-sonar-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(168, 85, 247, 0.65);
+  animation: ping 1.3s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* 1366x768 and Compact Screen Optimizations */
+@media (max-height: 800px) {
+  .globe-orbit-stage {
+    min-height: 280px !important;
+    height: 44vh !important;
+  }
+}
+
