@@ -1,0 +1,1 @@
+export default function PredictionPanel() { return <div className='p-4 border rounded-lg bg-card'><h2 className='font-semibold mb-4'>Controls</h2><p className='text-sm text-muted-foreground'>Select date, location, and run prediction.</p></div>; }

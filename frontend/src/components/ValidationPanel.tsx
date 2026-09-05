@@ -1,0 +1,1 @@
+export default function ValidationPanel() { return <div className='p-4 border rounded-lg bg-card'><h2 className='font-semibold mb-4'>Model Validation</h2><p className='text-sm text-muted-foreground'>RMSE / MAE metrics.</p></div>; }

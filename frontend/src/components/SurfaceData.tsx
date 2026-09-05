@@ -1,0 +1,1 @@
+export default function SurfaceData() { return <div className='p-4 border rounded-lg bg-card'><h2 className='font-semibold mb-4'>Surface Satellite Data</h2><p className='text-sm text-muted-foreground'>SST, SSH, SSS readings.</p></div>; }
