@@ -80,10 +80,10 @@ const fragmentShader = `
   }
 `;
 
-export default function EarthGlobe() {
+export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
-  const shaderRef = useRef<THREE.ShaderMaterial>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
+  const shaderRef = useRef<THREE.ShaderMaterial>(null);
   
   const selectedLocation = useOceanStore(state => state.selectedLocation);
   const setLocation = useOceanStore(state => state.setLocation);
@@ -115,27 +115,23 @@ export default function EarthGlobe() {
     }
   }, [colorMap, specularMap, normalMap, gl]);
 
-  const showErrorBounds = error !== null && error.includes("OUT OF BOUNDS");
+  const showErrorBounds = error !== null && error.toLowerCase().includes("out of bounds");
 
   useFrame((state) => {
     if (globeRef.current && !selectedLocation) {
-      // If error is showing, rotate faster to center the Indian Ocean automatically!
       if (showErrorBounds) {
         if (targetQuaternionRef.current) {
-          globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.05);
-          // Smoothly reset the camera back to default so the Euler rotation works perfectly
-          state.camera.position.lerp(new THREE.Vector3(0, 0, 5.5), 0.05);
-          state.camera.lookAt(0, 0, 0);
+          globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
         }
       } else {
         targetQuaternionRef.current = null;
-        // OrbitControls handles idle rotation now
       }
     }
     if (shaderRef.current) {
       shaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+
       // Smooth fade in/out for the highlight
-      const target = showErrorBounds ? 1.0 : 0.0;
+      const target = (alwaysShowGrid || showErrorBounds) ? 1.0 : 0.0;
       shaderRef.current.uniforms.showHighlight.value += (target - shaderRef.current.uniforms.showHighlight.value) * 0.1;
     }
   });
@@ -150,9 +146,10 @@ export default function EarthGlobe() {
     const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
     
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
-      useOceanStore.getState().setError("TARGET OUT OF BOUNDS: Model restricted to North Indian Ocean domain (5°N–30°N, 45°E–105°E).");
+      useOceanStore.getState().setError("Out of bounds", { x: e.clientX, y: e.clientY });
       const targetEuler = new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0);
       targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(targetEuler);
+      setTimeout(() => { targetQuaternionRef.current = null; }, 1500);
       return;
     }
     
@@ -185,7 +182,7 @@ export default function EarthGlobe() {
   }), []);
 
   return (
-    <group ref={globeRef} rotation={[0.2, 3.14, 0]}>
+    <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
       <ambientLight intensity={1.2} color="#ffffff" />
       <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
@@ -196,8 +193,8 @@ export default function EarthGlobe() {
       <Sphere 
         args={[2, 128, 128]} 
         onClick={handleClick}
-        onPointerOver={() => document.body.style.cursor = 'crosshair'}
-        onPointerOut={() => document.body.style.cursor = 'auto'}
+        onPointerOver={() => gl.domElement.style.cursor = 'crosshair'}
+        onPointerOut={() => gl.domElement.style.cursor = 'grab'}
       >
         <meshPhongMaterial 
           map={colorMap}
