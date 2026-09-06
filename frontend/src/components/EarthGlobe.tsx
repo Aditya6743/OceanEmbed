@@ -1,0 +1,247 @@
+import { useRef, useMemo, useEffect } from 'react';
+import { useFrame, useLoader, useThree } from '@react-three/fiber';
+import { Sphere, Stars } from '@react-three/drei';
+import * as THREE from 'three';
+import { useOceanStore } from '../store/oceanStore';
+
+const playSimplePing = () => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    if (!(window as any).audioCtx) (window as any).audioCtx = new AudioContext();
+    const ctx = (window as any).audioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, ctx.currentTime);
+    
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {}
+};
+
+const vertexShader = `
+  varying vec3 vPosition;
+  void main() {
+    vPosition = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const fragmentShader = `
+  varying vec3 vPosition;
+  uniform float time;
+  uniform float showHighlight;
+  
+  void main() {
+    if (showHighlight < 0.5) discard;
+    
+    vec3 p = normalize(vPosition);
+    float lat = asin(p.y) * 180.0 / 3.14159265359;
+    float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
+    // Bounds: 5N - 30N, 45E - 105E
+    if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
+      float pulse = (sin(time * 2.0) + 1.0) * 0.5 * 0.15 + 0.05;
+      
+      // Calculate distance to edge for a glowing border
+      float edgeX = min(lon - 45.0, 105.0 - lon);
+      float edgeY = min(lat - 5.0, 30.0 - lat);
+      float edge = min(edgeX, edgeY);
+      
+      float intensity = 0.0;
+      if (edge < 0.3) {
+        intensity = 0.5;
+      } else if (edge < 1.0) {
+        intensity = 0.5 * (1.0 - (edge - 0.3) / 0.7);
+      }
+      
+      // Add subtle grid lines inside
+      float gridX = mod(lon, 5.0);
+      float gridY = mod(lat, 5.0);
+      if (gridX < 0.1 || gridY < 0.1) {
+         intensity = max(intensity, 0.15);
+      }
+      
+      gl_FragColor = vec4(0.13, 0.83, 0.93, max(pulse, intensity) * 0.4);
+    } else {
+      discard;
+    }
+  }
+`;
+
+export default function EarthGlobe() {
+  const globeRef = useRef<THREE.Group>(null);
+  const shaderRef = useRef<THREE.ShaderMaterial>(null);
+  const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
+  
+  const selectedLocation = useOceanStore(state => state.selectedLocation);
+  const setLocation = useOceanStore(state => state.setLocation);
+  const error = useOceanStore(state => state.error);
+  
+  const { gl } = useThree();
+  
+  const [colorMap, specularMap, normalMap] = useLoader(THREE.TextureLoader, [
+    '/textures/earth.jpg',
+    '/textures/earth_specular.jpg',
+    '/textures/earth_normal.jpg'
+  ]);
+
+  useEffect(() => {
+    if (colorMap && specularMap && normalMap) {
+      const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
+      colorMap.anisotropy = maxAnisotropy;
+      specularMap.anisotropy = maxAnisotropy;
+      normalMap.anisotropy = maxAnisotropy;
+      colorMap.minFilter = THREE.LinearMipmapLinearFilter;
+      colorMap.magFilter = THREE.LinearFilter;
+      specularMap.minFilter = THREE.LinearMipmapLinearFilter;
+      specularMap.magFilter = THREE.LinearFilter;
+      normalMap.minFilter = THREE.LinearMipmapLinearFilter;
+      normalMap.magFilter = THREE.LinearFilter;
+      colorMap.needsUpdate = true;
+      specularMap.needsUpdate = true;
+      normalMap.needsUpdate = true;
+    }
+  }, [colorMap, specularMap, normalMap, gl]);
+
+  const showErrorBounds = error !== null && error.includes("OUT OF BOUNDS");
+
+  useFrame((state) => {
+    if (globeRef.current && !selectedLocation) {
+      // If error is showing, rotate faster to center the Indian Ocean automatically!
+      if (showErrorBounds) {
+        if (targetQuaternionRef.current) {
+          globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.05);
+          // Smoothly reset the camera back to default so the Euler rotation works perfectly
+          state.camera.position.lerp(new THREE.Vector3(0, 0, 5.5), 0.05);
+          state.camera.lookAt(0, 0, 0);
+        }
+      } else {
+        targetQuaternionRef.current = null;
+        // OrbitControls handles idle rotation now
+      }
+    }
+    if (shaderRef.current) {
+      shaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+      // Smooth fade in/out for the highlight
+      const target = showErrorBounds ? 1.0 : 0.0;
+      shaderRef.current.uniforms.showHighlight.value += (target - shaderRef.current.uniforms.showHighlight.value) * 0.1;
+    }
+  });
+
+  const handleClick = (e: any) => {
+    if (e.delta > 2) return;
+    playSimplePing();
+    e.stopPropagation();
+    
+    const point = globeRef.current!.worldToLocal(e.point.clone()).normalize();
+    const lat = Math.asin(point.y) * (180 / Math.PI);
+    const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
+    
+    if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
+      useOceanStore.getState().setError("TARGET OUT OF BOUNDS: Model restricted to North Indian Ocean domain (5°N–30°N, 45°E–105°E).");
+      const targetEuler = new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0);
+      targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(targetEuler);
+      return;
+    }
+    
+    const today = new Date().toISOString().split('T')[0];
+    const region = "INDIAN OCEAN";
+    
+    setLocation({
+      latitude: Number(lat.toFixed(2)),
+      longitude: Number(lon.toFixed(2)),
+      date: today,
+      region
+    });
+  };
+
+  const markerPosition = useMemo(() => {
+    if (!selectedLocation) return null;
+    const phi = selectedLocation.latitude * (Math.PI / 180);
+    const theta = selectedLocation.longitude * (Math.PI / 180);
+    const r = 2.01;
+    return new THREE.Vector3(
+      r * Math.cos(phi) * Math.cos(theta),
+      r * Math.sin(phi),
+      r * Math.cos(phi) * -Math.sin(theta)
+    );
+  }, [selectedLocation]);
+
+  const uniforms = useMemo(() => ({
+    time: { value: 0 },
+    showHighlight: { value: 0 }
+  }), []);
+
+  return (
+    <group ref={globeRef} rotation={[0.2, 3.14, 0]}>
+      <ambientLight intensity={1.2} color="#ffffff" />
+      <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
+      <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
+      <directionalLight position={[0, -10, 0]} intensity={0.5} color="#ffffff" />
+      
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />
+      
+      <Sphere 
+        args={[2, 128, 128]} 
+        onClick={handleClick}
+        onPointerOver={() => document.body.style.cursor = 'crosshair'}
+        onPointerOut={() => document.body.style.cursor = 'auto'}
+      >
+        <meshPhongMaterial 
+          map={colorMap}
+          specularMap={specularMap} normalMap={normalMap} normalScale={new THREE.Vector2(0.5, 0.5)}
+          specular={new THREE.Color('#0a5c7a')}
+          shininess={15}
+        />
+      </Sphere>
+      
+      {/* SIH26066 DOMAIN HIGHLIGHT OVERLAY (Custom GLSL Shader) */}
+      <Sphere args={[2.005, 128, 128]} raycast={() => null}>
+        <shaderMaterial
+          ref={shaderRef}
+          vertexShader={vertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          transparent={true}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </Sphere>
+
+      <Sphere args={[2.02, 128, 128]} raycast={() => null}>
+        <meshBasicMaterial 
+          color="#0ea5e9" 
+          transparent 
+          opacity={0.12} 
+          side={THREE.BackSide}
+          blending={THREE.AdditiveBlending}
+        />
+      </Sphere>
+
+      {markerPosition && (
+        <group position={markerPosition}>
+          <mesh>
+            <sphereGeometry args={[0.02, 16, 16]} />
+            <meshBasicMaterial color="#0ea5e9" />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.05, 16, 16]} />
+            <meshBasicMaterial color="#0ea5e9" transparent opacity={0.2} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
+}
