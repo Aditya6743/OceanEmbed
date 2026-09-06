@@ -6,7 +6,7 @@ import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
 import { useOceanStore } from '../store/oceanStore';
-import { getMockPrediction } from '../data/mockOceanData';
+import { fetchOceanPrediction } from '../lib/api';
 
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -36,10 +36,17 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 export default function Explore() {
 
-  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset } = useOceanStore();
+  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset, setError } = useOceanStore();
   const [loadingStep, setLoadingStep] = useState(0);
   const controlsRef = React.useRef(null);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      if (error) setError(null);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [error, setError]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -51,14 +58,21 @@ export default function Explore() {
       setTimeout(() => setLoadingStep(1), 600),
       setTimeout(() => setLoadingStep(2), 1400),
       setTimeout(() => setLoadingStep(3), 2200),
-      setTimeout(() => {
+      const predictionTimeout = setTimeout(async () => {
         if (selectedLocation) {
-          setPrediction(getMockPrediction(selectedLocation));
+          try {
+            const data = await fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate);
+            setPrediction(data);
+          } catch (err: any) {
+            setError(err.message || "Failed to connect to ML Backend.");
+          }
         }
-      }, 3000)
-    ];
-    
-    return () => steps.forEach(clearTimeout);
+      }, 3000);
+
+      return () => {
+        steps.forEach(clearTimeout);
+        clearTimeout(predictionTimeout);
+      };
   }, [isLoading, selectedLocation, setPrediction]);
 
   const handleRunInference = () => {

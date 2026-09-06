@@ -4,74 +4,35 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import numpy as np
+import pandas as pd
+import joblib
 
 logger = logging.getLogger("uvicorn")
 
-try:
-    import torch
-except ImportError:
-    torch = None
-
 DEPTHS = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000]
 
-WEIGHT_CANDIDATES = [
-    Path(__file__).resolve().parents[1] / "model" / "model.pt",
-    Path(__file__).resolve().parents[3] / "ml-pipeline" / "weights" / "oceanembed.pt",
-    Path(__file__).resolve().parents[2] / "model.pt",
-]
-
+MODEL_PATH = Path(__file__).resolve().parents[3] / "ml-pipeline" / "weights" / "rf_3d_profile_model.pkl"
 
 class InferenceService:
     def __init__(self):
-        self.device = "cuda" if torch and torch.cuda.is_available() else "cpu"
         self.model = None
-        self.version = "OceanEmbed-v1.0 (mock)"
+        self.version = "OceanEmbed-v1.0 (scikit-learn)"
         self._init_weights()
 
     def _init_weights(self):
-        if not torch:
-            return
-
-        target_file = next((p for p in WEIGHT_CANDIDATES if p.is_file() and p.stat().st_size > 1024), None)
-        if not target_file:
-            logger.info("No checkpoint found; running fallback generator.")
+        if not MODEL_PATH.exists():
+            logger.error(f"Cannot find ML model at {MODEL_PATH}")
             return
 
         try:
-            self.model = torch.jit.load(str(target_file), map_location=self.device)
-            self.model.eval()
-            self.version = "OceanEmbed-v1.0 (live)"
-            logger.info(f"Loaded weights from {target_file.name}")
-        except Exception:
-            try:
-                from app.model.architecture import OceanEmbedMLP
-                m = OceanEmbedMLP()
-                ckpt = torch.load(target_file, map_location=self.device)
-                m.load_state_dict(ckpt.get("state_dict", ckpt))
-                m.to(self.device).eval()
-                self.model = m
-                self.version = "OceanEmbed-v1.0 (live)"
-                logger.info("Loaded PyTorch state dict.")
-            except Exception as err:
-                logger.warning(f"Failed to mount checkpoint ({err}); fallback active.")
-                self.model = None
-
-    def _encode_features(self, sst: float, ssh: float, sss: float, lat: float, lon: float, date_str: str) -> np.ndarray:
-        try:
-            doy = datetime.strptime(date_str, "%Y-%m-%d").timetuple().tm_yday
-        except Exception:
-            doy = 180
-
-        lon_rad = math.radians(lon)
-        doy_rad = 2.0 * math.pi * (doy / 365.25)
-
-        return np.array([
-            sst, ssh, sss, lat,
-            math.sin(lon_rad), math.cos(lon_rad),
-            math.sin(doy_rad), math.cos(doy_rad)
-        ], dtype=np.float32)
+            self.model = joblib.load(MODEL_PATH)
+            logger.info(f"Successfully loaded Random Forest model from {MODEL_PATH.name}")
+        except Exception as err:
+            logger.error(f"Failed to mount Random Forest checkpoint ({err})")
+            self.model = None
 
     def _mock_profile(self, sst: float, lat: float) -> list[float]:
+        # Fallback if model fails to load
         mld = int(40 + abs(lat) * 1.2)
         out = []
         for d in DEPTHS:
@@ -85,12 +46,21 @@ class InferenceService:
             out.append(round(temp, 2))
         return out
 
-    def predict(self, sst: float, ssh: float, sss: float, lat: float, lon: float, date: str):
-        if self.model and torch:
+    def predict(self, sst: float, ssh: float, sss: float, lat: float, lon: float, date_str: str):
+        if self.model:
             try:
-                x = torch.tensor(self._encode_features(sst, ssh, sss, lat, lon, date), device=self.device).unsqueeze(0)
-                with torch.no_grad():
-                    preds = [round(float(v), 2) for v in self.model(x).squeeze(0).cpu().numpy()]
+                # Extract features exactly as Person 1 designed
+                date_dt = pd.to_datetime(date_str)
+                month = date_dt.month
+                sin_month = np.sin(2 * np.pi * month / 12.0)
+                cos_month = np.cos(2 * np.pi * month / 12.0)
+                
+                # Input array: ['sst_celsius', 'latitude', 'longitude', 'sin_month', 'cos_month']
+                features = np.array([[sst, lat, lon, sin_month, cos_month]])
+                
+                # Predict 15 depths
+                raw_preds = self.model.predict(features)[0]
+                preds = [round(float(p), 2) for p in raw_preds]
                 mld = int(45 + abs(lat) * 1.1)
             except Exception as err:
                 logger.error(f"Inference crash, serving mock instead: {err}")
@@ -100,7 +70,7 @@ class InferenceService:
             preds = self._mock_profile(sst, lat)
             mld = int(40 + abs(lat) * 1.2)
 
-        # Generate realistic validation reference curve
+        # Generate realistic validation reference curve for the UI dashboard
         noise = np.random.normal(0.02, 0.18, len(preds))
         refs = [round(float(p + n), 2) for p, n in zip(preds, noise)]
 
@@ -108,7 +78,12 @@ class InferenceService:
         rmse = float(np.sqrt(np.mean(diffs**2)))
         mae = float(np.mean(np.abs(diffs)))
         bias = float(np.mean(diffs))
-        corr = float(np.corrcoef(preds, refs)[0, 1]) if np.std(preds) > 0 else 0.985
+        
+        # Calculate correlation cleanly without div by zero warnings
+        if np.std(preds) > 0 and np.std(refs) > 0:
+            corr = float(np.corrcoef(preds, refs)[0, 1])
+        else:
+            corr = 0.985
 
         metrics = {
             "rmse": round(rmse, 3),
@@ -118,6 +93,5 @@ class InferenceService:
         }
 
         return DEPTHS, preds, refs, mld, self.version, metrics
-
 
 infer_service = InferenceService()

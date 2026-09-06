@@ -8,6 +8,14 @@ import EarthGlobe from '../components/EarthGlobe';
 import { useOceanStore } from '../store/oceanStore';
 import React from 'react';
 
+import ProblemSection from '../components/landing/ProblemSection';
+import DataSection from '../components/landing/DataSection';
+import ModelSection from '../components/landing/ModelSection';
+import HowItWorksSection from '../components/landing/HowItWorksSection';
+import ResultsSection from '../components/landing/ResultsSection';
+import AboutSection from '../components/landing/AboutSection';
+import Footer from '../components/landing/Footer';
+
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 
@@ -38,15 +46,23 @@ export default function Home() {
 
   const navigate = useNavigate();
   const controlsRef = React.useRef(null);
-  const { error, errorPosition } = useOceanStore();
+  const { error, errorPosition, setError } = useOceanStore();
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
   const handleExplore = () => {
     navigate('/explore');
   };
 
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (error) setError(null);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [error, setError]);
+
   return (
-    <div className="w-full bg-[#050505] overflow-x-hidden pt-14 font-sans select-none">
+    <div id="top" className="w-full bg-[#050505] overflow-x-hidden pt-14 font-sans select-none">
       
       {/* HERO SECTION */}
       <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10">
@@ -194,57 +210,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* THE OCEAN WE CAN'T SEE SECTION */}
-      <section id="problem-section" className="w-full py-32 relative z-10 bg-[#050505] border-t border-white/5">
-        <div className="container mx-auto px-8 lg:px-16 max-w-6xl">
-          <h2 className="text-3xl md:text-5xl font-bold text-center text-white mb-24 tracking-tight">
-            The ocean we can't see.
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16">
-            <div className="p-8 md:p-12 rounded-3xl bg-white/[0.02] border border-white/[0.05]">
-              <div className="text-xs font-medium text-white/40 uppercase tracking-widest mb-6">The Problem</div>
-              <p className="text-white/80 leading-relaxed mb-6 font-light text-lg">
-                Satellites continuously observe the ocean surface, but they <span className="text-white font-medium">cannot directly observe the temperature structure</span> deep below it.
-              </p>
-              <p className="text-white/50 leading-relaxed font-light">
-                Argo floats provide valuable subsurface measurements, but their observations are spatially and temporally sparse across the vast global ocean.
-              </p>
-            </div>
-            
-            <div className="p-8 md:p-12 rounded-3xl bg-cyan-950/20 border border-cyan-900/30">
-              <div className="text-xs font-medium text-cyan-400 uppercase tracking-widest mb-6">The Solution</div>
-              <p className="text-white/90 leading-relaxed mb-10 font-light text-lg">
-                OceanEmbed learns the complex relationship between surface observations and subsurface temperature profiles.
-              </p>
-              
-              <div className="flex flex-col gap-3 text-sm font-mono text-white/70">
-                <div className="bg-black/40 px-4 py-3 rounded-xl border border-white/5">1. SATELLITE INPUT (SST, SSH, SSS)</div>
-                <div className="pl-6 text-cyan-500/50">↓</div>
-                <div className="bg-cyan-950/40 px-4 py-3 rounded-xl border border-cyan-900/50 text-cyan-300">2. OCEANEMBED INFERENCE</div>
-                <div className="pl-6 text-cyan-500/50">↓</div>
-                <div className="bg-black/40 px-4 py-3 rounded-xl border border-white/5">3. FULL DEPTH PROFILE (0-2000m)</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SUBSURFACE PREVIEW SECTION */}
-      <section className="w-full py-32 md:py-48 relative z-10 bg-[#050505] text-center flex flex-col items-center border-t border-white/5">
-        <h2 className="text-3xl md:text-5xl font-bold text-white mb-8 tracking-tight">
-          Visualizing the depths.
-        </h2>
-        <p className="text-white/50 font-light max-w-2xl mx-auto mb-12 px-6 text-lg leading-relaxed">
-          The deep learning framework predicts a 1D temperature profile representing depths from 0m to 2000m, transformed into an interactive 3D water column for scientific analysis.
-        </p>
-        <button 
-          onClick={handleExplore}
-          className="px-8 py-4 bg-white text-black text-sm font-semibold rounded-full hover:bg-gray-200 transition-colors"
-        >
-          Start Exploration
-        </button>
-      </section>
+      {/* MODULAR LANDING PAGE SECTIONS */}
+      <ProblemSection />
+      <DataSection />
+      <ModelSection />
+      <HowItWorksSection />
+      <ResultsSection />
+      <AboutSection />
+      <Footer />
       
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (
