@@ -4,8 +4,8 @@ import seaborn as sns
 import numpy as np
 import os
 
-PROCESSED_DATA = "backend/ml/data/processed/bob_sst_wind_merged.csv"
-OUT_DIR = "backend/ml/evaluation/plots/"
+PROCESSED_DATA = "ml-pipeline/data/processed/bob_sst_wind_merged.csv"
+OUT_DIR = "ml-pipeline/notebooks/plots/"
 os.makedirs(OUT_DIR, exist_ok=True)
 
 def run_eda():
