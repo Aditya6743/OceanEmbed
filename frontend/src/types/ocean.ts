@@ -6,14 +6,26 @@ export interface OceanLocation {
 }
 
 export interface SurfaceData {
-  sst: number; // Sea Surface Temperature in °C
-  ssh: number; // Sea Surface Height / Anomaly in m
-  sss: number; // Sea Surface Salinity in PSU
+  sst: number;       // Sea Surface Temperature in °C
+  ssh: number;       // Sea Surface Height / Anomaly in m
+  sss: number;       // Sea Surface Salinity in PSU
+  current_u: number; // Surface Ocean Current U in m/s
+  current_v: number; // Surface Ocean Current V in m/s
+  wind_u: number;    // Surface Wind U in m/s
+  wind_v: number;    // Surface Wind V in m/s
 }
 
 export interface OceanProfile {
   depth: number[];
   temperature: number[];
+  reference_temperature?: number[];
+}
+
+export interface PredictionMetrics {
+  rmse: number;
+  mae: number;
+  bias: number;
+  correlation: number;
 }
 
 export interface PredictionResponse {
@@ -22,17 +34,5 @@ export interface PredictionResponse {
   profile: OceanProfile;
   model_version: string;
   estimated_thermocline?: number;
-}
-
-export interface PredictionMetrics {
-  rmse: number;
-  mae: number;
-  r2: number;
-}
-
-export interface ArgoComparisonData {
-  depth: number[];
-  oceanembed_temp: number[];
-  argo_temp: number[];
-  metrics: PredictionMetrics;
+  metrics?: PredictionMetrics;
 }

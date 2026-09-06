@@ -1,37 +1,339 @@
-import PredictionPanel from '../components/PredictionPanel';
-import SurfaceData from '../components/SurfaceData';
-import ValidationPanel from '../components/ValidationPanel';
-import OceanMap from '../components/OceanMap';
-import Ocean3D from '../components/Ocean3D';
+import { Suspense, useState, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { Activity, BrainCircuit, RefreshCw, Zap, BarChart3, Scan, X, Download, AlertTriangle } from 'lucide-react';
+import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
+import Ocean3D from '../components/Ocean3D';
+import { useOceanStore } from '../store/oceanStore';
+import { getMockPrediction } from '../data/mockOceanData';
 
 export default function Explore() {
-  return (
-    <div className="flex-1 overflow-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-background pt-20">
-      
-      {/* Left Column - Controls & Surface Data */}
-      <div className="lg:col-span-3 flex flex-col gap-6">
-        <PredictionPanel />
-        <SurfaceData />
-      </div>
-      
-      {/* Middle Column - Map & 3D Ocean Block */}
-      <div className="lg:col-span-4 flex flex-col gap-6">
-        <div className="h-[250px] w-full">
-          <OceanMap />
-        </div>
-        <div className="flex-1 w-full min-h-[400px]">
-          <Ocean3D />
-        </div>
-      </div>
+  const { selectedLocation, prediction, isLoading, error, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset } = useOceanStore();
+  const [loadingStep, setLoadingStep] = useState(0);
 
-      {/* Right Column - Validation Graph & Comparison */}
-      <div className="lg:col-span-5 flex flex-col gap-6">
-        <div className="h-[450px] w-full">
-          <TemperatureChart />
+  useEffect(() => {
+    if (error && error.includes("OUT OF BOUNDS")) {
+      const timer = setTimeout(() => {
+        useOceanStore.getState().setError(null);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingStep(0);
+      return;
+    }
+    
+    const steps = [
+      setTimeout(() => setLoadingStep(1), 600),
+      setTimeout(() => setLoadingStep(2), 1400),
+      setTimeout(() => setLoadingStep(3), 2200),
+      setTimeout(() => {
+        if (selectedLocation) {
+          setPrediction(getMockPrediction(selectedLocation));
+        }
+      }, 3000)
+    ];
+    
+    return () => steps.forEach(clearTimeout);
+  }, [isLoading, selectedLocation, setPrediction]);
+
+  const handleRunInference = () => {
+    if (!selectedLocation) return;
+    setIsLoading(true);
+  };
+
+  const handleExportCSV = () => {
+    if (!prediction || !selectedLocation) return;
+    const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Argo Reference (C)']];
+    prediction.profile.depth.forEach((d, i) => {
+      rows.push([
+        d.toString(),
+        prediction.profile.temperature[i].toFixed(4),
+        prediction.profile.reference_temperature?.[i]?.toFixed(4) || 'N/A'
+      ]);
+    });
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `oceanembed_${selectedLocation.latitude.toFixed(2)}_${selectedLocation.longitude.toFixed(2)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="w-full h-screen bg-[#020202] flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
+      
+      {/* LEFT PANEL - INTERACTIVE GLOBE */}
+      <div className="w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-black shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)] border-r border-white/[0.05]">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#000_100%)] z-10" />
+        
+        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
+          <Suspense fallback={null}>
+            <EarthGlobe />
+            <OrbitControls 
+              enablePan={false} enableDamping dampingFactor={0.05} rotateSpeed={0.5}
+              enableZoom minDistance={4.5} maxDistance={6}
+              autoRotate={!selectedLocation && !error} autoRotateSpeed={0.5}
+            />
+          </Suspense>
+        </Canvas>
+
+        {/* Cinematic HUD Overlay */}
+        <div className="absolute top-6 left-6 z-20 pointer-events-none">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+            </div>
+            <span className="text-[10px] text-cyan-400 font-mono tracking-[0.3em] font-bold">ORBITAL SENSORS</span>
+          </div>
         </div>
         
-        <ValidationPanel />
+
+      </div>
+
+      {/* RIGHT PANEL - NO SCROLL DASHBOARD */}
+      <div className="w-full md:w-1/2 h-full bg-[#050505] relative p-4 flex flex-col overflow-hidden">
+        
+        {/* Grid Background */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
+        {!selectedLocation ? (
+          <div className="h-full flex flex-col items-center justify-center text-center opacity-40 relative z-10">
+            <Scan className="w-16 h-16 text-cyan-500 mb-8 animate-pulse" strokeWidth={1} />
+            <h3 className="text-2xl font-bold text-white mb-4 tracking-[0.2em] uppercase">No Target Acquired</h3>
+            <p className="text-sm text-white/50 font-mono max-w-sm leading-relaxed mb-6">
+              Click anywhere on the global map to extract satellite surface telemetry.
+            </p>
+          </div>
+        ) : (
+          <div className="relative z-10 flex flex-col gap-3 h-full animate-in fade-in slide-in-from-bottom-8 duration-700 pb-2">
+            
+            {/* HEADER COMPONENT */}
+            <div className="flex justify-between items-end border-b border-white/10 pb-2 shrink-0">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 text-[9px] font-mono tracking-[0.2em] mb-1">
+                  <Activity className="w-3 h-3" /> TARGET LOCKED
+                </div>
+                <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase">{selectedLocation.region}</h2>
+                <div className="flex items-center gap-2 text-[9px] font-mono text-white/50">
+                  <span className="bg-white/5 px-2 py-1.5 rounded border border-white/10">LAT: {selectedLocation.latitude.toFixed(4)}°</span>
+                  <span className="bg-white/5 px-2 py-1.5 rounded border border-white/10">LON: {selectedLocation.longitude.toFixed(4)}°</span>
+                  <div className="flex items-center gap-2 bg-cyan-950/30 px-3 py-1 rounded border border-cyan-500/30 transition-colors hover:bg-cyan-900/40">
+                    <span className="text-cyan-500 font-bold tracking-widest text-[9px] uppercase">Select Date</span>
+                    <input 
+                      type="date" 
+                      value={selectedDate}
+                      min="1993-01-01"
+                      max="2023-12-31"
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      disabled={prediction !== null || isLoading}
+                      className="bg-transparent text-cyan-50 font-bold focus:outline-none cursor-pointer disabled:opacity-50"
+                      style={{ colorScheme: 'dark' }}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2 shrink-0">
+                <button 
+                  onClick={reset}
+                  disabled={isLoading}
+                  className="px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded text-white/50 hover:text-white transition-all flex items-center justify-center"
+                  title="Clear Selection"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                {prediction && (
+                  <button 
+                    onClick={handleExportCSV}
+                    className="px-3 py-2 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center"
+                    title="Export CSV"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                )}
+                <button 
+                  onClick={handleRunInference}
+                  disabled={isLoading || prediction !== null}
+                  className="group relative flex-1 xl:flex-none flex items-center justify-center gap-3 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-950 disabled:text-cyan-600 disabled:cursor-not-allowed border border-cyan-400/50 rounded text-white text-[10px] font-bold tracking-[0.3em] uppercase transition-all overflow-hidden shadow-[0_0_30px_rgba(8,145,178,0.2)]"
+                >
+                  {isLoading ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : prediction ? (
+                    <BarChart3 className="w-4 h-4" />
+                  ) : (
+                    <BrainCircuit className="w-4 h-4" />
+                  )}
+                  <span>{isLoading ? 'PROCESSING...' : prediction ? 'INFERENCE COMPLETE' : 'RUN INFERENCE'}</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                </button>
+              </div>
+            </div>
+
+            {/* ERROR STATE */}
+            {error && !isLoading && (
+              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 py-10">
+                <div className="bg-red-950/40 border border-red-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(239,68,68,0.1)]">
+                  <div className="text-red-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
+                    <AlertTriangle className="w-6 h-6" /> SYSTEM ERROR
+                  </div>
+                  <p className="text-white/70 font-mono text-sm mb-8">{error}</p>
+                  <button 
+                    onClick={handleRunInference}
+                    className="px-6 py-3 bg-red-900/50 hover:bg-red-800 border border-red-500/50 rounded text-red-100 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors"
+                  >
+                    RETRY INFERENCE
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* INFERENCE SEQUENCE OVERLAY */}
+            {isLoading && (
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="bg-black/60 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 font-mono text-xs shadow-[0_0_50px_rgba(8,145,178,0.15)]">
+                  <div className="flex items-center gap-3 text-cyan-400 mb-6 border-b border-cyan-500/20 pb-4">
+                    <Zap className="w-4 h-4 animate-pulse" />
+                    <span className="text-sm font-bold tracking-[0.2em]">OCEANEMBED NEURAL ENGINE</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4 text-white/80">
+                      <span className="opacity-40 w-12 text-right">0.00s</span>
+                      <span className="text-cyan-300">INITIALIZING MODEL WEIGHTS...</span>
+                    </div>
+                    {loadingStep >= 1 && (
+                      <div className="flex items-center gap-4 text-white/80 animate-in fade-in">
+                        <span className="opacity-40 w-12 text-right">0.60s</span>
+                        <span>EXTRACTING TELEMETRY (SST/SSH/SSS) <span className="text-emerald-400 ml-2">✓</span></span>
+                      </div>
+                    )}
+                    {loadingStep >= 2 && (
+                      <div className="flex items-center gap-4 text-white/80 animate-in fade-in">
+                        <span className="opacity-40 w-12 text-right">1.40s</span>
+                        <span>TENSOR NORMALIZATION <span className="text-emerald-400 ml-2">✓</span></span>
+                      </div>
+                    )}
+                    {loadingStep >= 3 && (
+                      <div className="flex items-center gap-4 text-cyan-400 animate-in fade-in">
+                        <span className="opacity-40 w-12 text-right text-white/40">2.20s</span>
+                        <span className="animate-pulse">EXECUTING FORWARD PASS...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+                                    {/* PREDICTION RESULTS */}
+            {prediction && !isLoading && !error && (
+              <div className="flex-1 flex flex-col gap-3 min-h-0 animate-in fade-in duration-1000 zoom-in-95">
+                
+                {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 shrink-0">
+                  
+                  {/* SURFACE OBSERVATIONS */}
+                  <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2">SURFACE OBSERVATIONS</div>
+                    <div className="grid grid-cols-7 gap-2">
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SST</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.sst.toFixed(1)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSS</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.sss.toFixed(1)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSH</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.ssh > 0 ? '+' : ''}{prediction.surface_data.ssh.toFixed(2)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U CUR</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.current_u.toFixed(2)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V CUR</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.current_v.toFixed(2)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U WND</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.wind_u.toFixed(1)}</div>
+                      </div>
+                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V WND</div>
+                        <div className="text-white font-mono text-xs">{prediction.surface_data.wind_v.toFixed(1)}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MODEL PERFORMANCE */}
+                  <div className="xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2">MODEL PERFORMANCE</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-purple-950/20 border border-purple-500/20 rounded p-1.5 text-center">
+                        <div className="text-purple-400 text-[8px] font-mono tracking-widest mb-1 font-bold">RMSE</div>
+                        <div className="text-white font-mono text-xs">{prediction.metrics?.rmse.toFixed(3)}</div>
+                      </div>
+                      <div className="bg-fuchsia-950/20 border border-fuchsia-500/20 rounded p-1.5 text-center">
+                        <div className="text-fuchsia-400 text-[8px] font-mono tracking-widest mb-1 font-bold">BIAS</div>
+                        <div className="text-white font-mono text-xs">{prediction.metrics?.bias.toFixed(3)}</div>
+                      </div>
+                      <div className="bg-indigo-950/20 border border-indigo-500/20 rounded p-1.5 text-center">
+                        <div className="text-indigo-400 text-[8px] font-mono tracking-widest mb-1 font-bold">CORR</div>
+                        <div className="text-white font-mono text-xs">{prediction.metrics?.correlation.toFixed(3)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ROW 2: VISUALIZATIONS */}
+                <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0">
+                  <div className="w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl">
+                    <div className="text-[9px] text-white/40 font-mono tracking-[0.2em] mb-2 shrink-0 flex justify-between">
+                      <span>3D THERMODYNAMIC VOLUME</span>
+                      <span>0 — 1000m</span>
+                    </div>
+                    <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-black shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5">
+                      <Ocean3D prediction={prediction} />
+                    </div>
+                  </div>
+
+                  <div className="w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl">
+                    <div className="flex justify-between items-center mb-2 shrink-0">
+                      <div className="text-[9px] text-white/40 font-mono tracking-[0.2em]">TEMPERATURE vs DEPTH</div>
+                      <div className="text-[8px] text-lime-400/80 font-mono tracking-widest border border-lime-500/30 px-1.5 py-0.5 rounded-sm bg-lime-950/30">ARGO VALIDATION</div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      <TemperatureChart profile={prediction.profile} thermoclineDepth={prediction.estimated_thermocline} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ROW 3: SCIENTIFIC CONTEXT */}
+                <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 flex items-center justify-between shrink-0 text-[8px] font-mono">
+                  <div className="flex items-center gap-6">
+                    <div><span className="text-cyan-400 font-bold mr-2">1. SATELLITE</span><span className="text-white/40">Surface telemetry</span></div>
+                    <div><span className="text-cyan-400 font-bold mr-2">2. OCEANEMBED</span><span className="text-white/40">Deep learning inference</span></div>
+                    <div><span className="text-cyan-400 font-bold mr-2">3. ARGO</span><span className="text-white/40">Independent validation</span></div>
+                  </div>
+                  <div className="flex items-center gap-2 bg-black/40 px-2 py-0.5 rounded border border-white/5 text-emerald-400">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> PREDICTION READY
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+
+          </div>
+        )}
       </div>
       
     </div>

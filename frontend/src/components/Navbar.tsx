@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Waves } from 'lucide-react';
+import { Waves } from 'lucide-react';
 
 export default function Navbar() {
   const location = useLocation();
@@ -41,9 +41,9 @@ export default function Navbar() {
           </nav>
         </div>
         
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-cyan-400 bg-cyan-950/20 px-3 py-1 rounded-full border border-cyan-500/10">
-          <Activity className="w-3 h-3" />
-          OCEAN INTELLIGENCE
+        {/* TOP RIGHT BADGE */}
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-cyan-400 font-bold bg-cyan-950/40 px-4 py-1.5 rounded-full border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.15)]">
+          SIH26066
         </div>
       </div>
     </header>

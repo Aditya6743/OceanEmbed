@@ -1,122 +1,184 @@
-import { Suspense, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Html } from '@react-three/drei';
+import { useRef, useEffect, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { Box, Edges, OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
+import type { PredictionResponse } from '../types/ocean';
 import { useOceanStore } from '../store/oceanStore';
 
-const getTemperatureColor = (temp: number, minTemp: number, maxTemp: number) => {
-  const t = Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
-  const color = new THREE.Color();
-  if (t < 0.5) {
-    color.lerpColors(new THREE.Color('#020617'), new THREE.Color('#0ea5e9'), t * 2);
-  } else {
-    color.lerpColors(new THREE.Color('#0ea5e9'), new THREE.Color('#ef4444'), (t - 0.5) * 2);
-  }
-  return color;
-};
+function WaterColumn({ prediction }: { prediction: PredictionResponse }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const { hoveredDepth, setHoveredDepth } = useOceanStore();
+  const [, setAnimating] = useState(true);
+  
+  useFrame((state) => {
+    if (groupRef.current && !hoveredDepth) {
+      groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.05;
+    }
+  });
 
-function WaterColumn({ depth, temperature, estimatedThermocline }: { depth: number[], temperature: number[], estimatedThermocline?: number }) {
-  const maxDepth = Math.max(...depth);
-  const minTemp = Math.min(...temperature);
-  const maxTemp = Math.max(...temperature);
+  useEffect(() => {
+    setAnimating(true);
+    const t = setTimeout(() => setAnimating(false), 2000);
+    return () => clearTimeout(t);
+  }, [prediction]);
 
-  const layers = useMemo(() => {
-    return depth.map((d, i) => {
-      const height = 4; 
-      const y = -(d / maxDepth) * height;
-      
-      let thickness = 0;
-      if (i < depth.length - 1) {
-        thickness = ((depth[i+1] - d) / maxDepth) * height;
-      } else {
-        thickness = height / depth.length;
-      }
+  // Enhanced, highly saturated premium color map
+  const getTempColor = (temp: number) => {
+    const t = Math.max(0, Math.min(1, temp / 30)); 
+    let hue;
+    if (t < 0.3) { 
+      hue = 0.65 - (t / 0.3) * 0.15; // Deep Blue -> Cyan
+    } else if (t < 0.7) { 
+      hue = 0.5 - ((t - 0.3) / 0.4) * 0.35; // Cyan -> Yellow
+    } else { 
+      hue = 0.15 - ((t - 0.7) / 0.3) * 0.18; // Yellow -> Vivid Crimson
+    }
+    const finalHue = hue < 0 ? hue + 1 : hue;
+    return new THREE.Color().setHSL(finalHue, 1.0, 0.55).getHexString();
+  };
 
-      return {
-        d,
-        y: y - (thickness / 2),
-        thickness,
-        temp: temperature[i],
-        color: getTemperatureColor(temperature[i], minTemp, maxTemp)
-      };
+  const layers = prediction.profile.depth
+    .map((depth, idx) => ({ depth, temp: prediction.profile.temperature[idx] }))
+    
+    .map(layer => {
+      const colorHex = `#${getTempColor(layer.temp)}`;
+      const y = 2 - (layer.depth / 1000) * 4;
+      return { ...layer, colorHex, y };
     });
-  }, [depth, temperature]);
+
+  const thermoclineDepth = prediction.estimated_thermocline || 150;
+  const nearestThermocline100 = Math.round(thermoclineDepth / 100) * 100;
 
   return (
-    <group position={[0, 2, 0]}>
-      {layers.map((layer, i) => (
-        <mesh key={i} position={[0, layer.y, 0]}>
-          <boxGeometry args={[1.5, layer.thickness, 1.5]} />
-          <meshPhysicalMaterial 
-            color={layer.color} 
-            transparent 
-            opacity={0.8} 
-            transmission={0.4} 
-            roughness={0.1}
-          />
-          <Html position={[1.0, 0, 0]} center className="pointer-events-none">
-            <div className="flex flex-col items-start translate-x-4">
-              <div className="text-[10px] font-mono text-white/70 whitespace-nowrap">{layer.d}m • {layer.temp.toFixed(1)}°C</div>
-              {estimatedThermocline === layer.d && (
-                <div className="text-[9px] font-mono text-cyan-400 font-bold bg-cyan-950/80 px-1 rounded whitespace-nowrap mt-1 border border-cyan-800">
-                  ~ THERMOCLINE (ESTIMATED)
-                </div>
-              )}
-            </div>
-          </Html>
-        </mesh>
-      ))}
+    <group ref={groupRef} rotation={[0.15, 0, 0]}>
       
-      <mesh position={[0, -2, 0]}>
-        <boxGeometry args={[1.52, 4.02, 1.52]} />
-        <meshBasicMaterial color="#ffffff" wireframe transparent opacity={0.05} />
+      {/* 1. INVISIBLE HITBOX */}
+      <mesh 
+        visible={false}
+        onPointerMove={(e) => {
+          if (e.buttons > 0) return;
+          e.stopPropagation();
+          if (groupRef.current) {
+            const localPoint = groupRef.current.worldToLocal(e.point.clone());
+            const rawDepth = ((2 - localPoint.y) / 4) * 1000;
+            const standardDepths = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000];
+            const boundedDepth = standardDepths.reduce((prev, curr) => Math.abs(curr - rawDepth) < Math.abs(prev - rawDepth) ? curr : prev);
+            
+            if (hoveredDepth !== boundedDepth) setHoveredDepth(boundedDepth);
+          }
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          setHoveredDepth(null);
+        }}
+      >
+        <boxGeometry args={[2.5, 4.1, 2.5]} />
+        <meshBasicMaterial />
       </mesh>
+
+      {/* 2. PREMIUM VISUAL GLASS CASING */}
+      <Box args={[2.05, 4.05, 2.05]} raycast={() => null}>
+        <meshPhysicalMaterial 
+          color="#0ea5e9" 
+          transmission={0.9} 
+          opacity={1} 
+          transparent
+          metalness={0.1}
+          roughness={0.0}
+          ior={1.2}
+          thickness={0.1}
+          side={THREE.BackSide} 
+        />
+        <Edges scale={1.0} threshold={15} color="#22d3ee" opacity={0.3} transparent />
+      </Box>
+
+      {/* 3. THICK GLASS PLATES (Distinct Depth Layers) */}
+      {layers.map((layer) => {
+        const isHovered = hoveredDepth === layer.depth;
+        const isDimmed = hoveredDepth !== null && !isHovered;
+        const isThermocline = layer.depth === nearestThermocline100;
+        
+        // Much higher opacity for thick plates to look like solid objects
+        const opacity = isDimmed ? 0.1 : (isHovered ? 0.95 : (isThermocline ? 0.8 : 0.4));
+
+        return (
+          <group key={layer.depth} position={[0, layer.y, 0]}>
+            {/* Thick BoxGeometry instead of flat PlaneGeometry */}
+            <mesh raycast={() => null}>
+              <boxGeometry args={[1.95, 0.005, 1.95]} />
+              <meshPhysicalMaterial 
+                color={layer.colorHex} 
+                emissive={layer.colorHex}
+                emissiveIntensity={isHovered ? 1.5 : (isThermocline ? 0.8 : 0.2)}
+                transmission={0.6}
+                transparent 
+                opacity={opacity} 
+                depthWrite={false}
+                roughness={0.1}
+                metalness={0.2}
+                ior={1.4}
+              />
+            </mesh>
+            
+            {/* HTML Label */}
+            {(isHovered || (isThermocline && hoveredDepth === null)) && (
+              <Html position={[1.15, 0, 0]} center zIndexRange={[100, 0]} style={{ pointerEvents: 'none' }}>
+                <div 
+                  className="flex flex-col items-start bg-black/30 border border-white/10 p-2.5 rounded backdrop-blur-md shadow-2xl whitespace-nowrap transition-all"
+                  style={{ borderLeftColor: layer.colorHex, borderLeftWidth: '3px', boxShadow: `0 0 40px ${layer.colorHex}20` }}
+                >
+                  <div className="text-[9px] font-mono tracking-widest mb-1.5 font-bold" style={{ color: layer.colorHex }}>
+                    {isHovered ? 'DEPTH LAYER' : 'THERMOCLINE'}
+                  </div>
+                  <div className="text-white font-mono text-sm font-black drop-shadow-md">
+                    {layer.depth}m <span className="text-white/20 mx-2">|</span> {layer.temp.toFixed(1)}°C
+                  </div>
+                </div>
+              </Html>
+            )}
+          </group>
+        );
+      })}
+      
+      {/* 4. PREMIUM 3D DEPTH SCALE */}
+      <group position={[-1.3, 0, 1.3]} raycast={() => null}>
+        <mesh position={[0, 0, 0]}>
+          <cylinderGeometry args={[0.005, 0.005, 4, 8]} />
+          <meshBasicMaterial color="#22d3ee" transparent opacity={0.4} />
+        </mesh>
+        {[0, 200, 400, 600, 800, 1000].map(d => {
+          const y = 2 - (d/1000)*4;
+          return (
+            <group key={d} position={[0, y, 0]}>
+              <mesh position={[0.05, 0, 0]} rotation={[0, 0, Math.PI/2]}>
+                <cylinderGeometry args={[0.005, 0.005, 0.1, 8]} />
+                <meshBasicMaterial color="#22d3ee" transparent opacity={0.8} />
+              </mesh>
+              <Html position={[-0.1, 0, 0]} center style={{ pointerEvents: 'none' }}>
+                <div className="text-[8px] text-cyan-400 font-mono tracking-widest text-right w-8 drop-shadow-[0_0_5px_rgba(34,211,238,0.5)]">
+                  {d}m
+                </div>
+              </Html>
+            </group>
+          )
+        })}
+      </group>
     </group>
   );
 }
 
-export default function Ocean3D() {
-  const prediction = useOceanStore(state => state.prediction);
-
-  if (!prediction) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center text-white/40 bg-card rounded-xl border border-white/5">
-        <p className="text-sm font-mono uppercase tracking-widest text-white/30">Awaiting Prediction Data</p>
-      </div>
-    );
-  }
+export default function Ocean3D({ prediction }: { prediction?: PredictionResponse }) {
+  if (!prediction) return null;
 
   return (
-    <div className="w-full h-full bg-card rounded-xl border border-white/5 relative overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-white/5 bg-white/[0.01]">
-        <h2 className="text-[10px] font-mono font-bold text-white tracking-widest uppercase">
-          1D Subsurface Temperature Profile
-        </h2>
-        <p className="text-[10px] text-white/40 mt-1">Visualized as a 3D water column (0–2000m)</p>
-      </div>
-      
-      <div className="flex-1 relative">
-        <Canvas camera={{ position: [4, 1, 4], fov: 40 }}>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <directionalLight position={[-10, 10, -5]} intensity={0.5} color="#0ea5e9" />
-          
-          <Suspense fallback={null}>
-            <WaterColumn 
-              depth={prediction.profile.depth} 
-              temperature={prediction.profile.temperature} 
-              estimatedThermocline={prediction.estimated_thermocline}
-            />
-            <OrbitControls 
-              enablePan={false}
-              minPolarAngle={Math.PI / 4}
-              maxPolarAngle={Math.PI / 1.5}
-              autoRotate
-              autoRotateSpeed={0.5}
-            />
-          </Suspense>
-        </Canvas>
-      </div>
+    <div className="w-full h-full relative bg-transparent">
+      <Canvas camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[5, 10, 5]} intensity={2} color="#ffffff" />
+        <directionalLight position={[-5, -5, -5]} intensity={1.5} color="#0ea5e9" />
+        <WaterColumn prediction={prediction} />
+        <OrbitControls enableZoom={false} minDistance={4} maxDistance={10} enablePan={false} autoRotate={false} />
+      </Canvas>
     </div>
   );
 }
