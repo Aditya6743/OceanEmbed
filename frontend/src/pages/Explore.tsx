@@ -1,25 +1,45 @@
-import { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Activity, BrainCircuit, RefreshCw, Zap, BarChart3, Scan, X, Download, AlertTriangle } from 'lucide-react';
+import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download } from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
 import { useOceanStore } from '../store/oceanStore';
 import { getMockPrediction } from '../data/mockOceanData';
 
-export default function Explore() {
-  const { selectedLocation, prediction, isLoading, error, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset } = useOceanStore();
-  const [loadingStep, setLoadingStep] = useState(0);
+import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 
-  useEffect(() => {
-    if (error && error.includes("OUT OF BOUNDS")) {
-      const timer = setTimeout(() => {
-        useOceanStore.getState().setError(null);
-      }, 1500);
-      return () => clearTimeout(timer);
+function CameraRig({ controlsRef }: { controlsRef: any }) {
+  const error = useOceanStore(state => state.error);
+  const isAnimating = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (error && error.toLowerCase().includes("out of bounds")) {
+      isAnimating.current = true;
+      const t = setTimeout(() => { isAnimating.current = false; }, 1500);
+      return () => clearTimeout(t);
     }
   }, [error]);
+
+  useFrame((state) => {
+    if (isAnimating.current && controlsRef.current) {
+      state.camera.position.lerp(new THREE.Vector3(0, 0, 5.5), 0.1);
+      state.camera.lookAt(0, 0, 0);
+      controlsRef.current.update();
+    }
+  });
+  return null;
+}
+
+
+export default function Explore() {
+
+  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset } = useOceanStore();
+  const [loadingStep, setLoadingStep] = useState(0);
+  const controlsRef = React.useRef(null);
+
 
   useEffect(() => {
     if (!isLoading) {
@@ -75,12 +95,14 @@ export default function Explore() {
         
         <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
           <Suspense fallback={null}>
-            <EarthGlobe />
+            <EarthGlobe alwaysShowGrid={true} />
             <OrbitControls 
+              ref={controlsRef}
               enablePan={false} enableDamping dampingFactor={0.05} rotateSpeed={0.5}
               enableZoom minDistance={4.5} maxDistance={6}
-              autoRotate={!selectedLocation && !error} autoRotateSpeed={0.5}
+              autoRotate={!selectedLocation} autoRotateSpeed={0.5}
             />
+            <CameraRig controlsRef={controlsRef} />
           </Suspense>
         </Canvas>
 
@@ -159,37 +181,54 @@ export default function Explore() {
                     <Download className="w-4 h-4" />
                   </button>
                 )}
-                <button 
-                  onClick={handleRunInference}
-                  disabled={isLoading || prediction !== null}
-                  className="group relative flex-1 xl:flex-none flex items-center justify-center gap-3 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-cyan-950 disabled:text-cyan-600 disabled:cursor-not-allowed border border-cyan-400/50 rounded text-white text-[10px] font-bold tracking-[0.3em] uppercase transition-all overflow-hidden shadow-[0_0_30px_rgba(8,145,178,0.2)]"
-                >
-                  {isLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : prediction ? (
-                    <BarChart3 className="w-4 h-4" />
-                  ) : (
-                    <BrainCircuit className="w-4 h-4" />
-                  )}
-                  <span>{isLoading ? 'PROCESSING...' : prediction ? 'INFERENCE COMPLETE' : 'RUN INFERENCE'}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                </button>
+                
               </div>
             </div>
 
-            {/* ERROR STATE */}
-            {error && !isLoading && (
-              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 py-10">
-                <div className="bg-red-950/40 border border-red-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(239,68,68,0.1)]">
-                  <div className="text-red-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
-                    <AlertTriangle className="w-6 h-6" /> SYSTEM ERROR
+            { /* ERROR STATE */ }
+            {error && error.toLowerCase().includes("out of bounds") && !isLoading && (
+              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 py-10 min-h-0">
+                <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)]">
+                  <div className="text-cyan-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
+                    <Crosshair className="w-5 h-5" /> RESTRICTED DOMAIN
                   </div>
-                  <p className="text-white/70 font-mono text-sm mb-8">{error}</p>
+                  <p className="text-white/70 font-mono text-sm mb-6 leading-relaxed">
+                    OceanEmbed inference is strictly bounded to the North Indian Ocean.
+                  </p>
+                  <div className="bg-black/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
+                    <div className="text-white/40 mb-2 uppercase tracking-widest text-[10px]">What are our bounds?</div>
+                    <div className="mb-1">Latitude: 5°N — 30°N</div>
+                    <div>Longitude: 45°E — 105°E</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            { /* READY TO RUN STATE */ }
+            {selectedLocation && !isLoading && !prediction && (!error || !error.toLowerCase().includes("out of bounds")) && (
+              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 min-h-0">
+                <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)] w-full">
+                  <div className="text-cyan-400 font-bold tracking-widest mb-6 flex items-center justify-center gap-3 text-lg">
+                    <Scan className="w-6 h-6 animate-pulse" /> TARGET SECURED
+                  </div>
+                  
+                  <div className="bg-black/50 border border-cyan-500/20 rounded-lg p-5 font-mono text-xs text-cyan-300 mb-8 text-left inline-block w-full">
+                    <div className="flex justify-between mb-3 border-b border-cyan-500/20 pb-3">
+                      <span className="text-white/50">Coordinates:</span>
+                      <span className="font-bold">{selectedLocation.latitude}°N, {selectedLocation.longitude}°E</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/50">Status:</span>
+                      <span className="font-bold animate-pulse text-cyan-400">READY FOR INFERENCE</span>
+                    </div>
+                  </div>
+
                   <button 
                     onClick={handleRunInference}
-                    className="px-6 py-3 bg-red-900/50 hover:bg-red-800 border border-red-500/50 rounded text-red-100 text-[10px] font-bold tracking-[0.2em] uppercase transition-colors"
+                    className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/50 rounded-lg text-white text-[12px] font-bold tracking-[0.3em] uppercase transition-all duration-300 flex items-center justify-center gap-3 group shadow-[0_0_30px_rgba(8,145,178,0.3)] hover:shadow-[0_0_50px_rgba(8,145,178,0.5)]"
                   >
-                    RETRY INFERENCE
+                    <BrainCircuit className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+                    INITIALIZE MODEL
                   </button>
                 </div>
               </div>
@@ -233,7 +272,7 @@ export default function Explore() {
 
                                     {/* PREDICTION RESULTS */}
             {prediction && !isLoading && !error && (
-              <div className="flex-1 flex flex-col gap-3 min-h-0 animate-in fade-in duration-1000 zoom-in-95">
+              <div className="flex-1 flex flex-col justify-center gap-3 min-h-0 animate-in fade-in duration-1000 zoom-in-95">
                 
                 {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 shrink-0">
@@ -336,6 +375,26 @@ export default function Explore() {
         )}
       </div>
       
+      {/* FLOATING CURSOR ERROR */}
+      {error && errorPosition && (
+        <div 
+          className="fixed z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200"
+          style={{ 
+            left: errorPosition.x + 20, 
+            top: errorPosition.y - 20 
+          }}
+        >
+          <div className="bg-black/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+            <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+              Out of bounds
+            </span>
+          </div>
+          <div className="text-white/40 font-mono text-[8px] tracking-wider uppercase mt-1 pl-1 whitespace-nowrap">
+            Auto-centering to domain...
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,9 +6,39 @@ import { ArrowRight, Crosshair, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EarthGlobe from '../components/EarthGlobe';
 import { useOceanStore } from '../store/oceanStore';
+import React from 'react';
+
+import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
+
+function CameraRig({ controlsRef }: { controlsRef: any }) {
+  const error = useOceanStore(state => state.error);
+  const isAnimating = React.useRef(false);
+  
+  React.useEffect(() => {
+    if (error && error.toLowerCase().includes("out of bounds")) {
+      isAnimating.current = true;
+      const t = setTimeout(() => { isAnimating.current = false; }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [error]);
+
+  useFrame((state) => {
+    if (isAnimating.current && controlsRef.current) {
+      state.camera.position.lerp(new THREE.Vector3(0, 0, 5.5), 0.1);
+      state.camera.lookAt(0, 0, 0);
+      controlsRef.current.update();
+    }
+  });
+  return null;
+}
+
 
 export default function Home() {
+
   const navigate = useNavigate();
+  const controlsRef = React.useRef(null);
+  const { error, errorPosition } = useOceanStore();
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
   const handleExplore = () => {
@@ -27,7 +57,7 @@ export default function Home() {
           <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
             <Suspense fallback={null}>
               <EarthGlobe />
-              <OrbitControls 
+              <OrbitControls ref={controlsRef} 
                 enablePan={false} 
                 enableDamping={true} 
                 dampingFactor={0.075} 
@@ -38,6 +68,7 @@ export default function Home() {
                 autoRotate={!selectedLocation}
                 autoRotateSpeed={0.3}
               />
+              <CameraRig controlsRef={controlsRef} />
             </Suspense>
           </Canvas>
           
@@ -215,6 +246,26 @@ export default function Home() {
         </button>
       </section>
       
+      {/* FLOATING CURSOR ERROR */}
+      {error && errorPosition && (
+        <div 
+          className="fixed z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200"
+          style={{ 
+            left: errorPosition.x + 20, 
+            top: errorPosition.y - 20 
+          }}
+        >
+          <div className="bg-black/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+            <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+              {error}
+            </span>
+          </div>
+          <div className="text-white/40 font-mono text-[8px] tracking-wider uppercase mt-1 pl-1 whitespace-nowrap">
+            Telemetry rejected.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
