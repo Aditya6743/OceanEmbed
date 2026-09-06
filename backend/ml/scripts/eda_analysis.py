@@ -24,7 +24,7 @@ def run_eda():
     ts_df = df.groupby('time')['sst_celsius'].mean().reset_index()
     plt.figure(figsize=(12, 5))
     plt.plot(ts_df['time'], ts_df['sst_celsius'], marker='o', linestyle='-', color='firebrick')
-    plt.title("Mean Sea Surface Temperature in Bay of Bengal (May - Sep 2026)")
+    plt.title("Mean Sea Surface Temperature in North Indian Ocean (May - Sep 2026)")
     plt.xlabel("Date")
     plt.ylabel("SST (°C)")
     plt.grid(True, alpha=0.3)
@@ -38,7 +38,7 @@ def run_eda():
     scatter = plt.scatter(spatial_df['longitude'], spatial_df['latitude'], 
                           c=spatial_df['sst_celsius'], cmap='viridis', s=15, marker='s')
     plt.colorbar(scatter, label='Mean SST (°C)')
-    plt.title("Mean Spatial SST Distribution (Bay of Bengal)")
+    plt.title("Mean Spatial SST Distribution (North Indian Ocean)")
     plt.xlabel("Longitude (°E)")
     plt.ylabel("Latitude (°N)")
     plt.savefig(os.path.join(OUT_DIR, "sst_spatial_map.png"), dpi=300, bbox_inches='tight')
@@ -52,7 +52,7 @@ def run_eda():
     plt.quiver(wind_sub['longitude'], wind_sub['latitude'], 
                wind_sub['eastward_wind'], wind_sub['northward_wind'], 
                color='dodgerblue', scale=50)
-    plt.title("Mean Wind Vector Map (Bay of Bengal)")
+    plt.title("Mean Wind Vector Map (North Indian Ocean)")
     plt.xlabel("Longitude (°E)")
     plt.ylabel("Latitude (°N)")
     plt.savefig(os.path.join(OUT_DIR, "wind_vector_map.png"), dpi=300, bbox_inches='tight')

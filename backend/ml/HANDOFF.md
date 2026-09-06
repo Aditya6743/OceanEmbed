@@ -3,7 +3,7 @@
 **To: Person 2 (FastAPI & Integration)**
 **From: Person 1 (ML & Data)**
 
-The ML pipeline is officially complete and the model has been trained on the raw NetCDF datasets for the Bay of Bengal domain (5°N–30°N, 45°E–105°E).
+The ML pipeline is officially complete and the model has been trained on the raw NetCDF datasets for the North Indian Ocean domain (5°N–30°N, 45°E–105°E).
 
 ### 1. The Model
 Due to strict temporal mismatch in the provided satellite files (SSH ended before Wind began, and Wind is an extremely sparse L3 orbital product), the ML problem was strictly defined as **Autoregressive Forecasting of Sea Surface Temperature (SST)**. 
