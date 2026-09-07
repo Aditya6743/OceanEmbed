@@ -13,20 +13,23 @@ function App() {
           <div className="absolute inset-0">
             <GradientWaves 
                 horizonColor="#020617"
-                waveColor="#06b6d4"
+                waveColor="#0891b2"
                 crestColor="#22d3ee"
-                speed={0.4}
-                amplitude={1.8}
-                waveScale={0.8}
-                tilt={1.2}
-                zoom={1.0}
-                height={4.0}
-                fogDepth={15}
-                brightness={0.7}
-                opacity={0.8}
+                speed={0.8}
+                amplitude={2.5}
+                waveScale={1.0}
+                tilt={1.1}
+                zoom={1.2}
+                height={4.5}
+                fogDepth={20}
+                brightness={0.8}
+                opacity={1.0}
                 mouseInteraction={false}
             />
           </div>
+          {/* Subtle Dark Overlay to ensure waves do not overpower content */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-transparent opacity-80"></div>
+          
           {/* Premium Neon Grid Overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(34,211,238,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.05)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]"></div>
         </div>
