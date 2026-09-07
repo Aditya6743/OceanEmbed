@@ -15,13 +15,13 @@ function App() {
                 horizonColor="#020617"
                 waveColor="#0891b2"
                 crestColor="#22d3ee"
-                speed={0.8}
-                amplitude={2.5}
+                speed={0.6}
+                amplitude={2.1}
                 waveScale={1.0}
                 tilt={1.1}
                 zoom={1.2}
                 height={4.5}
-                fogDepth={20}
+                fogDepth={18}
                 brightness={0.8}
                 opacity={1.0}
                 mouseInteraction={false}
