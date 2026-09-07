@@ -6,13 +6,8 @@ class Settings(BaseSettings):
     VERSION: str = "v1.0.0-rc2"
     API_V1_STR: str = "/api/v1"
     
-    # Allowed origins for Vite frontend
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ]
+    # Allowed origins for Vite frontend - Allow all in prod or add Vercel domains
+    CORS_ORIGINS: List[str] = ["*"]
     
     # Domain bounds: North Indian Ocean
     LAT_MIN: float = 5.0
