@@ -6,7 +6,7 @@ from app.schemas.prediction import (
     OceanProfile,
     PredictionMetrics,
 )
-from app.services.satellite_data import fetch_surface_telemetry
+from app.services.satellite_data import SatelliteDataService
 from app.services.inference import infer_service
 
 router = APIRouter()
@@ -24,7 +24,7 @@ async def predict_profile(
             detail=f"Target ({lat}, {lon}) out of bounds. Must be within [{settings.LAT_MIN}, {settings.LAT_MAX}]N, [{settings.LON_MIN}, {settings.LON_MAX}]E."
         )
 
-    surface = fetch_surface_telemetry(lat, lon, date)
+    surface = SatelliteDataService.get_surface_observations(lat, lon, date)
     depths, temps, refs, mld, version, metrics = infer_service.predict(
         surface.sst, surface.ssh, surface.sss, lat, lon, date
     )
@@ -37,3 +37,20 @@ async def predict_profile(
         estimated_thermocline=mld,
         metrics=PredictionMetrics(**metrics),
     )
+
+from app.schemas.history import HistoryResponse
+from app.services.history_service import history_service
+
+@router.get("/history", response_model=HistoryResponse)
+async def get_history(
+    lat: float = Query(..., ge=-90.0, le=90.0),
+    lon: float = Query(..., ge=-180.0, le=180.0)
+):
+    if not (settings.LAT_MIN <= lat <= settings.LAT_MAX and settings.LON_MIN <= lon <= settings.LON_MAX):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Target ({lat}, {lon}) out of bounds. Must be within [{settings.LAT_MIN}, {settings.LAT_MAX}]N, [{settings.LON_MIN}, {settings.LON_MAX}]E."
+        )
+        
+    data = history_service.get_history(lat, lon)
+    return HistoryResponse(history=data)

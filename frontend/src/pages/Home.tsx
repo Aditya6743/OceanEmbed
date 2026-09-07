@@ -8,6 +8,7 @@ import EarthGlobe from '../components/EarthGlobe';
 import { useOceanStore } from '../store/oceanStore';
 import React from 'react';
 
+
 import ProblemSection from '../components/landing/ProblemSection';
 import DataSection from '../components/landing/DataSection';
 import ModelSection from '../components/landing/ModelSection';
@@ -50,6 +51,7 @@ export default function Home() {
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
   const handleExplore = () => {
+    useOceanStore.getState().setAutoPilotMode(false);
     navigate('/explore');
   };
 
@@ -62,7 +64,7 @@ export default function Home() {
   }, [error, setError]);
 
   return (
-    <div id="top" className="w-full bg-[#050505] overflow-x-hidden pt-14 font-sans select-none">
+    <div id="top" className="w-full bg-transparent overflow-x-hidden pt-14 font-sans select-none">
       
       {/* HERO SECTION */}
       <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10">
@@ -211,13 +213,17 @@ export default function Home() {
       </section>
 
       {/* MODULAR LANDING PAGE SECTIONS */}
-      <ProblemSection />
-      <DataSection />
-      <ModelSection />
-      <HowItWorksSection />
-      <ResultsSection />
-      <AboutSection />
-      <Footer />
+      <div className="relative w-full bg-[#050505]">
+
+        
+        <ProblemSection />
+        <DataSection />
+        <ModelSection />
+        <HowItWorksSection />
+        <ResultsSection />
+        <AboutSection />
+        <Footer />
+      </div>
       
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (

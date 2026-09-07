@@ -4,7 +4,7 @@ export default function ModelSection() {
   const depths = ["0m", "5m", "10m", "20m", "30m", "50m", "75m", "100m", "125m", "150m", "200m", "300m", "500m", "700m", "1000m"];
   
   return (
-    <section id="model" className="w-full py-32 relative z-10 bg-[#050505] border-t border-white/5 overflow-hidden">
+    <section id="model" className="w-full py-32 relative z-10 bg-transparent border-t border-white/5 overflow-hidden">
       <div className="container mx-auto px-6 max-w-6xl">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}

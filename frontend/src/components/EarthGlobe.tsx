@@ -1,8 +1,9 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Sphere, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useOceanStore } from '../store/oceanStore';
+import { Ping } from './Ping';
 
 const playSimplePing = () => {
   try {
@@ -84,6 +85,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
   const shaderRef = useRef<THREE.ShaderMaterial>(null);
+  const [pingPos, setPingPos] = useState<THREE.Vector3 | null>(null);
   
   const selectedLocation = useOceanStore(state => state.selectedLocation);
   const setLocation = useOceanStore(state => state.setLocation);
@@ -145,6 +147,8 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
     const lat = Math.asin(point.y) * (180 / Math.PI);
     const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
     
+    setPingPos(point.clone().multiplyScalar(2)); // scale by sphere radius (2)
+    
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
       useOceanStore.getState().setError("Out of bounds", { x: e.clientX, y: e.clientY });
       const targetEuler = new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0);
@@ -189,6 +193,8 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       <directionalLight position={[0, -10, 0]} intensity={0.5} color="#ffffff" />
       
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />
+      
+      {pingPos && <Ping point={pingPos} onComplete={() => setPingPos(null)} />}
       
       <Sphere 
         args={[2, 128, 128]} 

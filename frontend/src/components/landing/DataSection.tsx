@@ -10,7 +10,7 @@ export default function DataSection() {
   ];
 
   return (
-    <section id="data" className="w-full py-32 relative z-10 bg-[#020202] border-t border-white/5 overflow-hidden">
+    <section id="data" className="w-full py-32 relative z-10 bg-transparent border-t border-white/5 overflow-hidden">
       {/* Background Grid */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"></div>
       

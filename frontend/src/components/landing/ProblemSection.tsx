@@ -2,9 +2,9 @@ import { motion } from 'framer-motion';
 
 export default function ProblemSection() {
   return (
-    <section id="problem" className="w-full py-32 relative z-10 bg-[#050505] border-t border-white/5 overflow-hidden">
+    <section id="problem" className="w-full py-32 relative z-10 bg-transparent border-t border-white/5 overflow-hidden">
       {/* Background Effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/10 via-[#050505] to-[#050505] pointer-events-none"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/10 via-transparent to-transparent pointer-events-none"></div>
       
       <div className="container mx-auto px-6 max-w-5xl relative z-10">
         <motion.div 

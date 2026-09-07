@@ -124,3 +124,31 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  /* Hide the navbar, globe, and unnecessary buttons */
+  nav, .hidden.md\\:hidden, button {
+    display: none !important;
+  }
+  
+  /* Make the dashboard panel full width and remove scroll/height limits */
+  .md\\:w-1\\/2, .w-full {
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Force dark mode background for print */
+  body, .bg-\\[\\#050505\\] {
+    background-color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Make text black on white? Or keep dark mode? OceanEmbed looks best dark. */
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
