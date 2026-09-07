@@ -79,20 +79,15 @@ Instead of deploying physical sensors, OceanEmbed allows researchers to click an
 
 ## 04 / Tech Stack
 
-**Frontend (Client)**
-* **Core:** React 18, TypeScript, Vite
-* **Styling & UI:** Tailwind CSS, Framer Motion, Lucide Icons
-* **3D & Visualization:** React Three Fiber (Three.js), OGL (Shaders/Backgrounds), Recharts (Data plotting)
-
-**Backend (Machine Learning API)**
-* **Core:** Python 3.10, FastAPI, Uvicorn
-* **Machine Learning:** Scikit-Learn (Random Forest Regressor), Joblib (Model Serialization)
-* **Data Processing:** Pandas, NumPy
-
-**Deployment & DevOps**
-* **Frontend Hosting:** Vercel (CI/CD connected to GitHub)
-* **Backend Hosting:** Render (Web Service)
-* **Containerization:** Docker (Used to package and deploy the heavy ML Python environment on Render)
+| Frontend 🎨 | Backend 🧠 | DevOps ⚙️ |
+| :--- | :--- | :--- |
+| **React 18** | **Python 3.10** | **Vercel** (Frontend) |
+| TypeScript | FastAPI | Render (API) |
+| Vite | Uvicorn | Docker |
+| Tailwind CSS | Scikit-Learn | Git / GitHub |
+| Framer Motion | Pandas | |
+| React Three Fiber | NumPy | |
+| OGL & Recharts | Joblib | |
 
 ---
 
@@ -142,6 +137,17 @@ npm run dev
 - [ ] **Temporal Forecasting:** Expand the model from static spatial reconstruction to true time-series forecasting (predicting subsurface temperatures 7-14 days into the future).
 - [ ] **Global Basin Expansion:** Currently scoped strictly to the North Indian Ocean. We plan to retrain and fine-tune the model weights for the Pacific and Atlantic basins.
 - [ ] **Edge Deployment:** Optimize and compress the Random Forest inference weights for deployment directly on low-power naval edge devices and drifting buoys.
+
+---
+
+## 09 / Problem Statement
+
+| Field | Details |
+| :--- | :--- |
+| **Problem Title** | OceanEmbed - Satellite Embedding-Based Deep Learning Framework for Reconstruction of Subsurface Ocean Temperature from Surface Satellite Observations |
+| **Problem ID** | SIH26066 |
+| **Theme** | Space Technology |
+| **Department** | Ministry of Earth Sciences (MoES) |
 
 ---
 
