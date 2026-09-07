@@ -1,12 +1,14 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download } from 'lucide-react';
+import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2 } from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
+import HistoryChart from '../components/HistoryChart';
 import { useOceanStore } from '../store/oceanStore';
-import { fetchOceanPrediction } from '../lib/api';
+import { fetchOceanPrediction, fetchHistory, type HistoryDataPoint } from '../lib/api';
+import { startAutoPilot, stopAutoPilot } from '../lib/autopilot';
 
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -36,9 +38,17 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 export default function Explore() {
 
-  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset, setError } = useOceanStore();
+  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset, setError, autoPilotMode } = useOceanStore();
   const [loadingStep, setLoadingStep] = useState(0);
+  const [historyData, setHistoryData] = React.useState<HistoryDataPoint[]>([]);
+  const [isMaximized, setIsMaximized] = useState(false);
   const controlsRef = React.useRef(null);
+
+  useEffect(() => {
+    if (autoPilotMode) {
+      startAutoPilot();
+    }
+  }, [autoPilotMode]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -57,40 +67,50 @@ export default function Explore() {
     const steps = [
       setTimeout(() => setLoadingStep(1), 600),
       setTimeout(() => setLoadingStep(2), 1400),
-      setTimeout(() => setLoadingStep(3), 2200),
-      const predictionTimeout = setTimeout(async () => {
-        if (selectedLocation) {
+      setTimeout(() => setLoadingStep(3), 2200)
+    ];
+    
+    const predictionTimeout = setTimeout(async () => {
+      if (selectedLocation) {
+        try {
+          const data = await fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate);
+          setPrediction(data);
+          
           try {
-            const data = await fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate);
-            setPrediction(data);
-          } catch (err: any) {
-            setError(err.message || "Failed to connect to ML Backend.");
+            const hist = await fetchHistory(selectedLocation.latitude, selectedLocation.longitude);
+            setHistoryData(hist);
+          } catch (e) {
+            console.error("Failed to fetch history:", e);
+            setHistoryData([]);
           }
+          
+        } catch (err: any) {
+          setError(err.message || "Failed to connect to ML Backend.");
         }
-      }, 3000);
+      }
+    }, 3000);
 
-      return () => {
-        steps.forEach(clearTimeout);
-        clearTimeout(predictionTimeout);
-      };
-  }, [isLoading, selectedLocation, setPrediction]);
+    return () => {
+      steps.forEach(clearTimeout);
+      clearTimeout(predictionTimeout);
+    };
+  }, [isLoading, selectedLocation, selectedDate, setPrediction, setError]);
 
   const handleRunInference = () => {
     if (!selectedLocation) return;
     setIsLoading(true);
   };
-
   const handleExportCSV = () => {
     if (!prediction || !selectedLocation) return;
     const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Argo Reference (C)']];
-    prediction.profile.depth.forEach((d, i) => {
+    prediction.profile.depth.forEach((d: number, i: number) => {
       rows.push([
         d.toString(),
         prediction.profile.temperature[i].toFixed(4),
         prediction.profile.reference_temperature?.[i]?.toFixed(4) || 'N/A'
       ]);
     });
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e: string[]) => e.join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -100,11 +120,12 @@ export default function Explore() {
     document.body.removeChild(link);
   };
 
+
   return (
     <div className="w-full h-screen bg-[#020202] flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
       
       {/* LEFT PANEL - INTERACTIVE GLOBE */}
-      <div className="w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-black shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)] border-r border-white/[0.05]">
+      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-black shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)] border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ''}`}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#000_100%)] z-10" />
         
         <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
@@ -135,7 +156,7 @@ export default function Explore() {
       </div>
 
       {/* RIGHT PANEL - NO SCROLL DASHBOARD */}
-      <div className="w-full md:w-1/2 h-full bg-[#050505] relative p-4 flex flex-col overflow-hidden">
+      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-[#050505] relative p-4 flex flex-col overflow-hidden`}>
         
         {/* Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -178,6 +199,21 @@ export default function Explore() {
               </div>
               
               <div className="flex gap-2 shrink-0">
+                {autoPilotMode && (
+                  <button 
+                    onClick={stopAutoPilot}
+                    className="px-3 py-2 bg-red-950/40 hover:bg-red-900 border border-red-500/30 rounded text-red-400 hover:text-red-300 transition-all flex items-center justify-center font-bold text-[10px] tracking-widest"
+                  >
+                    STOP DEMO
+                  </button>
+                )}
+                <button 
+                  onClick={() => setIsMaximized(!isMaximized)}
+                  className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/50 hover:text-white transition-all flex items-center justify-center"
+                  title={isMaximized ? "Minimize Dashboard" : "Maximize Dashboard"}
+                >
+                  {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
                 <button 
                   onClick={reset}
                   disabled={isLoading}
@@ -288,8 +324,8 @@ export default function Explore() {
             {prediction && !isLoading && !error && (
               <div className="flex-1 flex flex-col justify-center gap-3 min-h-0 animate-in fade-in duration-1000 zoom-in-95">
                 
-                {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 shrink-0">
+                {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE + HISTORY */}
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0">
                   
                   {/* SURFACE OBSERVATIONS */}
                   <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
@@ -343,6 +379,21 @@ export default function Explore() {
                         <div className="text-white font-mono text-xs">{prediction.metrics?.correlation.toFixed(3)}</div>
                       </div>
                     </div>
+                    {/* Model Version Badge — proof of real ML inference */}
+                    <div className="mt-2 flex items-center gap-1.5 bg-green-950/30 border border-green-500/30 rounded px-2 py-1">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0"></div>
+                      <span className="text-green-400 font-mono text-[8px] tracking-widest truncate uppercase">
+                        {prediction.model_version}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* HISTORICAL TREND */}
+                  <div className="xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden">
+                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-1">5-MONTH SST TREND</div>
+                    <div className="flex-1 min-h-0 -ml-3">
+                      <HistoryChart data={historyData} />
+                    </div>
                   </div>
                 </div>
 
@@ -364,7 +415,11 @@ export default function Explore() {
                       <div className="text-[8px] text-lime-400/80 font-mono tracking-widest border border-lime-500/30 px-1.5 py-0.5 rounded-sm bg-lime-950/30">ARGO VALIDATION</div>
                     </div>
                     <div className="flex-1 min-h-0">
-                      <TemperatureChart profile={prediction.profile} thermoclineDepth={prediction.estimated_thermocline} />
+                      <TemperatureChart 
+                        profile={prediction.profile} 
+                        thermoclineDepth={prediction.estimated_thermocline} 
+                        rmse={prediction.metrics?.rmse}
+                      />
                     </div>
                   </div>
                 </div>

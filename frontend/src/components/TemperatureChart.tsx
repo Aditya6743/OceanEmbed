@@ -1,20 +1,29 @@
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Legend } from 'recharts';
+import { ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, Legend } from 'recharts';
 import type { OceanProfile } from '../types/ocean';
 import { useOceanStore } from '../store/oceanStore';
 
 interface TemperatureChartProps {
   profile: OceanProfile;
   thermoclineDepth?: number;
+  rmse?: number;
 }
 
-export default function TemperatureChart({ profile, thermoclineDepth }: TemperatureChartProps) {
+export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5 }: TemperatureChartProps) {
   const { hoveredDepth, setHoveredDepth } = useOceanStore();
   
-  const data = profile.depth.map((depth, index) => ({
-    depth,
-    temperature: profile.temperature[index],
-    reference: profile.reference_temperature?.[index]
-  }));
+  // 95% Confidence Interval is approx 1.96 * standard error (RMSE)
+  const ci = rmse * 1.96;
+  
+  const data = profile.depth.map((depth, index) => {
+    const temp = profile.temperature[index];
+    return {
+      depth,
+      temperature: temp,
+      temp_min: Number((temp - ci).toFixed(2)),
+      temp_max: Number((temp + ci).toFixed(2)),
+      reference: profile.reference_temperature?.[index]
+    };
+  });
 
   const handleMouseMove = (state: any) => {
     if (state && state.activePayload && state.activePayload.length > 0) {
@@ -28,13 +37,20 @@ export default function TemperatureChart({ profile, thermoclineDepth }: Temperat
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart
+      <ComposedChart
         data={data}
         layout="vertical"
         margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
+        <defs>
+          <linearGradient id="colorTemp" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.4}/>
+            <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.05}/>
+          </linearGradient>
+        </defs>
+        
         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} horizontal={true} vertical={true} />
         
         <XAxis 
@@ -63,10 +79,11 @@ export default function TemperatureChart({ profile, thermoclineDepth }: Temperat
           contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', backdropFilter: 'blur(8px)' }}
           itemStyle={{ fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }}
           labelStyle={{ color: '#888', marginBottom: '8px', fontSize: '10px', fontFamily: 'monospace', textTransform: 'uppercase' }}
-          formatter={(value: any, name: any) => [
-            `${Number(value).toFixed(2)} °C`, 
-            name === 'temperature' ? 'OCEANEMBED PREDICTION' : 'ARGO REFERENCE (GROUND TRUTH)'
-          ]}
+          formatter={(value: any, name: any) => {
+            if (name === 'temperature') return [`${Number(value).toFixed(2)} °C`, 'PREDICTION'];
+            if (name === 'reference') return [`${Number(value).toFixed(2)} °C`, 'ARGO GROUND TRUTH'];
+            return [null, null]; // Hide min/max from tooltip clutter
+          }}
           labelFormatter={(label: any) => `DEPTH: ${label}m`}
           cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }}
         />
@@ -76,7 +93,11 @@ export default function TemperatureChart({ profile, thermoclineDepth }: Temperat
           height={36} 
           iconType="circle"
           wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', color: '#888' }}
-          formatter={(value) => <span className="text-white/50 tracking-widest">{value === 'temperature' ? 'PREDICTION' : 'REFERENCE'}</span>}
+          formatter={(value) => {
+            if (value === 'temperature') return <span className="text-white/50 tracking-widest">PREDICTION ±95% CI</span>;
+            if (value === 'reference') return <span className="text-white/50 tracking-widest">REFERENCE</span>;
+            return null; // hide min/max
+          }}
         />
 
         {thermoclineDepth !== undefined && (
@@ -87,6 +108,22 @@ export default function TemperatureChart({ profile, thermoclineDepth }: Temperat
           <ReferenceLine y={hoveredDepth} stroke="#22d3ee" strokeOpacity={0.6} />
         )}
         
+        {/* Confidence Interval Band */}
+        <Area 
+          type="monotone" 
+          dataKey="temp_max" 
+          stroke="none" 
+          fill="url(#colorTemp)" 
+          isAnimationActive={true}
+        />
+        <Area 
+          type="monotone" 
+          dataKey="temp_min" 
+          stroke="none" 
+          fill="#000000" // Mask out the bottom half so it looks like a band
+          isAnimationActive={true}
+        />
+
         {profile.reference_temperature && (
           <Line 
             type="monotone" 
@@ -110,7 +147,7 @@ export default function TemperatureChart({ profile, thermoclineDepth }: Temperat
           isAnimationActive={true}
           animationDuration={1500}
         />
-      </LineChart>
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }

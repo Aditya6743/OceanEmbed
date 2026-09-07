@@ -1,6 +1,6 @@
 export default function AboutSection() {
   return (
-    <section id="about" className="w-full py-32 relative z-10 bg-[#020202] border-t border-white/5 overflow-hidden">
+    <section id="about" className="w-full py-32 relative z-10 bg-transparent border-t border-white/5 overflow-hidden">
       {/* Heavy bottom glow fading into the footer */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-[300px] bg-gradient-to-t from-cyan-950/20 to-transparent pointer-events-none"></div>
 

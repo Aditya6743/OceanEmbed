@@ -14,3 +14,21 @@ export async function fetchOceanPrediction(lat: number, lon: number, date: strin
 
   return res.json();
 }
+
+export interface HistoryDataPoint {
+  date: string;
+  sst: number;
+}
+
+export async function fetchHistory(lat: number, lon: number): Promise<HistoryDataPoint[]> {
+  const query = new URLSearchParams({ lat: String(lat), lon: String(lon) });
+  const res = await fetch(`${BASE_URL}/history?${query}`);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `History error: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.history;
+}

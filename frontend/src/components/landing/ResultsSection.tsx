@@ -1,6 +1,6 @@
 export default function ResultsSection() {
   return (
-    <section id="results" className="w-full py-32 relative z-10 bg-[#050505] border-t border-white/5 overflow-hidden">
+    <section id="results" className="w-full py-32 relative z-10 bg-transparent border-t border-white/5 overflow-hidden">
       {/* Background glow behind dashboard */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-cyan-600/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -10,7 +10,7 @@ export default function ResultsSection() {
           Actual model outputs, precision metrics, and spatial predictions.
         </p>
 
-        <div className="w-full h-[600px] rounded-3xl border border-white/10 bg-[#0a0a0a]/80 backdrop-blur-xl relative overflow-hidden flex flex-col items-center justify-center shadow-2xl">
+        <div className="w-full h-[600px] rounded-3xl border border-white/10 bg-transparent/80 backdrop-blur-xl relative overflow-hidden flex flex-col items-center justify-center shadow-2xl">
           {/* Subtle grid background */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
           

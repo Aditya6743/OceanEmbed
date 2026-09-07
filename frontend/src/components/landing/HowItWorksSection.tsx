@@ -9,7 +9,7 @@ export default function HowItWorksSection() {
   ];
 
   return (
-    <section id="how-it-works" className="w-full py-32 relative z-10 bg-[#020202] border-t border-white/5 overflow-hidden">
+    <section id="how-it-works" className="w-full py-32 relative z-10 bg-transparent border-t border-white/5 overflow-hidden">
       {/* Wave-like glowing background */}
       <div className="absolute inset-0 bg-[radial-gradient(100%_50%_at_50%_0%,rgba(34,211,238,0.05)_0,rgba(0,0,0,0)_50%)] pointer-events-none"></div>
 
@@ -32,7 +32,7 @@ export default function HowItWorksSection() {
               transition={{ delay: i * 0.15, duration: 0.6 }}
               className="relative flex flex-col items-center md:items-start text-center md:text-left z-10 group"
             >
-              <div className="w-24 h-24 rounded-full bg-[#050505] border border-white/10 flex items-center justify-center text-2xl font-light text-white font-mono mb-8 relative transition-transform duration-500 group-hover:scale-105 shadow-2xl backdrop-blur-sm">
+              <div className="w-24 h-24 rounded-full bg-transparent border border-white/10 flex items-center justify-center text-2xl font-light text-white font-mono mb-8 relative transition-transform duration-500 group-hover:scale-105 shadow-2xl backdrop-blur-sm">
                 {step.num}
                 {/* Glow ring */}
                 <div className="absolute inset-0 rounded-full border border-cyan-500/0 group-hover:border-cyan-500/50 group-hover:shadow-[0_0_25px_rgba(34,211,238,0.2)] transition-all duration-500"></div>

@@ -1,14 +1,19 @@
 import { Database, Satellite, Anchor } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Background from '../components/Background';
 
 export default function Data() {
   return (
-    <div className="w-full min-h-screen bg-[#050505] text-white pt-32 px-8 md:px-16 lg:px-32 pb-24 font-sans relative overflow-hidden">
+    <div className="w-full min-h-screen bg-[#020202] text-white pt-32 px-8 md:px-16 lg:px-32 pb-24 font-sans relative overflow-hidden">
       
-      {/* Ambient glowing orbs */}
-      <div className="absolute top-1/4 right-0 w-[800px] h-[800px] bg-blue-900/10 rounded-full blur-[150px] pointer-events-none translate-x-1/3"></div>
+      {/* Reduced intensity Liquid Ether Background */}
+      <Background />
 
-      <div className="max-w-6xl mx-auto relative z-10">
+      {/* Ambient glowing orbs */}
+      <div className="absolute top-1/4 right-0 w-[800px] h-[800px] bg-blue-900/5 rounded-full blur-[150px] pointer-events-none translate-x-1/3"></div>
+
+      <div className="max-w-6xl mx-auto relative z-10 pointer-events-none">
+        <div className="pointer-events-auto">
         
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -78,6 +83,7 @@ export default function Data() {
             </div>
           </motion.div>
 
+        </div>
         </div>
       </div>
     </div>

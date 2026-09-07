@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Waves } from 'lucide-react';
 import React from 'react';
+import { useOceanStore } from '../store/oceanStore';
 
 export default function Navbar() {
   const location = useLocation();
@@ -63,12 +64,15 @@ export default function Navbar() {
         </div>
         
         <div className="flex items-center gap-4">
-          <Link 
-            to="/explore" 
+          <button 
+            onClick={() => {
+              useOceanStore.getState().setAutoPilotMode(true);
+              navigate('/explore');
+            }}
             className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-black font-bold bg-white px-4 py-1.5 rounded-full hover:bg-gray-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.15)]"
           >
-            Launch UI
-          </Link>
+            AUTO-PILOT DEMO
+          </button>
         </div>
       </div>
     </header>

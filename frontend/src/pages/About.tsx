@@ -1,13 +1,19 @@
 import { Waves, GitBranch, Terminal } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Background from '../components/Background';
 
 export default function About() {
   return (
-    <div className="w-full min-h-screen bg-[#050505] text-white pt-32 px-8 md:px-16 lg:px-32 pb-24 font-sans relative overflow-hidden flex flex-col items-center justify-center">
+    <div className="w-full min-h-screen bg-[#020202] text-white pt-32 px-8 md:px-16 lg:px-32 pb-24 font-sans relative overflow-hidden flex flex-col items-center justify-center">
       
-      {/* Ambient glowing orbs */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-900/20 rounded-full blur-[150px] pointer-events-none"></div>
+      {/* Reduced intensity Liquid Ether Background */}
+      <Background />
 
+      {/* Ambient glowing orbs */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[150px] pointer-events-none"></div>
+
+      <div className="relative z-10 pointer-events-none w-full flex flex-col items-center justify-center">
+        <div className="pointer-events-auto max-w-4xl w-full">
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -50,6 +56,8 @@ export default function About() {
         </div>
         
       </motion.div>
+      </div>
+      </div>
     </div>
   );
 }

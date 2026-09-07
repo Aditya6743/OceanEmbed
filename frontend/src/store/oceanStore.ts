@@ -9,6 +9,7 @@ interface OceanState {
   error: string | null;
   errorPosition: { x: number, y: number } | null;
   hoveredDepth: number | null;
+  autoPilotMode: boolean;
   setSelectedDate: (date: string) => void;
   
   setLocation: (loc: OceanLocation) => void;
@@ -16,17 +17,19 @@ interface OceanState {
   setIsLoading: (loading: boolean) => void;
   setError: (error: string | null, pos?: { x: number, y: number }) => void;
   setHoveredDepth: (depth: number | null) => void;
+  setAutoPilotMode: (mode: boolean) => void;
   reset: () => void;
 }
 
 export const useOceanStore = create<OceanState>((set) => ({
   selectedLocation: null,
-  selectedDate: new Date().toISOString().split('T')[0],
+  selectedDate: '2026-05-01', // Lock to a date that works with our training data for the demo
   prediction: null,
   isLoading: false,
   error: null,
   errorPosition: null,
   hoveredDepth: null,
+  autoPilotMode: false,
   
   setLocation: (loc) => set({ selectedLocation: loc, prediction: null, error: null, errorPosition: null }),
   setPrediction: (data) => set({ prediction: data, isLoading: false, error: null, errorPosition: null }),
@@ -34,6 +37,6 @@ export const useOceanStore = create<OceanState>((set) => ({
   setError: (error, pos) => set({ error, errorPosition: pos || null, isLoading: false }),
   setHoveredDepth: (depth) => set({ hoveredDepth: depth }),
   setSelectedDate: (date) => set({ selectedDate: date }),
-  reset: () => set({ selectedLocation: null,
-  selectedDate: new Date().toISOString().split('T')[0], prediction: null, isLoading: false, error: null, errorPosition: null }),
+  setAutoPilotMode: (mode) => set({ autoPilotMode: mode }),
+  reset: () => set({ selectedLocation: null, prediction: null, isLoading: false, error: null, errorPosition: null }),
 }));
