@@ -22,7 +22,8 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
     if (error && error.toLowerCase().includes("out of bounds")) {
       isAnimating.current = true;
       const t = setTimeout(() => { isAnimating.current = false; }, 1500);
-      return () => clearTimeout(t);
+      return (
+    ) => clearTimeout(t);
     }
   }, [error]);
 
@@ -56,7 +57,8 @@ export default function Explore() {
       if (error) setError(null);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return (
+    ) => window.removeEventListener('scroll', handleScroll);
   }, [error, setError]);
 
   useEffect(() => {
@@ -91,7 +93,8 @@ export default function Explore() {
       }
     }, 3000);
 
-    return () => {
+    return (
+    ) => {
       steps.forEach(clearTimeout);
       clearTimeout(predictionTimeout);
     };
@@ -123,19 +126,20 @@ export default function Explore() {
 
 
   return (
-    <div className="w-full h-screen bg-[#020202] flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
+    
+    <div className="w-full h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
       
       {/* LEFT PANEL - INTERACTIVE GLOBE */}
-      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-black border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)]'}`} >
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#000_100%)] z-10" />
+      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-transparent border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)]'}`} >
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#030712_100%)] z-10" />
         
         <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={null}>
-            <EarthGlobe alwaysShowGrid={true} />
+            <EarthGlobe alwaysShowGrid={true} showStars={false} />
             <OrbitControls 
               ref={controlsRef}
               enablePan={false} enableDamping dampingFactor={0.05} rotateSpeed={0.5}
-              enableZoom={false} minDistance={4.5} maxDistance={6}
+              enableZoom={true} minDistance={4.8} maxDistance={5.5}
               autoRotate={!selectedLocation} autoRotateSpeed={0.5}
             />
             <CameraRig controlsRef={controlsRef} />
@@ -157,7 +161,7 @@ export default function Explore() {
       </div>
 
       {/* RIGHT PANEL - NO SCROLL DASHBOARD */}
-      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-[#050505] relative p-4 flex flex-col overflow-hidden`}>
+      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-transparent relative p-4 flex flex-col overflow-hidden`}>
         
         {/* Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -189,9 +193,9 @@ export default function Explore() {
                       type="date" 
                       value={selectedDate}
                       min="1993-01-01"
-                      max="2023-12-31"
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      disabled={prediction !== null || isLoading}
+                      max="2026-12-31"
+                      onChange={(e) => { setSelectedDate(e.target.value); if (selectedLocation) setIsLoading(true); }}
+                      disabled={isLoading}
                       className="bg-transparent text-cyan-50 font-bold focus:outline-none cursor-pointer disabled:opacity-50"
                       style={{ colorScheme: 'dark' }}
                     />
@@ -246,7 +250,7 @@ export default function Explore() {
                   <p className="text-white/70 font-mono text-sm mb-6 leading-relaxed">
                     OceanEmbed inference is strictly bounded to the North Indian Ocean.
                   </p>
-                  <div className="bg-black/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
+                  <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
                     <div className="text-white/40 mb-2 uppercase tracking-widest text-[10px]">What are our bounds?</div>
                     <div className="mb-1">Latitude: 5°N — 30°N</div>
                     <div>Longitude: 45°E — 105°E</div>
@@ -263,7 +267,7 @@ export default function Explore() {
                     <Scan className="w-6 h-6 animate-pulse" /> TARGET SECURED
                   </div>
                   
-                  <div className="bg-black/50 border border-cyan-500/20 rounded-lg p-5 font-mono text-xs text-cyan-300 mb-8 text-left inline-block w-full">
+                  <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-5 font-mono text-xs text-cyan-300 mb-8 text-left inline-block w-full">
                     <div className="flex justify-between mb-3 border-b border-cyan-500/20 pb-3">
                       <span className="text-white/50">Coordinates:</span>
                       <span className="font-bold">{selectedLocation.latitude}°N, {selectedLocation.longitude}°E</span>
@@ -288,7 +292,7 @@ export default function Explore() {
             {/* INFERENCE SEQUENCE OVERLAY */}
             {isLoading && (
               <div className="flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500">
-                <div className="bg-black/60 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 font-mono text-xs shadow-[0_0_50px_rgba(8,145,178,0.15)] max-w-md w-full mx-auto">
+                <div className="bg-transparent/60 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 font-mono text-xs shadow-[0_0_50px_rgba(8,145,178,0.15)] max-w-md w-full mx-auto">
                   <div className="flex items-center gap-3 text-cyan-400 mb-6 border-b border-cyan-500/20 pb-4">
                     <Zap className="w-4 h-4 animate-pulse" />
                     <span className="text-sm font-bold tracking-[0.2em]">OCEANEMBED NEURAL ENGINE</span>
@@ -332,31 +336,31 @@ export default function Explore() {
                   <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2">SURFACE OBSERVATIONS</div>
                     <div className="grid grid-cols-7 gap-2">
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SST</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.sst.toFixed(1)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSS</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.sss.toFixed(1)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSH</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.ssh > 0 ? '+' : ''}{prediction.surface_data.ssh.toFixed(2)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U CUR</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.current_u.toFixed(2)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V CUR</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.current_v.toFixed(2)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U WND</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.wind_u.toFixed(1)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V WND</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.wind_v.toFixed(1)}</div>
                       </div>
@@ -405,7 +409,7 @@ export default function Explore() {
                       <span>3D THERMODYNAMIC VOLUME</span>
                       <span>0 — 1000m</span>
                     </div>
-                    <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-black shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-row">
+                    <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-transparent shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-row">
                       <div className="flex-1 relative min-w-0 h-full"><Ocean3D prediction={prediction} /></div><AnomalyHeatmap profile={prediction.profile} />
                     </div>
                   </div>
@@ -432,7 +436,7 @@ export default function Explore() {
                     <div><span className="text-cyan-400 font-bold mr-2">2. OCEANEMBED</span><span className="text-white/40">Deep learning inference</span></div>
                     <div><span className="text-cyan-400 font-bold mr-2">3. ARGO</span><span className="text-white/40">Independent validation</span></div>
                   </div>
-                  <div className="flex items-center gap-2 bg-black/40 px-2 py-0.5 rounded border border-white/5 text-emerald-400">
+                  <div className="flex items-center gap-2 bg-transparent/40 px-2 py-0.5 rounded border border-white/5 text-emerald-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> PREDICTION READY
                   </div>
                 </div>
@@ -454,7 +458,7 @@ export default function Explore() {
             top: errorPosition.y - 20 
           }}
         >
-          <div className="bg-black/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
+          <div className="bg-transparent/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
             <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
               Out of bounds

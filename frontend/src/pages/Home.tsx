@@ -9,6 +9,7 @@ import { useOceanStore } from '../store/oceanStore';
 import React from 'react';
 
 
+import HowItWorksSection from '../components/landing/HowItWorksSection';
 import DataSection from '../components/landing/DataSection';
 import ModelSection from '../components/landing/ModelSection';
 import ResultsSection from '../components/landing/ResultsSection';
@@ -65,7 +66,7 @@ export default function Home() {
     <div id="top" className="w-full bg-transparent overflow-x-hidden pt-14 font-sans select-none">
       
       {/* HERO SECTION */}
-      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10">
+      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10 bg-black">
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
@@ -78,9 +79,7 @@ export default function Home() {
                 enableDamping={true} 
                 dampingFactor={0.075} 
                 rotateSpeed={0.8}
-                enableZoom={false} 
-                minDistance={4.8} 
-                maxDistance={5.5}
+                enableZoom={true} minDistance={4.8} maxDistance={5.5} 
                 autoRotate={!selectedLocation}
                 autoRotateSpeed={0.3}
               />
@@ -127,12 +126,7 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </button>
               
-              <button 
-                onClick={() => navigate('/how-it-works')}
-                className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors"
-              >
-                PROJECT VISION
-              </button>
+              <button onClick={() => navigate('/how-it-works')} className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors">PROJECT VISION</button>
             </motion.div>
 
             {/* Refined, compact Location HUD strictly aligned left */}
@@ -191,7 +185,7 @@ export default function Home() {
               </div>
               <div className="text-right w-32">
                 <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em]">PREDICTION</div>
-                <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">0m — 2000m</div>
+                <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">0m — 1000m</div>
               </div>
             </div>
 
@@ -211,9 +205,10 @@ export default function Home() {
       </section>
 
       {/* MODULAR LANDING PAGE SECTIONS */}
-      <div className="relative w-full bg-[#050505]">
+      <div className="relative w-full bg-transparent">
 
         
+                <HowItWorksSection />
         <DataSection />
         <ModelSection />
         <ResultsSection />

@@ -80,7 +80,7 @@ const fragmentShader = `
   }
 `;
 
-export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?: boolean }) {
+export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }: { alwaysShowGrid?: boolean, showStars?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
   const shaderRef = useRef<THREE.ShaderMaterial>(null);
@@ -189,7 +189,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[0, -10, 0]} intensity={0.5} color="#ffffff" />
       
-      <Stars radius={100} depth={50} count={2500} factor={4} saturation={0} fade speed={1.5} />
+      {showStars && <Stars radius={100} depth={50} count={2500} factor={4} saturation={0} fade speed={1.5} />}
       
       {pingPos && <Ping point={pingPos} onComplete={() => setPingPos(null)} />}
       
