@@ -77,11 +77,11 @@ export default function Home() {
               <OrbitControls ref={controlsRef} 
                 enablePan={false} 
                 enableDamping={true} 
-                dampingFactor={0.075} 
-                rotateSpeed={0.8}
+                dampingFactor={0.03} 
+                rotateSpeed={0.4}
                 enableZoom={true} minDistance={4.8} maxDistance={5.5} 
                 autoRotate={!selectedLocation}
-                autoRotateSpeed={0.3}
+                autoRotateSpeed={0.2}
               />
               <CameraRig controlsRef={controlsRef} />
             </Suspense>
@@ -204,8 +204,11 @@ export default function Home() {
         </div>
       </section>
 
+      {/* SEAMLESS TRANSITION GRADIENT */}
+      <div className="w-full h-[35vh] bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none relative z-10"></div>
+
       {/* MODULAR LANDING PAGE SECTIONS */}
-      <div className="relative w-full bg-transparent">
+      <div className="relative w-full bg-transparent -mt-[15vh] z-20">
 
         
                 <HowItWorksSection />

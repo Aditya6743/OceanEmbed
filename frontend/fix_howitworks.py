@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import re
+
+content = """import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
 export default function HowItWorks() {
   const [activeCard, setActiveCard] = useState<number | null>(null);
-  const [sequenceComplete, setSequenceComplete] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -12,10 +13,7 @@ export default function HowItWorks() {
     const t1 = setTimeout(() => setActiveCard(0), 800);
     const t2 = setTimeout(() => setActiveCard(1), 1800);
     const t3 = setTimeout(() => setActiveCard(2), 2800);
-    const t4 = setTimeout(() => {
-      setActiveCard(null);
-      setSequenceComplete(true);
-    }, 3800);
+    const t4 = setTimeout(() => setActiveCard(null), 3800);
 
     return () => {
       clearTimeout(t1);
@@ -70,11 +68,11 @@ export default function HowItWorks() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: i * 0.2, ease: [0.25, 1, 0.5, 1] }}
-                
-                className={`group relative flex flex-col rounded-3xl overflow-hidden backdrop-blur-2xl border transition-all duration-500 ${!sequenceComplete ? 'pointer-events-none' : ''}
+                onMouseEnter={() => setActiveCard(null)}
+                className={`group relative flex flex-col rounded-3xl overflow-hidden backdrop-blur-2xl border transition-all duration-500
                   ${isActive 
                     ? 'bg-cyan-950/30 border-cyan-500/40 -translate-y-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(8,145,178,0.2)]' 
-                    : 'bg-slate-900/40 border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),_0_8px_32px_rgba(0,0,0,0.5)]'}
+                    : 'bg-black/40 border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),_0_8px_32px_rgba(0,0,0,0.5)]'}
                   hover:bg-cyan-950/30 hover:border-cyan-500/40 hover:-translate-y-2 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),_0_20px_40px_rgba(8,145,178,0.2)]
                 `}
               >
@@ -115,3 +113,7 @@ export default function HowItWorks() {
     </div>
   );
 }
+"""
+
+with open("src/pages/HowItWorks.tsx", "w") as f:
+    f.write(content)

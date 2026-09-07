@@ -138,9 +138,9 @@ export default function Explore() {
             <EarthGlobe alwaysShowGrid={true} showStars={false} />
             <OrbitControls 
               ref={controlsRef}
-              enablePan={false} enableDamping dampingFactor={0.05} rotateSpeed={0.5}
+              enablePan={false} enableDamping dampingFactor={0.03} rotateSpeed={0.4}
               enableZoom={true} minDistance={4.8} maxDistance={5.5}
-              autoRotate={!selectedLocation} autoRotateSpeed={0.5}
+              autoRotate={!selectedLocation} autoRotateSpeed={0.2}
             />
             <CameraRig controlsRef={controlsRef} />
           </Suspense>
@@ -163,8 +163,7 @@ export default function Explore() {
       {/* RIGHT PANEL - NO SCROLL DASHBOARD */}
       <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-transparent relative p-4 flex flex-col overflow-hidden`}>
         
-        {/* Grid Background */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
 
         {!selectedLocation ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-40 relative z-10">

@@ -127,12 +127,12 @@
 
 @media print {
   /* Hide the navbar, globe, and unnecessary buttons */
-  nav, .hidden.md\\:hidden, button {
+  nav, .hidden, .md\\:hidden, button {
     display: none !important;
   }
   
   /* Make the dashboard panel full width and remove scroll/height limits */
-  .md\\:w-1\\/2, .w-full {
+  .w-full {
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;

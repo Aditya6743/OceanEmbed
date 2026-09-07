@@ -1,13 +1,21 @@
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ReactLenis } from 'lenis/react';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import HowItWorks from './pages/HowItWorks';
 import Explore from './pages/Explore';
 import GradientWaves from './components/GradientWaves';
+import Preloader from './components/Preloader';
 
 function App() {
+  const [appReady, setAppReady] = useState(false);
+
   return (
-    <Router>
+    <ReactLenis root options={{ lerp: 0.04, duration: 1.8, smoothWheel: true }}>
+      <Router>
+      {!appReady && <Preloader onComplete={() => setAppReady(true)} />}
+
       <div className="min-h-screen bg-[#030712] text-foreground flex flex-col font-sans relative">
         <div className="fixed inset-0 z-0 pointer-events-none flex flex-col">
           <div className="absolute inset-0">
@@ -44,7 +52,8 @@ function App() {
           </main>
         </div>
       </div>
-    </Router>
+      </Router>
+    </ReactLenis>
   );
 }
 
