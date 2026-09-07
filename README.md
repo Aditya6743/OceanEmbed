@@ -81,13 +81,13 @@ Instead of deploying physical sensors, OceanEmbed allows researchers to click an
 
 | Layer | Stack | Purpose in OceanEmbed |
 | :--- | :--- | :--- |
-| **🎨 Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · Framer Motion | Component-based UI, typed development, responsive styling and interactive dashboard behavior |
-| **🌐 3D & Data Visualization** | React Three Fiber · OGL · Recharts | WebGL-based 3D ocean rendering and visualization of temperature profiles, gradients and prediction outputs |
-| **🔢 Data Processing** | Python 3.10 · Pandas · NumPy | Data ingestion, preprocessing, spatial transformation and numerical computation |
-| **🧠 Machine Learning** | Scikit-Learn · Joblib | Random Forest regression, subsurface temperature inference and trained-model serialization |
-| **⚙️ API & Model Serving** | FastAPI · Uvicorn | REST API layer for real-time inference and communication between frontend and ML pipeline |
-| **🔧 DevOps** | Git · GitHub · Docker | Source-code management, collaborative development and reproducible runtime environments |
-| **☁️ Deployment** | Vercel · Render | Production hosting for the frontend and FastAPI inference service |
+| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · Framer Motion | Component-based UI, typed development, responsive styling and interactive dashboard behavior |
+| **3D & Data Visualization** | React Three Fiber · OGL · Recharts | WebGL-based 3D ocean rendering and visualization of temperature profiles, gradients and prediction outputs |
+| **Data Processing** | Python 3.10 · Pandas · NumPy | Data ingestion, preprocessing, spatial transformation and numerical computation |
+| **Machine Learning** | Scikit-Learn · Joblib | Random Forest regression, subsurface temperature inference and trained-model serialization |
+| **API & Model Serving** | FastAPI · Uvicorn | REST API layer for real-time inference and communication between frontend and ML pipeline |
+| **DevOps** | Git · GitHub · Docker | Source-code management, collaborative development and reproducible runtime environments |
+| **Deployment** | Vercel · Render | Production hosting for the frontend and FastAPI inference service |
 
 ---
 
