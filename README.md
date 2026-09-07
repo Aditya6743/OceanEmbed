@@ -11,8 +11,11 @@
     <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" />
     <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" />
     <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white" />
+    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
     <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
     <img src="https://img.shields.io/badge/scikit_learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" />
+    <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
+    <img src="https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" />
     <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
   </p>
 </div>
@@ -53,6 +56,25 @@ graph TD
     INF ==>|JSON Depth Profile| GRAD
     INF ==>|JSON Depth Profile| CONF
 ```
+
+---
+
+## 🛠️ Tech Stack
+
+**Frontend (Client)**
+* **Core:** React 18, TypeScript, Vite
+* **Styling & UI:** Tailwind CSS, Framer Motion, Lucide Icons
+* **3D & Visualization:** React Three Fiber (Three.js), OGL (Shaders/Backgrounds), Recharts (Data plotting)
+
+**Backend (Machine Learning API)**
+* **Core:** Python 3.10, FastAPI, Uvicorn
+* **Machine Learning:** Scikit-Learn (Random Forest Regressor), Joblib (Model Serialization)
+* **Data Processing:** Pandas, NumPy
+
+**Deployment & DevOps**
+* **Frontend Hosting:** Vercel (CI/CD connected to GitHub)
+* **Backend Hosting:** Render (Web Service)
+* **Containerization:** Docker (Used to package and deploy the heavy ML Python environment on Render)
 
 ---
 
