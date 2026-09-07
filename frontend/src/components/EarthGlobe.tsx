@@ -80,6 +80,25 @@ const fragmentShader = `
   }
 `;
 
+
+
+function EarthTracker() {
+  const { camera, gl } = useThree();
+  useFrame(() => {
+    const rect = gl.domElement.getBoundingClientRect();
+    const center = new THREE.Vector3(0, 0, 0).project(camera);
+    const edge = new THREE.Vector3(0, 2, 0).project(camera); // Earth radius is 2
+    
+    const cx = (center.x + 1) / 2 * rect.width + rect.left;
+    const cy = (-center.y + 1) / 2 * rect.height + rect.top;
+    const radiusPx = Math.abs(edge.y - center.y) * rect.height / 2;
+    
+    document.body.dataset.earthCx = cx.toString();
+    document.body.dataset.earthCy = cy.toString();
+    document.body.dataset.earthRadius = radiusPx.toString();
+  });
+  return null;
+}
 export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }: { alwaysShowGrid?: boolean, showStars?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
@@ -194,7 +213,9 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
   }), []);
 
   return (
-    <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
+    <>
+      <EarthTracker />
+      <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
       <ambientLight intensity={1.2} color="#ffffff" />
       <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
@@ -276,5 +297,6 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
         </group>
       )}
     </group>
+    </>
   );
 }

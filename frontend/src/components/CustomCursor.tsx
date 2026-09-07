@@ -9,10 +9,37 @@ export default function CustomCursor() {
     const updateCursor = (e: MouseEvent) => {
       setPos({ x: e.clientX, y: e.clientY });
       
-      if (document.body.dataset.cursorOverride === 'crosshair') {
+      
+      const hoveredEl = document.elementFromPoint(e.clientX, e.clientY);
+      if (hoveredEl && hoveredEl.tagName !== 'CANVAS') {
+        setIsActive(false);
+        document.body.dataset.customCursor = 'false';
+        return;
+      }
+      
+      const cxStr = document.body.dataset.earthCx;
+
+      const cyStr = document.body.dataset.earthCy;
+      const rStr = document.body.dataset.earthRadius;
+      
+      if (!cxStr || !cyStr || !rStr) {
+        setIsActive(false);
+        document.body.dataset.customCursor = 'false';
+        return;
+      }
+      
+      const cx = parseFloat(cxStr);
+      const cy = parseFloat(cyStr);
+      const radiusPx = parseFloat(rStr);
+      
+      const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+      
+      if (dist < radiusPx) {
         setIsActive(true);
+        document.body.dataset.customCursor = 'true';
       } else {
         setIsActive(false);
+        document.body.dataset.customCursor = 'false';
       }
     };
 
@@ -24,7 +51,7 @@ export default function CustomCursor() {
 
   return (
     <div 
-      className="fixed pointer-events-none z-[9999] flex items-center justify-center transition-transform duration-75 ease-out"
+      className="fixed pointer-events-none z-[99999] flex items-center justify-center transition-transform duration-75 ease-out"
       style={{ 
         left: pos.x, 
         top: pos.y,
