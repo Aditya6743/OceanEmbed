@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="frontend/public/favicon.svg" alt="OceanEmbed Logo" width="120" />
-  
-  # OceanEmbed
-  **AI-Driven 3D Ocean Thermodynamic Reconstruction**
-  
-  *Presented by Team CodeStormers for Smart India Hackathon (SIH26066)*
-
+  <h1 align="center">
+    <img src="frontend/public/favicon.svg" width="45" valign="middle" alt="OceanEmbed Logo" /> OceanEmbed
+  </h1>
+  <strong>AI-Driven 3D Ocean Thermodynamic Reconstruction</strong>
+  <br/>
+  <em>Presented by Team CodeStormers for Smart India Hackathon (SIH26066)</em>
+  <br/><br/>
   <p align="center">
     <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
     <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" />
@@ -72,11 +72,24 @@ By utilizing advanced Machine Learning (a highly tuned Random Forest Regressor),
 
 Instead of deploying physical sensors, OceanEmbed allows researchers to click any coordinate in the ocean and instantly generate a 3D thermodynamic volume down to **1000 meters**, using only surface satellite data.
 
-### Key Capabilities & Impact
-- **Continuous 3D Profiling:** Extrapolates temperatures across standard ocean depths (0m to 1000m) instantly.
-- **Naval Stealth & Defense (dT/dz):** Calculates the precise rate of temperature change per meter (thermal gradient). This allows naval submarines to locate the *Thermocline*—critical acoustic shadow zones used to hide from enemy sonar.
-- **Scientific Rigor:** Outputs are bounded by a strict **±95% Confidence Interval**, providing researchers with quantifiable margins of error.
-- **Argo Float Validation:** Predictions are continuously cross-validated against real-world Argo Float ground truth data to ensure absolute accuracy.
+---
+
+## ✨ Key Features
+
+- **Interactive 3D Dashboard:** A high-performance WebGL interface built with React Three Fiber, allowing users to rotate, pan, and explore physical ocean layers in real-time.
+- **Live Inference Engine:** A FastAPI backend that hosts our Random Forest model, resolving live 3D coordinates into full thermodynamic profiles in under 100ms.
+- **Acoustic Shadow Zone Detection (dT/dz):** Automatically calculates the thermal gradient per meter to locate the *Thermocline*—a critical tactical feature for naval submarine stealth operations.
+- **Statistical Confidence Bounds:** Every prediction is accompanied by a ±95% scientific confidence interval, ensuring military and scientific reliability.
+- **Automated Anomaly Heatmaps:** Generates visual heatmaps comparing live predictions against a 20-year historical climatology baseline to instantly detect marine heatwaves.
+
+---
+
+## 🧠 Machine Learning Pipeline
+
+1. **Data Acquisition:** Surface telemetry (SST, SSS, SSH, Winds) is ingested directly from the Copernicus Marine Environment Monitoring Service (CMEMS).
+2. **Ground Truth Validation:** Deep-water temperature profiles are cross-referenced with independent Argo Float sensor data to ensure training accuracy.
+3. **Model Training:** We employ a highly tuned Random Forest Regressor, chosen specifically for its robust ability to capture non-linear oceanographic stratifications without overfitting on noisy data.
+4. **Inference:** The model accepts real-time surface telemetry and outputs a continuous 1D array representing temperatures at standard depths (0m to 1000m).
 
 ---
 
@@ -100,4 +113,16 @@ npm install
 npm run dev
 ```
 
-*OceanEmbed is proudly open-source and built for the Smart India Hackathon.*
+---
+
+## 🔮 Future Roadmap
+
+- [ ] **Temporal Forecasting:** Expand the model from static spatial reconstruction to true time-series forecasting (predicting subsurface temperatures 7-14 days into the future).
+- [ ] **Global Basin Expansion:** Currently scoped strictly to the North Indian Ocean. We plan to retrain and fine-tune the model weights for the Pacific and Atlantic basins.
+- [ ] **Edge Deployment:** Optimize and compress the Random Forest inference weights for deployment directly on low-power naval edge devices and drifting buoys.
+
+---
+
+<div align="center">
+  <i>Built with ❤️ by Team CodeStormers for Smart India Hackathon.</i>
+</div>
