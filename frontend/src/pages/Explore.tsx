@@ -128,7 +128,7 @@ export default function Explore() {
       <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-black shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)] border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ''}`}>
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#000_100%)] z-10" />
         
-        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }}>
+        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={null}>
             <EarthGlobe alwaysShowGrid={true} />
             <OrbitControls 

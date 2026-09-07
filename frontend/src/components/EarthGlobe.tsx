@@ -101,7 +101,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
 
   useEffect(() => {
     if (colorMap && specularMap && normalMap) {
-      const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
+      const maxAnisotropy = Math.min(4, gl.capabilities.getMaxAnisotropy());
       colorMap.anisotropy = maxAnisotropy;
       specularMap.anisotropy = maxAnisotropy;
       normalMap.anisotropy = maxAnisotropy;
@@ -192,7 +192,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[0, -10, 0]} intensity={0.5} color="#ffffff" />
       
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />
+      <Stars radius={100} depth={50} count={2500} factor={4} saturation={0} fade speed={1.5} />
       
       {pingPos && <Ping point={pingPos} onComplete={() => setPingPos(null)} />}
       
