@@ -22,7 +22,7 @@
 
 ---
 
-## Core Architecture
+## 01 / Core Architecture
 
 OceanEmbed operates on a highly optimized, decoupled architecture separating the heavy machine-learning inference from the high-performance WebGL frontend.
 
@@ -59,7 +59,7 @@ graph TD
 
 ---
 
-## The Problem: The Hidden Ocean
+## 02 / The Problem: The Hidden Ocean
 
 Satellites provide massive amounts of real-time data about the ocean's surface, but they cannot penetrate the water. The deep ocean—which drives global climate, creates cyclones, and hides submarines—remains entirely hidden from space. 
 
@@ -67,7 +67,7 @@ While physical sensors (like Argo floats) provide incredibly accurate deep-water
 
 ---
 
-## The Solution: AI Subsurface Reconstruction
+## 03 / The Solution: AI Subsurface Reconstruction
 
 **OceanEmbed** bridges the gap between surface telemetry and deep-ocean reality. 
 
@@ -77,7 +77,7 @@ Instead of deploying physical sensors, OceanEmbed allows researchers to click an
 
 ---
 
-## Tech Stack
+## 04 / Tech Stack
 
 **Frontend (Client)**
 * **Core:** React 18, TypeScript, Vite
@@ -96,7 +96,7 @@ Instead of deploying physical sensors, OceanEmbed allows researchers to click an
 
 ---
 
-## Key Features
+## 05 / Key Features
 
 - **Interactive 3D Dashboard:** A high-performance WebGL interface built with React Three Fiber, allowing users to rotate, pan, and explore physical ocean layers in real-time.
 - **Live Inference Engine:** A FastAPI backend that hosts our Random Forest model, resolving live 3D coordinates into full thermodynamic profiles in under 100ms.
@@ -106,7 +106,7 @@ Instead of deploying physical sensors, OceanEmbed allows researchers to click an
 
 ---
 
-## Machine Learning Pipeline
+## 06 / Machine Learning Pipeline
 
 1. **Data Acquisition:** Surface telemetry (SST, SSS, SSH, Winds) is ingested directly from the Copernicus Marine Environment Monitoring Service (CMEMS).
 2. **Ground Truth Validation:** Deep-water temperature profiles are cross-referenced with independent Argo Float sensor data to ensure training accuracy.
@@ -115,7 +115,7 @@ Instead of deploying physical sensors, OceanEmbed allows researchers to click an
 
 ---
 
-## Local Development Setup
+## 07 / Local Development Setup
 
 To run this project locally, you will need Node.js and Python installed.
 
@@ -137,7 +137,7 @@ npm run dev
 
 ---
 
-## Future Roadmap
+## 08 / Future Roadmap
 
 - [ ] **Temporal Forecasting:** Expand the model from static spatial reconstruction to true time-series forecasting (predicting subsurface temperatures 7-14 days into the future).
 - [ ] **Global Basin Expansion:** Currently scoped strictly to the North Indian Ocean. We plan to retrain and fine-tune the model weights for the Pacific and Atlantic basins.
