@@ -59,6 +59,24 @@ graph TD
 
 ---
 
+## 🚨 The Problem: The Hidden Ocean
+
+Satellites provide massive amounts of real-time data about the ocean's surface, but they cannot penetrate the water. The deep ocean—which drives global climate, creates cyclones, and hides submarines—remains entirely hidden from space. 
+
+While physical sensors (like Argo floats) provide incredibly accurate deep-water readings, they are sparse and drift passively, leaving massive geographical blind spots. To fully understand ocean thermodynamics, we need a way to look *beneath* the surface without relying solely on expensive, localized physical probes.
+
+---
+
+## 💡 The Solution: AI Subsurface Reconstruction
+
+**OceanEmbed** bridges the gap between surface telemetry and deep-ocean reality. 
+
+By utilizing advanced Machine Learning (a highly tuned Random Forest Regressor), our model has learned the complex, non-linear thermodynamic relationships between surface signatures and deep-water stratifications in the North Indian Ocean. 
+
+Instead of deploying physical sensors, OceanEmbed allows researchers to click any coordinate in the ocean and instantly generate a 3D thermodynamic volume down to **1000 meters**, using only surface satellite data.
+
+---
+
 ## 🛠️ Tech Stack
 
 **Frontend (Client)**
@@ -75,24 +93,6 @@ graph TD
 * **Frontend Hosting:** Vercel (CI/CD connected to GitHub)
 * **Backend Hosting:** Render (Web Service)
 * **Containerization:** Docker (Used to package and deploy the heavy ML Python environment on Render)
-
----
-
-## 🚨 The Problem: The Hidden Ocean
-
-Satellites provide massive amounts of real-time data about the ocean's surface, but they cannot penetrate the water. The deep ocean—which drives global climate, creates cyclones, and hides submarines—remains entirely hidden from space. 
-
-While physical sensors (like Argo floats) provide incredibly accurate deep-water readings, they are sparse and drift passively, leaving massive geographical blind spots. To fully understand ocean thermodynamics, we need a way to look *beneath* the surface without relying solely on expensive, localized physical probes.
-
----
-
-## 💡 The Solution: AI Subsurface Reconstruction
-
-**OceanEmbed** bridges the gap between surface telemetry and deep-ocean reality. 
-
-By utilizing advanced Machine Learning (a highly tuned Random Forest Regressor), our model has learned the complex, non-linear thermodynamic relationships between surface signatures and deep-water stratifications in the North Indian Ocean. 
-
-Instead of deploying physical sensors, OceanEmbed allows researchers to click any coordinate in the ocean and instantly generate a 3D thermodynamic volume down to **1000 meters**, using only surface satellite data.
 
 ---
 
