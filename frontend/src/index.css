@@ -152,3 +152,9 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+
+
+body[data-cursor-override='crosshair'], body[data-cursor-override='crosshair'] * {
+  cursor: none !important;
+}

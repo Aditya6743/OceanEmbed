@@ -7,6 +7,7 @@ import HowItWorks from './pages/HowItWorks';
 import Explore from './pages/Explore';
 import GradientWaves from './components/GradientWaves';
 import Preloader from './components/Preloader';
+import CustomCursor from './components/CustomCursor';
 
 function App() {
   const [appReady, setAppReady] = useState(false);
@@ -15,6 +16,7 @@ function App() {
     <ReactLenis root options={{ lerp: 0.04, duration: 1.8, smoothWheel: true }}>
       <Router>
       {!appReady && <Preloader onComplete={() => setAppReady(true)} />}
+      <CustomCursor />
 
       <div className="min-h-screen bg-[#030712] text-foreground flex flex-col font-sans relative">
         <div className="fixed inset-0 z-0 pointer-events-none flex flex-col">

@@ -91,6 +91,17 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
   const error = useOceanStore(state => state.error);
   
   const { gl } = useThree();
+  useEffect(() => {
+    const blockDrag = (e: PointerEvent) => {
+      if (document.body.dataset.canDrag === 'false') {
+        e.stopPropagation();
+      }
+    };
+    gl.domElement.addEventListener('pointerdown', blockDrag, { capture: true });
+    return () => gl.domElement.removeEventListener('pointerdown', blockDrag, { capture: true });
+  }, [gl]);
+
+
   
   const [colorMap, specularMap, normalMap] = useLoader(THREE.TextureLoader, [
     '/textures/earth.jpg',
@@ -202,12 +213,23 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
         <meshBasicMaterial colorWrite={false} depthWrite={false} transparent opacity={0} side={THREE.BackSide} />
       </mesh>
 
-      {/* PHYSICAL EARTH SPHERE */}
+                  {/* INVISIBLE EDGE SPHERE FOR DRAG BOUNDS */}
+      <mesh 
+        onPointerEnter={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('setCursor', { detail: 'grab' })); document.body.dataset.canDrag = 'true'; }}
+        onPointerMove={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('setCursor', { detail: 'grab' })); document.body.dataset.canDrag = 'true'; }}
+        onPointerLeave={() => { window.dispatchEvent(new CustomEvent('setCursor', { detail: 'auto' })); document.body.dataset.canDrag = 'false'; }}
+      >
+        <sphereGeometry args={[2.5, 32, 32]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
+
+            {/* PHYSICAL EARTH SPHERE */}
       <Sphere 
         args={[2, 64, 64]} 
         onClick={handleClick}
-        onPointerOver={(e) => { e.stopPropagation(); gl.domElement.style.cursor = 'crosshair'; }}
-        onPointerOut={(e) => { e.stopPropagation(); gl.domElement.style.cursor = 'grab'; }}
+        onPointerEnter={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('setCursor', { detail: 'crosshair' })); document.body.dataset.canDrag = 'true'; }}
+        onPointerMove={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('setCursor', { detail: 'crosshair' })); document.body.dataset.canDrag = 'true'; }}
+        onPointerLeave={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('setCursor', { detail: 'grab' })); document.body.dataset.canDrag = 'true'; }}
       >
         <meshPhongMaterial 
           map={colorMap}

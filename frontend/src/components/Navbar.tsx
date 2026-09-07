@@ -41,7 +41,7 @@ export default function Navbar() {
       <div className="container flex h-14 items-center justify-between px-6 mx-auto">
         <div className="flex items-center gap-12">
           
-          <Link to="/" onClick={(e) => handleNavClick(e, 'top', '/')} className="flex items-center gap-3 opacity-90 hover:opacity-100 transition-opacity">
+          <Link to="/" onClick={(e) => handleNavClick(e, 'top', '/')} className="flex items-center gap-3 opacity-90 cursor-pointer hover:opacity-100 transition-opacity">
             <Waves className="w-6 h-6 text-cyan-400" strokeWidth={1.5} />
             <span className="font-semibold text-[15px] tracking-[0.15em] uppercase">
               <span className="text-white">OCEAN</span><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">EMBED</span>
