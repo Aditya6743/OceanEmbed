@@ -1,5 +1,6 @@
-import { useRef, useMemo, useEffect, useState } from 'react';
-import { useFrame, useLoader, useThree } from '@react-three/fiber';
+import { useRef, useEffect, useState, useMemo } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useLoader } from '@react-three/fiber';
 import { Sphere, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useOceanStore } from '../store/oceanStore';
@@ -55,7 +56,6 @@ const fragmentShader = `
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
       float pulse = (sin(time * 2.0) + 1.0) * 0.5 * 0.15 + 0.05;
       
-      // Calculate distance to edge for a glowing border
       float edgeX = min(lon - 45.0, 105.0 - lon);
       float edgeY = min(lat - 5.0, 30.0 - lat);
       float edge = min(edgeX, edgeY);
@@ -67,7 +67,6 @@ const fragmentShader = `
         intensity = 0.5 * (1.0 - (edge - 0.3) / 0.7);
       }
       
-      // Add subtle grid lines inside
       float gridX = mod(lon, 5.0);
       float gridY = mod(lat, 5.0);
       if (gridX < 0.1 || gridY < 0.1) {
@@ -131,8 +130,6 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
     }
     if (shaderRef.current) {
       shaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-
-      // Smooth fade in/out for the highlight
       const target = (alwaysShowGrid || showErrorBounds) ? 1.0 : 0.0;
       shaderRef.current.uniforms.showHighlight.value += (target - shaderRef.current.uniforms.showHighlight.value) * 0.1;
     }
@@ -147,7 +144,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
     const lat = Math.asin(point.y) * (180 / Math.PI);
     const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
     
-    setPingPos(point.clone().multiplyScalar(2)); // scale by sphere radius (2)
+    setPingPos(point.clone().multiplyScalar(2)); 
     
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
       useOceanStore.getState().setError("Out of bounds", { x: e.clientX, y: e.clientY });
@@ -196,11 +193,21 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       
       {pingPos && <Ping point={pingPos} onComplete={() => setPingPos(null)} />}
       
+      {/* INVISIBLE OUTER "GRAB" SPHERE - Catch hovers outside the physical earth */}
+      <mesh 
+        onPointerOver={(e) => { e.stopPropagation(); gl.domElement.style.cursor = 'grab'; }}
+        onPointerOut={() => { gl.domElement.style.cursor = 'auto'; }}
+      >
+        <sphereGeometry args={[2.5, 32, 32]} />
+        <meshBasicMaterial colorWrite={false} depthWrite={false} transparent opacity={0} side={THREE.BackSide} />
+      </mesh>
+
+      {/* PHYSICAL EARTH SPHERE */}
       <Sphere 
-        args={[2, 128, 128]} 
+        args={[2, 64, 64]} 
         onClick={handleClick}
-        onPointerOver={() => gl.domElement.style.cursor = 'crosshair'}
-        onPointerOut={() => gl.domElement.style.cursor = 'grab'}
+        onPointerOver={(e) => { e.stopPropagation(); gl.domElement.style.cursor = 'crosshair'; }}
+        onPointerOut={(e) => { e.stopPropagation(); gl.domElement.style.cursor = 'grab'; }}
       >
         <meshPhongMaterial 
           map={colorMap}
@@ -210,8 +217,8 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
         />
       </Sphere>
       
-      {/* SIH26066 DOMAIN HIGHLIGHT OVERLAY (Custom GLSL Shader) */}
-      <Sphere args={[2.005, 128, 128]} raycast={() => null}>
+      {/* OVERLAYS */}
+      <Sphere args={[2.005, 64, 64]} raycast={() => null}>
         <shaderMaterial
           ref={shaderRef}
           vertexShader={vertexShader}
@@ -223,7 +230,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
         />
       </Sphere>
 
-      <Sphere args={[2.02, 128, 128]} raycast={() => null}>
+      <Sphere args={[2.02, 64, 64]} raycast={() => null}>
         <meshBasicMaterial 
           color="#0ea5e9" 
           transparent 
@@ -233,6 +240,7 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
         />
       </Sphere>
 
+      {/* MARKER */}
       {markerPosition && (
         <group position={markerPosition}>
           <mesh>

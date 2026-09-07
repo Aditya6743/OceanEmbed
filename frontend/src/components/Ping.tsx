@@ -9,10 +9,10 @@ export function Ping({ point, onComplete }: { point: THREE.Vector3, onComplete: 
   );
 
   return (
-    <group position={point.clone().multiplyScalar(1.02)} quaternion={quaternion}>
+    <group position={point.clone().multiplyScalar(1.01)} quaternion={quaternion}>
       <Ripple delay={0} onComplete={onComplete} />
-      <Ripple delay={0.15} />
-      <Ripple delay={0.3} />
+      <Ripple delay={0.2} />
+      <Ripple delay={0.4} />
     </group>
   );
 }
@@ -28,9 +28,9 @@ function Ripple({ delay, onComplete }: { delay: number, onComplete?: () => void 
     
     if (ref.current && matRef.current) {
       ref.current.visible = true;
-      // Smooth, soothing expansion
-      ref.current.scale.addScalar(delta * 2.2);
-      matRef.current.opacity -= delta * 0.6;
+      // Premium smooth expansion
+      ref.current.scale.addScalar(delta * 1.5);
+      matRef.current.opacity -= delta * 0.45;
       
       if (matRef.current.opacity <= 0 && onComplete) {
         onComplete();
@@ -40,13 +40,13 @@ function Ripple({ delay, onComplete }: { delay: number, onComplete?: () => void 
 
   return (
     <mesh ref={ref} visible={false}>
-      {/* Thicker, more visible ring */}
-      <ringGeometry args={[0.02, 0.06, 64]} />
+      {/* Extremely slim, elegant ring */}
+      <ringGeometry args={[0.02, 0.023, 64]} />
       <meshBasicMaterial 
         ref={matRef} 
-        color="#22d3ee" 
+        color="#00E5FF" 
         transparent 
-        opacity={1.0} 
+        opacity={0.8} 
         side={THREE.DoubleSide} 
         depthTest={false} 
         blending={THREE.AdditiveBlending} 

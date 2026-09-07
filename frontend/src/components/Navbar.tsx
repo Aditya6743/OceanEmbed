@@ -8,8 +8,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   
   // Simplified uncluttered navbar
-  const navLinks = [
-    { name: 'Home', id: 'top', path: '/' },
+  const navLinks: Array<{ name: string; id: string; path?: string }> = [
     { name: 'Data', id: 'data' },
     { name: 'Model', id: 'model' },
     { name: 'About', id: 'about' },
@@ -73,6 +72,9 @@ export default function Navbar() {
           >
             AUTO-PILOT DEMO
           </button>
+          <div className="hidden md:flex items-center justify-center px-3 py-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.15)] text-[10px] font-bold font-mono tracking-widest">
+            SIH26066
+          </div>
         </div>
       </div>
     </header>

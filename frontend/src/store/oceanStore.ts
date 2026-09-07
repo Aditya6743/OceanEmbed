@@ -10,6 +10,8 @@ interface OceanState {
   errorPosition: { x: number, y: number } | null;
   hoveredDepth: number | null;
   autoPilotMode: boolean;
+  activeHighlight: string | null;
+  setActiveHighlight: (highlight: string | null) => void;
   setSelectedDate: (date: string) => void;
   
   setLocation: (loc: OceanLocation) => void;
@@ -30,6 +32,7 @@ export const useOceanStore = create<OceanState>((set) => ({
   errorPosition: null,
   hoveredDepth: null,
   autoPilotMode: false,
+  activeHighlight: null,
   
   setLocation: (loc) => set({ selectedLocation: loc, prediction: null, error: null, errorPosition: null }),
   setPrediction: (data) => set({ prediction: data, isLoading: false, error: null, errorPosition: null }),
@@ -38,5 +41,6 @@ export const useOceanStore = create<OceanState>((set) => ({
   setHoveredDepth: (depth) => set({ hoveredDepth: depth }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   setAutoPilotMode: (mode) => set({ autoPilotMode: mode }),
+  setActiveHighlight: (highlight) => set({ activeHighlight: highlight }),
   reset: () => set({ selectedLocation: null, prediction: null, isLoading: false, error: null, errorPosition: null }),
 }));

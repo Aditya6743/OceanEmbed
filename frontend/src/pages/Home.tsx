@@ -9,10 +9,8 @@ import { useOceanStore } from '../store/oceanStore';
 import React from 'react';
 
 
-import ProblemSection from '../components/landing/ProblemSection';
 import DataSection from '../components/landing/DataSection';
 import ModelSection from '../components/landing/ModelSection';
-import HowItWorksSection from '../components/landing/HowItWorksSection';
 import ResultsSection from '../components/landing/ResultsSection';
 import AboutSection from '../components/landing/AboutSection';
 import Footer from '../components/landing/Footer';
@@ -80,7 +78,7 @@ export default function Home() {
                 enableDamping={true} 
                 dampingFactor={0.075} 
                 rotateSpeed={0.8}
-                enableZoom={true} 
+                enableZoom={false} 
                 minDistance={4.8} 
                 maxDistance={5.5}
                 autoRotate={!selectedLocation}
@@ -110,7 +108,7 @@ export default function Home() {
               </h1>
               
               <p className="text-lg md:text-xl text-white/80 font-light mb-10 leading-relaxed drop-shadow-lg">
-                OceanEmbed uses satellite observations and Argo measurements to estimate how ocean temperature changes <span className="text-white font-medium">deep below the surface.</span>
+                OceanEmbed uses Deep Learning to reconstruct the 3D thermodynamic volume of the North Indian Ocean directly from <span className="text-white font-medium">surface satellite telemetry.</span>
               </p>
             </motion.div>
 
@@ -130,10 +128,10 @@ export default function Home() {
               </button>
               
               <button 
-                onClick={() => document.getElementById('problem-section')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => navigate('/how-it-works')}
                 className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors"
               >
-                HOW IT WORKS
+                PROJECT VISION
               </button>
             </motion.div>
 
@@ -216,10 +214,8 @@ export default function Home() {
       <div className="relative w-full bg-[#050505]">
 
         
-        <ProblemSection />
         <DataSection />
         <ModelSection />
-        <HowItWorksSection />
         <ResultsSection />
         <AboutSection />
         <Footer />

@@ -1,10 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import HowItWorks from './pages/HowItWorks';
 import Explore from './pages/Explore';
-import Model from './pages/Model';
-import Data from './pages/Data';
-import About from './pages/About';
 
 function App() {
   return (
@@ -14,10 +12,8 @@ function App() {
         <main className="flex-1 flex flex-col">
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/explore" element={<Explore />} />
-            <Route path="/model" element={<Model />} />
-            <Route path="/data" element={<Data />} />
-            <Route path="/about" element={<About />} />
           </Routes>
         </main>
       </div>
