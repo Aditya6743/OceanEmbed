@@ -59,7 +59,7 @@ export async function fetchHistory(lat: number, lon: number): Promise<HistoryDat
     }
 
     const data = await res.json();
-    return data.history;
+    if (data.history && data.history.length > 0) return data.history; return getMockHistory();
   } catch (err) {
     return getMockHistory();
   }
