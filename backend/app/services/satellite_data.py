@@ -1,5 +1,4 @@
 import random
-import xarray as xr
 from pathlib import Path
 from app.schemas.prediction import SurfaceData
 
@@ -13,10 +12,14 @@ class SatelliteDataService:
     @classmethod
     def get_dataset(cls):
         if cls.ds is None:
-            if cls.LIVE_FILE.exists():
-                cls.ds = xr.open_dataset(cls.LIVE_FILE)
-            elif cls.HISTORICAL_FILE.exists():
-                cls.ds = xr.open_dataset(cls.HISTORICAL_FILE)
+            try:
+                import xarray as xr
+                if cls.LIVE_FILE.exists():
+                    cls.ds = xr.open_dataset(cls.LIVE_FILE)
+                elif cls.HISTORICAL_FILE.exists():
+                    cls.ds = xr.open_dataset(cls.HISTORICAL_FILE)
+            except (ImportError, Exception) as e:
+                pass
         return cls.ds
 
     @staticmethod

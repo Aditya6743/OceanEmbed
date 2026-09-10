@@ -1,4 +1,3 @@
-import pandas as pd
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -11,14 +10,18 @@ class HistoryService:
     def _load_data(self):
         if self._df is None:
             if not self.csv_path.exists():
-                return pd.DataFrame()
-            self._df = pd.read_csv(self.csv_path, usecols=['latitude', 'longitude', 'time', 'sst_celsius'])
-            self._df['time'] = pd.to_datetime(self._df['time'])
+                return None
+            try:
+                import pandas as pd
+                self._df = pd.read_csv(self.csv_path, usecols=['latitude', 'longitude', 'time', 'sst_celsius'])
+                self._df['time'] = pd.to_datetime(self._df['time'])
+            except Exception:
+                return None
         return self._df
         
     def get_history(self, lat: float, lon: float) -> List[Dict[str, Any]]:
         df = self._load_data()
-        if df.empty:
+        if df is None or df.empty:
             return []
             
         df['dist'] = (df['latitude'] - lat)**2 + (df['longitude'] - lon)**2
