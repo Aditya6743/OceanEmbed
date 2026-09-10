@@ -1,0 +1,6 @@
+venv/
+__pycache__/
+*.pkl
+*.nc
+# # *.csv  # Allowed bob_3d_temperature.csv to be uploaded
+.env
