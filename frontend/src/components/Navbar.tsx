@@ -67,6 +67,14 @@ export default function Navbar() {
         </div>
         
         <div className="flex items-center gap-4">
+          <a 
+            href="https://oceanembed-backend-av3e.onrender.com/docs" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-purple-400 font-bold bg-purple-500/10 border border-purple-500/30 px-4 py-1.5 rounded-full hover:bg-purple-500/20 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+          >
+            DEVELOPER API
+          </a>
           <button 
             onClick={() => {
               useOceanStore.getState().setAutoPilotMode(true);
