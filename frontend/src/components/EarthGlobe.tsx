@@ -38,56 +38,85 @@ const vertexShader = `
   }
 `;
 
-const fragmentShader = `
+const gridFragmentShader = `
   varying vec3 vPosition;
   uniform float time;
   uniform float showHighlight;
   
   void main() {
     if (showHighlight < 0.5) discard;
-    
     vec3 p = normalize(vPosition);
     float lat = asin(p.y) * 180.0 / 3.14159265359;
     float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
     
-    // Bounds: 5N - 30N, 45E - 105E
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
       float pulse = (sin(time * 2.0) + 1.0) * 0.5 * 0.15 + 0.05;
-      
-      // Calculate distance to edge for a glowing border
       float edgeX = min(lon - 45.0, 105.0 - lon);
       float edgeY = min(lat - 5.0, 30.0 - lat);
       float edge = min(edgeX, edgeY);
       
       float intensity = 0.0;
-      if (edge < 0.3) {
-        intensity = 0.5;
-      } else if (edge < 1.0) {
-        intensity = 0.5 * (1.0 - (edge - 0.3) / 0.7);
-      }
+      if (edge < 0.3) intensity = 0.5;
+      else if (edge < 1.0) intensity = 0.5 * (1.0 - (edge - 0.3) / 0.7);
       
-      // Add subtle grid lines inside
       float gridX = mod(lon, 5.0);
       float gridY = mod(lat, 5.0);
-      if (gridX < 0.1 || gridY < 0.1) {
-         intensity = max(intensity, 0.15);
-      }
+      if (gridX < 0.1 || gridY < 0.1) intensity = max(intensity, 0.15);
       
       gl_FragColor = vec4(0.13, 0.83, 0.93, max(pulse, intensity) * 0.4);
-    } else {
-      discard;
-    }
+    } else discard;
+  }
+`;
+
+const tchpFragmentShader = `
+  varying vec3 vPosition;
+  uniform float time;
+  uniform float showTchp;
+  
+  float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 4321.5453); }
+  float noise(vec3 x) {
+      vec3 p = floor(x);
+      vec3 f = fract(x);
+      f = f*f*(3.0-2.0*f);
+      return mix(mix(mix(hash(p+vec3(0,0,0)), hash(p+vec3(1,0,0)),f.x),
+                 mix(hash(p+vec3(0,1,0)), hash(p+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash(p+vec3(0,0,1)), hash(p+vec3(1,0,1)),f.x),
+                 mix(hash(p+vec3(0,1,1)), hash(p+vec3(1,1,1)),f.x),f.y),f.z);
+  }
+
+  void main() {
+    if (showTchp < 0.1) discard;
+    vec3 p = normalize(vPosition);
+    float lat = asin(p.y) * 180.0 / 3.14159265359;
+    float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
+    // TCHP Heatmap active in North Indian Ocean
+    if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
+      float n = noise(p * 10.0 + time * 0.15);
+      float n2 = noise(p * 20.0 - time * 0.1);
+      float heat = smoothstep(0.4, 0.8, n * 0.6 + n2 * 0.4);
+      
+      vec3 hotColor = mix(vec3(1.0, 0.8, 0.0), vec3(1.0, 0.1, 0.0), heat * 1.5);
+      if (heat > 0.05) {
+          gl_FragColor = vec4(hotColor, heat * showTchp * 0.9);
+      } else discard;
+    } else discard;
   }
 `;
 
 export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
-  const shaderRef = useRef<THREE.ShaderMaterial>(null);
+  const gridShaderRef = useRef<THREE.ShaderMaterial>(null);
+  const tchpShaderRef = useRef<THREE.ShaderMaterial>(null);
   
   const selectedLocation = useOceanStore(state => state.selectedLocation);
   const setLocation = useOceanStore(state => state.setLocation);
   const error = useOceanStore(state => state.error);
+  
+  // We simulate toggles for the presentation (you can hook these to buttons later)
+  const showTchp = true; // Simulating AI outputting high TCHP
+  const showThermocline = true; // Simulating deep layer discovery
   
   const { gl } = useThree();
   
@@ -100,39 +129,36 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
   useEffect(() => {
     if (colorMap && specularMap && normalMap) {
       const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
-      colorMap.anisotropy = maxAnisotropy;
-      specularMap.anisotropy = maxAnisotropy;
-      normalMap.anisotropy = maxAnisotropy;
-      colorMap.minFilter = THREE.LinearMipmapLinearFilter;
-      colorMap.magFilter = THREE.LinearFilter;
-      specularMap.minFilter = THREE.LinearMipmapLinearFilter;
-      specularMap.magFilter = THREE.LinearFilter;
-      normalMap.minFilter = THREE.LinearMipmapLinearFilter;
-      normalMap.magFilter = THREE.LinearFilter;
-      colorMap.needsUpdate = true;
-      specularMap.needsUpdate = true;
-      normalMap.needsUpdate = true;
+      [colorMap, specularMap, normalMap].forEach(tex => {
+        tex.anisotropy = maxAnisotropy;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.needsUpdate = true;
+      });
     }
   }, [colorMap, specularMap, normalMap, gl]);
 
   const showErrorBounds = error !== null && error.toLowerCase().includes("out of bounds");
 
   useFrame((state) => {
-    if (globeRef.current && !selectedLocation) {
-      if (showErrorBounds) {
-        if (targetQuaternionRef.current) {
-          globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
-        }
-      } else {
-        targetQuaternionRef.current = null;
-      }
+    if (globeRef.current && !selectedLocation && showErrorBounds) {
+      if (targetQuaternionRef.current) globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
+    } else if (globeRef.current && !selectedLocation) {
+      targetQuaternionRef.current = null;
+      // Gentle auto-rotation
+      globeRef.current.rotation.y += 0.0005;
     }
-    if (shaderRef.current) {
-      shaderRef.current.uniforms.time.value = state.clock.elapsedTime;
 
-      // Smooth fade in/out for the highlight
+    if (gridShaderRef.current) {
+      gridShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
       const target = (alwaysShowGrid || showErrorBounds) ? 1.0 : 0.0;
-      shaderRef.current.uniforms.showHighlight.value += (target - shaderRef.current.uniforms.showHighlight.value) * 0.1;
+      gridShaderRef.current.uniforms.showHighlight.value += (target - gridShaderRef.current.uniforms.showHighlight.value) * 0.1;
+    }
+    
+    if (tchpShaderRef.current) {
+      tchpShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+      const targetTchp = showTchp ? 1.0 : 0.0;
+      tchpShaderRef.current.uniforms.showTchp.value += (targetTchp - tchpShaderRef.current.uniforms.showTchp.value) * 0.05;
     }
   });
 
@@ -147,20 +173,16 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
     
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
       useOceanStore.getState().setError("Out of bounds", { x: e.clientX, y: e.clientY });
-      const targetEuler = new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0);
-      targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(targetEuler);
+      targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0));
       setTimeout(() => { targetQuaternionRef.current = null; }, 1500);
       return;
     }
     
-    const today = new Date().toISOString().split('T')[0];
-    const region = "INDIAN OCEAN";
-    
     setLocation({
       latitude: Number(lat.toFixed(2)),
       longitude: Number(lon.toFixed(2)),
-      date: today,
-      region
+      date: new Date().toISOString().split('T')[0],
+      region: "INDIAN OCEAN"
     });
   };
 
@@ -168,75 +190,68 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
     if (!selectedLocation) return null;
     const phi = selectedLocation.latitude * (Math.PI / 180);
     const theta = selectedLocation.longitude * (Math.PI / 180);
-    const r = 2.01;
-    return new THREE.Vector3(
-      r * Math.cos(phi) * Math.cos(theta),
-      r * Math.sin(phi),
-      r * Math.cos(phi) * -Math.sin(theta)
-    );
+    return new THREE.Vector3(2.01 * Math.cos(phi) * Math.cos(theta), 2.01 * Math.sin(phi), 2.01 * Math.cos(phi) * -Math.sin(theta));
   }, [selectedLocation]);
 
-  const uniforms = useMemo(() => ({
-    time: { value: 0 },
-    showHighlight: { value: 0 }
-  }), []);
+  const gridUniforms = useMemo(() => ({ time: { value: 0 }, showHighlight: { value: 0 } }), []);
+  const tchpUniforms = useMemo(() => ({ time: { value: 0 }, showTchp: { value: 0 } }), []);
 
   return (
     <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
       <ambientLight intensity={1.2} color="#ffffff" />
       <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
-      <directionalLight position={[0, -10, 0]} intensity={0.5} color="#ffffff" />
       
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />
       
-      <Sphere 
-        args={[2, 128, 128]} 
-        onClick={handleClick}
-        onPointerOver={() => gl.domElement.style.cursor = 'crosshair'}
-        onPointerOut={() => gl.domElement.style.cursor = 'grab'}
-      >
+      {/* 1. Subsurface Thermocline Inner Core (Green/Cyan glowing layer under the surface) */}
+      {showThermocline && (
+        <Sphere args={[1.97, 64, 64]} raycast={() => null}>
+          <meshPhongMaterial 
+            color="#00ffcc" 
+            emissive="#0088aa"
+            transparent={true} 
+            opacity={0.3} 
+            blending={THREE.AdditiveBlending} 
+          />
+        </Sphere>
+      )}
+
+      {/* 2. Main Earth Surface */}
+      <Sphere args={[2, 128, 128]} onClick={handleClick}>
         <meshPhongMaterial 
           map={colorMap}
           specularMap={specularMap} normalMap={normalMap} normalScale={new THREE.Vector2(0.5, 0.5)}
           specular={new THREE.Color('#0a5c7a')}
           shininess={15}
+          transparent={showThermocline} // Make crust slightly transparent to see thermocline
+          opacity={showThermocline ? 0.85 : 1.0}
         />
       </Sphere>
       
-      {/* SIH26066 DOMAIN HIGHLIGHT OVERLAY (Custom GLSL Shader) */}
-      <Sphere args={[2.005, 128, 128]} raycast={() => null}>
+      {/* 3. TCHP Cyclone Heatmap Layer (Red/Orange Glow) */}
+      <Sphere args={[2.008, 128, 128]} raycast={() => null}>
         <shaderMaterial
-          ref={shaderRef}
+          ref={tchpShaderRef}
           vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={uniforms}
+          fragmentShader={tchpFragmentShader}
+          uniforms={tchpUniforms}
           transparent={true}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
         />
       </Sphere>
 
-      <Sphere args={[2.02, 128, 128]} raycast={() => null}>
-        <meshBasicMaterial 
-          color="#0ea5e9" 
-          transparent 
-          opacity={0.12} 
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
+      {/* 4. SIH Grid Boundaries */}
+      <Sphere args={[2.005, 128, 128]} raycast={() => null}>
+        <shaderMaterial ref={gridShaderRef} vertexShader={vertexShader} fragmentShader={gridFragmentShader} uniforms={gridUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
       </Sphere>
 
+      {/* Selected Marker */}
       {markerPosition && (
         <group position={markerPosition}>
-          <mesh>
-            <sphereGeometry args={[0.02, 16, 16]} />
-            <meshBasicMaterial color="#0ea5e9" />
-          </mesh>
-          <mesh>
-            <sphereGeometry args={[0.05, 16, 16]} />
-            <meshBasicMaterial color="#0ea5e9" transparent opacity={0.2} />
-          </mesh>
+          <mesh><sphereGeometry args={[0.02, 16, 16]} /><meshBasicMaterial color="#0ea5e9" /></mesh>
+          <mesh><sphereGeometry args={[0.05, 16, 16]} /><meshBasicMaterial color="#0ea5e9" transparent opacity={0.2} /></mesh>
         </group>
       )}
     </group>
