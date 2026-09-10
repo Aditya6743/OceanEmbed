@@ -1,9 +1,8 @@
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Sphere, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useOceanStore } from '../store/oceanStore';
-import { Ping } from './Ping';
 
 const playSimplePing = () => {
   try {
@@ -39,53 +38,41 @@ const vertexShader = `
   }
 `;
 
-const fragmentShader = `
+const gridFragmentShader = `
   varying vec3 vPosition;
   uniform float time;
   uniform float showHighlight;
   
   void main() {
     if (showHighlight < 0.5) discard;
-    
     vec3 p = normalize(vPosition);
     float lat = asin(p.y) * 180.0 / 3.14159265359;
     float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
     
-    // Bounds: 5N - 30N, 45E - 105E
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
       float pulse = (sin(time * 2.0) + 1.0) * 0.5 * 0.15 + 0.05;
-      
-      // Calculate distance to edge for a glowing border
       float edgeX = min(lon - 45.0, 105.0 - lon);
       float edgeY = min(lat - 5.0, 30.0 - lat);
       float edge = min(edgeX, edgeY);
       
       float intensity = 0.0;
-      if (edge < 0.3) {
-        intensity = 0.5;
-      } else if (edge < 1.0) {
-        intensity = 0.5 * (1.0 - (edge - 0.3) / 0.7);
-      }
+      if (edge < 0.3) intensity = 0.5;
+      else if (edge < 1.0) intensity = 0.5 * (1.0 - (edge - 0.3) / 0.7);
       
-      // Add subtle grid lines inside
       float gridX = mod(lon, 5.0);
       float gridY = mod(lat, 5.0);
-      if (gridX < 0.1 || gridY < 0.1) {
-         intensity = max(intensity, 0.15);
-      }
+      if (gridX < 0.1 || gridY < 0.1) intensity = max(intensity, 0.15);
       
       gl_FragColor = vec4(0.13, 0.83, 0.93, max(pulse, intensity) * 0.4);
-    } else {
-      discard;
-    }
+    } else discard;
   }
 `;
 
-export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?: boolean }) {
+export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }: { alwaysShowGrid?: boolean, showStars?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
-  const shaderRef = useRef<THREE.ShaderMaterial>(null);
-  const [pingPos, setPingPos] = useState<THREE.Vector3 | null>(null);
+  const gridShaderRef = useRef<THREE.ShaderMaterial>(null);
+  const landMaskRef = useRef<{ data: Uint8ClampedArray; width: number; height: number } | null>(null);
   
   const selectedLocation = useOceanStore(state => state.selectedLocation);
   const setLocation = useOceanStore(state => state.setLocation);
@@ -101,70 +88,89 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
 
   useEffect(() => {
     if (colorMap && specularMap && normalMap) {
-      const maxAnisotropy = Math.min(4, gl.capabilities.getMaxAnisotropy());
-      colorMap.anisotropy = maxAnisotropy;
-      specularMap.anisotropy = maxAnisotropy;
-      normalMap.anisotropy = maxAnisotropy;
-      colorMap.minFilter = THREE.LinearMipmapLinearFilter;
-      colorMap.magFilter = THREE.LinearFilter;
-      specularMap.minFilter = THREE.LinearMipmapLinearFilter;
-      specularMap.magFilter = THREE.LinearFilter;
-      normalMap.minFilter = THREE.LinearMipmapLinearFilter;
-      normalMap.magFilter = THREE.LinearFilter;
-      colorMap.needsUpdate = true;
-      specularMap.needsUpdate = true;
-      normalMap.needsUpdate = true;
+      const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
+      [colorMap, specularMap, normalMap].forEach(tex => {
+        tex.anisotropy = maxAnisotropy;
+        tex.minFilter = THREE.LinearMipmapLinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.needsUpdate = true;
+      });
+      
+      // Extract specular map data to a hidden canvas to detect Land (black) vs Ocean (white)
+      try {
+        const img = specularMap.image;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          landMaskRef.current = {
+            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data,
+            width: canvas.width,
+            height: canvas.height
+          };
+        }
+      } catch (e) {
+        console.warn("Could not extract land mask data", e);
+      }
     }
   }, [colorMap, specularMap, normalMap, gl]);
 
   const showErrorBounds = error !== null && error.toLowerCase().includes("out of bounds");
 
   useFrame((state) => {
-    if (globeRef.current && !selectedLocation) {
-      if (showErrorBounds) {
-        if (targetQuaternionRef.current) {
-          globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
-        }
-      } else {
-        targetQuaternionRef.current = null;
-      }
+    if (globeRef.current && !selectedLocation && showErrorBounds) {
+      if (targetQuaternionRef.current) globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
+    } else if (globeRef.current && !selectedLocation) {
+      targetQuaternionRef.current = null;
+      globeRef.current.rotation.y += 0.0005;
     }
-    if (shaderRef.current) {
-      shaderRef.current.uniforms.time.value = state.clock.elapsedTime;
 
-      // Smooth fade in/out for the highlight
+    if (gridShaderRef.current) {
+      gridShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
       const target = (alwaysShowGrid || showErrorBounds) ? 1.0 : 0.0;
-      shaderRef.current.uniforms.showHighlight.value += (target - shaderRef.current.uniforms.showHighlight.value) * 0.1;
+      gridShaderRef.current.uniforms.showHighlight.value += (target - gridShaderRef.current.uniforms.showHighlight.value) * 0.1;
     }
   });
 
   const handleClick = (e: any) => {
     if (e.delta > 2) return;
-    playSimplePing();
     e.stopPropagation();
+    playSimplePing();
     
+    // 1. Calculate Latitude and Longitude first
     const point = globeRef.current!.worldToLocal(e.point.clone()).normalize();
     const lat = Math.asin(point.y) * (180 / Math.PI);
     const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
     
-    setPingPos(point.clone().multiplyScalar(2)); // scale by sphere radius (2)
-    
+    // 2. Out of Bounds Check (Takes priority)
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
-      useOceanStore.getState().setError("Out of bounds", { x: e.clientX, y: e.clientY });
-      const targetEuler = new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0);
-      targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(targetEuler);
+      useOceanStore.getState().setError("OUT OF BOUNDS", { x: e.clientX, y: e.clientY });
+      targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0));
       setTimeout(() => { targetQuaternionRef.current = null; }, 1500);
       return;
     }
-    
-    const today = new Date().toISOString().split('T')[0];
-    const region = "INDIAN OCEAN";
+
+    // 3. Exact Pixel Collision Detection for Landmass (Only inside the grid)
+    if (e.uv && landMaskRef.current) {
+      const { data, width, height } = landMaskRef.current;
+      const x = Math.floor(e.uv.x * width);
+      const y = Math.floor((1.0 - e.uv.y) * height);
+      const idx = (y * width + x) * 4;
+      const brightness = data[idx];
+      
+      if (brightness < 30) {
+        useOceanStore.getState().setError("LANDMASS DETECTED", { x: e.clientX, y: e.clientY });
+        return;
+      }
+    }
     
     setLocation({
       latitude: Number(lat.toFixed(2)),
       longitude: Number(lon.toFixed(2)),
-      date: today,
-      region
+      date: new Date().toISOString().split('T')[0],
+      region: "INDIAN OCEAN"
     });
   };
 
@@ -172,35 +178,25 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
     if (!selectedLocation) return null;
     const phi = selectedLocation.latitude * (Math.PI / 180);
     const theta = selectedLocation.longitude * (Math.PI / 180);
-    const r = 2.01;
-    return new THREE.Vector3(
-      r * Math.cos(phi) * Math.cos(theta),
-      r * Math.sin(phi),
-      r * Math.cos(phi) * -Math.sin(theta)
-    );
+    return new THREE.Vector3(2.01 * Math.cos(phi) * Math.cos(theta), 2.01 * Math.sin(phi), 2.01 * Math.cos(phi) * -Math.sin(theta));
   }, [selectedLocation]);
 
-  const uniforms = useMemo(() => ({
-    time: { value: 0 },
-    showHighlight: { value: 0 }
-  }), []);
+  const gridUniforms = useMemo(() => ({ time: { value: 0 }, showHighlight: { value: 0 } }), []);
 
   return (
     <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
       <ambientLight intensity={1.2} color="#ffffff" />
       <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
-      <directionalLight position={[0, -10, 0]} intensity={0.5} color="#ffffff" />
       
-      <Stars radius={100} depth={50} count={2500} factor={4} saturation={0} fade speed={1.5} />
+      {showStars && <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />}
       
-      {pingPos && <Ping point={pingPos} onComplete={() => setPingPos(null)} />}
-      
+      {/* Main Earth Surface (Clean, No Heatmaps) */}
       <Sphere 
         args={[2, 128, 128]} 
         onClick={handleClick}
-        onPointerOver={() => gl.domElement.style.cursor = 'crosshair'}
-        onPointerOut={() => gl.domElement.style.cursor = 'grab'}
+        onPointerEnter={() => document.body.style.cursor = 'crosshair'}
+        onPointerLeave={() => document.body.style.cursor = 'auto'}
       >
         <meshPhongMaterial 
           map={colorMap}
@@ -209,40 +205,17 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
           shininess={15}
         />
       </Sphere>
-      
-      {/* SIH26066 DOMAIN HIGHLIGHT OVERLAY (Custom GLSL Shader) */}
+
+      {/* SIH Grid Boundaries */}
       <Sphere args={[2.005, 128, 128]} raycast={() => null}>
-        <shaderMaterial
-          ref={shaderRef}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={uniforms}
-          transparent={true}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
+        <shaderMaterial ref={gridShaderRef} vertexShader={vertexShader} fragmentShader={gridFragmentShader} uniforms={gridUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
       </Sphere>
 
-      <Sphere args={[2.02, 128, 128]} raycast={() => null}>
-        <meshBasicMaterial 
-          color="#0ea5e9" 
-          transparent 
-          opacity={0.12} 
-          side={THREE.BackSide}
-          blending={THREE.AdditiveBlending}
-        />
-      </Sphere>
-
+      {/* Selected Marker */}
       {markerPosition && (
         <group position={markerPosition}>
-          <mesh>
-            <sphereGeometry args={[0.02, 16, 16]} />
-            <meshBasicMaterial color="#0ea5e9" />
-          </mesh>
-          <mesh>
-            <sphereGeometry args={[0.05, 16, 16]} />
-            <meshBasicMaterial color="#0ea5e9" transparent opacity={0.2} />
-          </mesh>
+          <mesh><sphereGeometry args={[0.02, 16, 16]} /><meshBasicMaterial color="#0ea5e9" /></mesh>
+          <mesh><sphereGeometry args={[0.05, 16, 16]} /><meshBasicMaterial color="#0ea5e9" transparent opacity={0.2} /></mesh>
         </group>
       )}
     </group>

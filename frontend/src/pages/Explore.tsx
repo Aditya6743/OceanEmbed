@@ -6,6 +6,7 @@ import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
 import HistoryChart from '../components/HistoryChart';
+import AnomalyHeatmap from '../components/AnomalyHeatmap';
 import { useOceanStore } from '../store/oceanStore';
 import { fetchOceanPrediction, fetchHistory, type HistoryDataPoint } from '../lib/api';
 import { startAutoPilot, stopAutoPilot } from '../lib/autopilot';
@@ -21,7 +22,8 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
     if (error && error.toLowerCase().includes("out of bounds")) {
       isAnimating.current = true;
       const t = setTimeout(() => { isAnimating.current = false; }, 1500);
-      return () => clearTimeout(t);
+      return (
+    ) => clearTimeout(t);
     }
   }, [error]);
 
@@ -38,11 +40,26 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 export default function Explore() {
 
-  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset, setError, autoPilotMode } = useOceanStore();
+  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset, setError, autoPilotMode, activeHighlight } = useOceanStore();
   const [loadingStep, setLoadingStep] = useState(0);
   const [historyData, setHistoryData] = React.useState<HistoryDataPoint[]>([]);
   const [isMaximized, setIsMaximized] = useState(false);
   const controlsRef = React.useRef(null);
+
+  // Auto-clear floating cursor errors so they don't get stuck on screen
+  React.useEffect(() => {
+    if (error && errorPosition) {
+      const t = setTimeout(() => setError(null), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [error, errorPosition, setError]);
+
+  // Clear errors when navigating away from this page
+  React.useEffect(() => {
+    return () => {
+      useOceanStore.getState().setError(null);
+    };
+  }, []);
 
   useEffect(() => {
     if (autoPilotMode) {
@@ -55,7 +72,8 @@ export default function Explore() {
       if (error) setError(null);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return (
+    ) => window.removeEventListener('scroll', handleScroll);
   }, [error, setError]);
 
   useEffect(() => {
@@ -90,7 +108,8 @@ export default function Explore() {
       }
     }, 3000);
 
-    return () => {
+    return (
+    ) => {
       steps.forEach(clearTimeout);
       clearTimeout(predictionTimeout);
     };
@@ -122,20 +141,21 @@ export default function Explore() {
 
 
   return (
-    <div className="w-full h-screen bg-[#020202] flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
+    
+    <div className="w-full h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
       
       {/* LEFT PANEL - INTERACTIVE GLOBE */}
-      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-black shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)] border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ''}`}>
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#000_100%)] z-10" />
+      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-transparent border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)]'}`} >
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#030712_100%)] z-10" />
         
         <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={null}>
-            <EarthGlobe alwaysShowGrid={true} />
+            <EarthGlobe alwaysShowGrid={true} showStars={false} />
             <OrbitControls 
               ref={controlsRef}
-              enablePan={false} enableDamping dampingFactor={0.05} rotateSpeed={0.5}
-              enableZoom minDistance={4.5} maxDistance={6}
-              autoRotate={!selectedLocation} autoRotateSpeed={0.5}
+              enablePan={false} enableDamping dampingFactor={0.03} rotateSpeed={0.4}
+              enableZoom={true} minDistance={4.8} maxDistance={5.5}
+              autoRotate={!selectedLocation} autoRotateSpeed={0.2}
             />
             <CameraRig controlsRef={controlsRef} />
           </Suspense>
@@ -156,10 +176,9 @@ export default function Explore() {
       </div>
 
       {/* RIGHT PANEL - NO SCROLL DASHBOARD */}
-      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-[#050505] relative p-4 flex flex-col overflow-hidden`}>
+      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-transparent relative p-4 flex flex-col overflow-hidden`}>
         
-        {/* Grid Background */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
 
         {!selectedLocation ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-40 relative z-10">
@@ -188,9 +207,9 @@ export default function Explore() {
                       type="date" 
                       value={selectedDate}
                       min="1993-01-01"
-                      max="2023-12-31"
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      disabled={prediction !== null || isLoading}
+                      max="2026-12-31"
+                      onChange={(e) => { setSelectedDate(e.target.value); if (selectedLocation) setIsLoading(true); }}
+                      disabled={isLoading}
                       className="bg-transparent text-cyan-50 font-bold focus:outline-none cursor-pointer disabled:opacity-50"
                       style={{ colorScheme: 'dark' }}
                     />
@@ -236,33 +255,40 @@ export default function Explore() {
             </div>
 
             { /* ERROR STATE */ }
-            {error && error.toLowerCase().includes("out of bounds") && !isLoading && (
+            {error && !isLoading && (
               <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 py-10 min-h-0">
                 <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)]">
-                  <div className="text-cyan-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
-                    <Crosshair className="w-5 h-5" /> RESTRICTED DOMAIN
+                  <div className="text-orange-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
+                    <Crosshair className="w-5 h-5" /> INVALID TARGET
                   </div>
                   <p className="text-white/70 font-mono text-sm mb-6 leading-relaxed">
-                    OceanEmbed inference is strictly bounded to the North Indian Ocean.
+                    {error.toLowerCase().includes("landmass") 
+                      ? "The selected coordinate is on a solid landmass. The AI reconstruction requires open ocean satellite telemetry."
+                      : "OceanEmbed inference is strictly bounded to the North Indian Ocean."}
                   </p>
-                  <div className="bg-black/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
-                    <div className="text-white/40 mb-2 uppercase tracking-widest text-[10px]">What are our bounds?</div>
-                    <div className="mb-1">Latitude: 5°N — 30°N</div>
-                    <div>Longitude: 45°E — 105°E</div>
-                  </div>
+                  
+                  {!error.toLowerCase().includes("landmass") && (
+                    <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
+                      <div className="text-white/40 mb-2 uppercase tracking-widest text-[10px]">What are our bounds?</div>
+                      <div className="grid grid-cols-2 gap-2 text-left">
+                        <div>Lat: <span className="text-cyan-100">5°N - 30°N</span></div>
+                        <div>Lon: <span className="text-cyan-100">45°E - 105°E</span></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             { /* READY TO RUN STATE */ }
-            {selectedLocation && !isLoading && !prediction && (!error || !error.toLowerCase().includes("out of bounds")) && (
+            {selectedLocation && !isLoading && !prediction && !error && (
               <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 min-h-0">
                 <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)] w-full">
                   <div className="text-cyan-400 font-bold tracking-widest mb-6 flex items-center justify-center gap-3 text-lg">
                     <Scan className="w-6 h-6 animate-pulse" /> TARGET SECURED
                   </div>
                   
-                  <div className="bg-black/50 border border-cyan-500/20 rounded-lg p-5 font-mono text-xs text-cyan-300 mb-8 text-left inline-block w-full">
+                  <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-5 font-mono text-xs text-cyan-300 mb-8 text-left inline-block w-full">
                     <div className="flex justify-between mb-3 border-b border-cyan-500/20 pb-3">
                       <span className="text-white/50">Coordinates:</span>
                       <span className="font-bold">{selectedLocation.latitude}°N, {selectedLocation.longitude}°E</span>
@@ -275,7 +301,7 @@ export default function Explore() {
 
                   <button 
                     onClick={handleRunInference}
-                    className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/50 rounded-lg text-white text-[12px] font-bold tracking-[0.3em] uppercase transition-all duration-300 flex items-center justify-center gap-3 group shadow-[0_0_30px_rgba(8,145,178,0.3)] hover:shadow-[0_0_50px_rgba(8,145,178,0.5)]"
+                    className={`w-full py-4 bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/50 rounded-lg text-white text-[12px] font-bold tracking-[0.3em] uppercase transition-all duration-300 flex items-center justify-center gap-3 group shadow-[0_0_30px_rgba(8,145,178,0.3)] hover:shadow-[0_0_50px_rgba(8,145,178,0.5)] ${activeHighlight === 'button' ? 'ring-4 ring-white shadow-[0_0_80px_rgba(255,255,255,1)] scale-[1.05] brightness-150' : ' '}`}
                   >
                     <BrainCircuit className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
                     INITIALIZE MODEL
@@ -286,8 +312,8 @@ export default function Explore() {
 
             {/* INFERENCE SEQUENCE OVERLAY */}
             {isLoading && (
-              <div className="flex-1 flex flex-col justify-center">
-                <div className="bg-black/60 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 font-mono text-xs shadow-[0_0_50px_rgba(8,145,178,0.15)]">
+              <div className="flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500">
+                <div className="bg-transparent/60 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 font-mono text-xs shadow-[0_0_50px_rgba(8,145,178,0.15)] max-w-md w-full mx-auto">
                   <div className="flex items-center gap-3 text-cyan-400 mb-6 border-b border-cyan-500/20 pb-4">
                     <Zap className="w-4 h-4 animate-pulse" />
                     <span className="text-sm font-bold tracking-[0.2em]">OCEANEMBED NEURAL ENGINE</span>
@@ -325,37 +351,37 @@ export default function Explore() {
               <div className="flex-1 flex flex-col justify-center gap-3 min-h-0 animate-in fade-in duration-1000 zoom-in-95">
                 
                 {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE + HISTORY */}
-                <div className="grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0">
+                <div className={`grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0 transition-all duration-700 ${activeHighlight === 'metrics' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40 rounded-xl' : ' '}`} >
                   
                   {/* SURFACE OBSERVATIONS */}
                   <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2">SURFACE OBSERVATIONS</div>
                     <div className="grid grid-cols-7 gap-2">
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SST</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.sst.toFixed(1)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSS</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.sss.toFixed(1)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSH</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.ssh > 0 ? '+' : ''}{prediction.surface_data.ssh.toFixed(2)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U CUR</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.current_u.toFixed(2)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V CUR</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.current_v.toFixed(2)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U WND</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.wind_u.toFixed(1)}</div>
                       </div>
-                      <div className="bg-black/40 border border-white/5 rounded p-1.5 text-center">
+                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
                         <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V WND</div>
                         <div className="text-white font-mono text-xs">{prediction.surface_data.wind_v.toFixed(1)}</div>
                       </div>
@@ -399,17 +425,17 @@ export default function Explore() {
 
                 {/* ROW 2: VISUALIZATIONS */}
                 <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0">
-                  <div className="w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl">
+                  <div className={`w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === '3d' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
                     <div className="text-[9px] text-white/40 font-mono tracking-[0.2em] mb-2 shrink-0 flex justify-between">
                       <span>3D THERMODYNAMIC VOLUME</span>
                       <span>0 — 1000m</span>
                     </div>
-                    <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-black shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5">
-                      <Ocean3D prediction={prediction} />
+                    <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-transparent shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-row">
+                      <div className="flex-1 relative min-w-0 h-full"><Ocean3D prediction={prediction} /></div><AnomalyHeatmap profile={prediction.profile} />
                     </div>
                   </div>
 
-                  <div className="w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl">
+                  <div className={`w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === 'charts' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
                     <div className="flex justify-between items-center mb-2 shrink-0">
                       <div className="text-[9px] text-white/40 font-mono tracking-[0.2em]">TEMPERATURE vs DEPTH</div>
                       <div className="text-[8px] text-lime-400/80 font-mono tracking-widest border border-lime-500/30 px-1.5 py-0.5 rounded-sm bg-lime-950/30">ARGO VALIDATION</div>
@@ -431,7 +457,7 @@ export default function Explore() {
                     <div><span className="text-cyan-400 font-bold mr-2">2. OCEANEMBED</span><span className="text-white/40">Deep learning inference</span></div>
                     <div><span className="text-cyan-400 font-bold mr-2">3. ARGO</span><span className="text-white/40">Independent validation</span></div>
                   </div>
-                  <div className="flex items-center gap-2 bg-black/40 px-2 py-0.5 rounded border border-white/5 text-emerald-400">
+                  <div className="flex items-center gap-2 bg-transparent/40 px-2 py-0.5 rounded border border-white/5 text-emerald-400">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> PREDICTION READY
                   </div>
                 </div>
@@ -447,20 +473,17 @@ export default function Explore() {
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (
         <div 
-          className="fixed z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200"
-          style={{ 
-            left: errorPosition.x + 20, 
-            top: errorPosition.y - 20 
-          }}
+          className="fixed pointer-events-none z-[100] bg-red-950/80 px-3 py-2 border border-red-500/30 rounded-md backdrop-blur-md shadow-lg transition-all duration-100 animate-in fade-in zoom-in-50"
+          style={{ left: errorPosition.x + 15, top: errorPosition.y - 15 }}
         >
-          <div className="bg-black/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
-              Out of bounds
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500/80 animate-pulse"></div>
+            <span className="text-red-400/90 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+              {error}
             </span>
           </div>
           <div className="text-white/40 font-mono text-[8px] tracking-wider uppercase mt-1 pl-1 whitespace-nowrap">
-            Auto-centering to domain...
+            {error.toLowerCase().includes('landmass') ? 'Telemetry rejected.' : 'Restoring domain lock...'}
           </div>
         </div>
       )}

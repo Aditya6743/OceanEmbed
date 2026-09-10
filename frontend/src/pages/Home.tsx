@@ -9,10 +9,9 @@ import { useOceanStore } from '../store/oceanStore';
 import React from 'react';
 
 
-import ProblemSection from '../components/landing/ProblemSection';
+import HowItWorksSection from '../components/landing/HowItWorksSection';
 import DataSection from '../components/landing/DataSection';
 import ModelSection from '../components/landing/ModelSection';
-import HowItWorksSection from '../components/landing/HowItWorksSection';
 import ResultsSection from '../components/landing/ResultsSection';
 import AboutSection from '../components/landing/AboutSection';
 import Footer from '../components/landing/Footer';
@@ -50,6 +49,21 @@ export default function Home() {
   const { error, errorPosition, setError } = useOceanStore();
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
+  // Auto-clear floating cursor errors so they don't get stuck on screen
+  React.useEffect(() => {
+    if (error && errorPosition) {
+      const t = setTimeout(() => setError(null), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [error, errorPosition, setError]);
+
+  // Clear errors when navigating away from this page
+  React.useEffect(() => {
+    return () => {
+      useOceanStore.getState().setError(null);
+    };
+  }, []);
+
   const handleExplore = () => {
     useOceanStore.getState().setAutoPilotMode(false);
     navigate('/explore');
@@ -67,7 +81,7 @@ export default function Home() {
     <div id="top" className="w-full bg-transparent overflow-x-hidden pt-14 font-sans select-none">
       
       {/* HERO SECTION */}
-      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10">
+      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10 bg-black">
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
@@ -78,13 +92,11 @@ export default function Home() {
               <OrbitControls ref={controlsRef} 
                 enablePan={false} 
                 enableDamping={true} 
-                dampingFactor={0.075} 
-                rotateSpeed={0.8}
-                enableZoom={true} 
-                minDistance={4.8} 
-                maxDistance={5.5}
+                dampingFactor={0.03} 
+                rotateSpeed={0.4}
+                enableZoom={true} minDistance={4.8} maxDistance={5.5} 
                 autoRotate={!selectedLocation}
-                autoRotateSpeed={0.3}
+                autoRotateSpeed={0.2}
               />
               <CameraRig controlsRef={controlsRef} />
             </Suspense>
@@ -110,7 +122,7 @@ export default function Home() {
               </h1>
               
               <p className="text-lg md:text-xl text-white/80 font-light mb-10 leading-relaxed drop-shadow-lg">
-                OceanEmbed uses satellite observations and Argo measurements to estimate how ocean temperature changes <span className="text-white font-medium">deep below the surface.</span>
+                OceanEmbed uses Deep Learning to reconstruct the 3D thermodynamic volume of the North Indian Ocean directly from <span className="text-white font-medium">surface satellite telemetry.</span>
               </p>
             </motion.div>
 
@@ -125,16 +137,11 @@ export default function Home() {
                 onClick={handleExplore}
                 className="group flex items-center justify-center gap-3 px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] tracking-[0.2em] font-bold rounded-sm transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)]"
               >
-                <span>EXPLORE OCEAN</span>
+                <span>SUBMERGE</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </button>
               
-              <button 
-                onClick={() => document.getElementById('problem-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors"
-              >
-                HOW IT WORKS
-              </button>
+              <button onClick={() => navigate('/how-it-works')} className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors">PROJECT VISION</button>
             </motion.div>
 
             {/* Refined, compact Location HUD strictly aligned left */}
@@ -193,7 +200,7 @@ export default function Home() {
               </div>
               <div className="text-right w-32">
                 <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em]">PREDICTION</div>
-                <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">0m — 2000m</div>
+                <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">0m — 1000m</div>
               </div>
             </div>
 
@@ -212,14 +219,16 @@ export default function Home() {
         </div>
       </section>
 
+      {/* SEAMLESS TRANSITION GRADIENT */}
+      <div className="w-full h-[35vh] bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none relative z-10"></div>
+
       {/* MODULAR LANDING PAGE SECTIONS */}
-      <div className="relative w-full bg-[#050505]">
+      <div className="relative w-full bg-transparent -mt-[15vh] z-20">
 
         
-        <ProblemSection />
+                <HowItWorksSection />
         <DataSection />
         <ModelSection />
-        <HowItWorksSection />
         <ResultsSection />
         <AboutSection />
         <Footer />
@@ -228,20 +237,17 @@ export default function Home() {
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (
         <div 
-          className="fixed z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200"
-          style={{ 
-            left: errorPosition.x + 20, 
-            top: errorPosition.y - 20 
-          }}
+          className="fixed pointer-events-none z-[100] bg-red-950/80 px-3 py-2 border border-red-500/30 rounded-md backdrop-blur-md shadow-lg transition-all duration-100 animate-in fade-in zoom-in-50"
+          style={{ left: errorPosition.x + 15, top: errorPosition.y - 15 }}
         >
-          <div className="bg-black/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500/80 animate-pulse"></div>
+            <span className="text-red-400/90 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
               {error}
             </span>
           </div>
           <div className="text-white/40 font-mono text-[8px] tracking-wider uppercase mt-1 pl-1 whitespace-nowrap">
-            Telemetry rejected.
+            {error.toLowerCase().includes('landmass') ? 'Telemetry rejected.' : 'Restoring domain lock...'}
           </div>
         </div>
       )}

@@ -1,3 +1,7 @@
 
 __pycache__/
 *.pyc
+data/
+*.nc
+*.nc
+.env

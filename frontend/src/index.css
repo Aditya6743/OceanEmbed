@@ -64,14 +64,6 @@
   }
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
   *,
   ::after,
@@ -126,29 +118,28 @@
 }
 
 @media print {
-  /* Hide the navbar, globe, and unnecessary buttons */
-  nav, .hidden.md\\:hidden, button {
+  nav, .hidden, .md\:hidden, button {
     display: none !important;
   }
   
-  /* Make the dashboard panel full width and remove scroll/height limits */
-  .md\\:w-1\\/2, .w-full {
+  .w-full {
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
   }
   
-  /* Force dark mode background for print */
-  body, .bg-\\[\\#050505\\] {
+  body, .bg-\[\#050505\] {
     background-color: #000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  
-  /* Make text black on white? Or keep dark mode? OceanEmbed looks best dark. */
 }
 
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+body[data-custom-cursor='true'], body[data-custom-cursor='true'] * {
+  cursor: none !important;
 }
