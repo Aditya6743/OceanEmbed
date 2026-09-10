@@ -15,8 +15,8 @@ logger = logging.getLogger("uvicorn")
 
 DEPTHS = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000]
 
-# Point to the new PyTorch weights
-MODEL_PATH = Path(__file__).resolve().parents[3] / "weights" / "ocean_weights.pth"
+# Point to the new PyTorch weights in the deep_learning folder
+MODEL_PATH = Path(__file__).resolve().parents[3] / "deep_learning" / "weights" / "ocean_weights.pth"
 
 # 1. Re-declare the PyTorch Architecture so the backend can load the weights
 class OceanSpatialAutoencoder(nn.Module):
