@@ -46,6 +46,21 @@ export default function Explore() {
   const [isMaximized, setIsMaximized] = useState(false);
   const controlsRef = React.useRef(null);
 
+  // Auto-clear floating cursor errors so they don't get stuck on screen
+  React.useEffect(() => {
+    if (error && errorPosition) {
+      const t = setTimeout(() => setError(null), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [error, errorPosition, setError]);
+
+  // Clear errors when navigating away from this page
+  React.useEffect(() => {
+    return () => {
+      useOceanStore.getState().setError(null);
+    };
+  }, []);
+
   useEffect(() => {
     if (autoPilotMode) {
       startAutoPilot();
@@ -240,26 +255,33 @@ export default function Explore() {
             </div>
 
             { /* ERROR STATE */ }
-            {error && error.toLowerCase().includes("out of bounds") && !isLoading && (
+            {error && !isLoading && (
               <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 py-10 min-h-0">
                 <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)]">
-                  <div className="text-cyan-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
-                    <Crosshair className="w-5 h-5" /> RESTRICTED DOMAIN
+                  <div className="text-orange-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
+                    <Crosshair className="w-5 h-5" /> INVALID TARGET
                   </div>
                   <p className="text-white/70 font-mono text-sm mb-6 leading-relaxed">
-                    OceanEmbed inference is strictly bounded to the North Indian Ocean.
+                    {error.toLowerCase().includes("landmass") 
+                      ? "The selected coordinate is on a solid landmass. The AI reconstruction requires open ocean satellite telemetry."
+                      : "OceanEmbed inference is strictly bounded to the North Indian Ocean."}
                   </p>
-                  <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
-                    <div className="text-white/40 mb-2 uppercase tracking-widest text-[10px]">What are our bounds?</div>
-                    <div className="mb-1">Latitude: 5°N — 30°N</div>
-                    <div>Longitude: 45°E — 105°E</div>
-                  </div>
+                  
+                  {!error.toLowerCase().includes("landmass") && (
+                    <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-4 font-mono text-xs text-cyan-300">
+                      <div className="text-white/40 mb-2 uppercase tracking-widest text-[10px]">What are our bounds?</div>
+                      <div className="grid grid-cols-2 gap-2 text-left">
+                        <div>Lat: <span className="text-cyan-100">5°N - 30°N</span></div>
+                        <div>Lon: <span className="text-cyan-100">45°E - 105°E</span></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             { /* READY TO RUN STATE */ }
-            {selectedLocation && !isLoading && !prediction && (!error || !error.toLowerCase().includes("out of bounds")) && (
+            {selectedLocation && !isLoading && !prediction && !error && (
               <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 min-h-0">
                 <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)] w-full">
                   <div className="text-cyan-400 font-bold tracking-widest mb-6 flex items-center justify-center gap-3 text-lg">
@@ -451,20 +473,17 @@ export default function Explore() {
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (
         <div 
-          className="fixed z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200"
-          style={{ 
-            left: errorPosition.x + 20, 
-            top: errorPosition.y - 20 
-          }}
+          className="fixed pointer-events-none z-[100] bg-red-950/80 px-3 py-2 border border-red-500/30 rounded-md backdrop-blur-md shadow-lg transition-all duration-100 animate-in fade-in zoom-in-50"
+          style={{ left: errorPosition.x + 15, top: errorPosition.y - 15 }}
         >
-          <div className="bg-transparent/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
-              Out of bounds
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500/80 animate-pulse"></div>
+            <span className="text-red-400/90 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+              {error}
             </span>
           </div>
           <div className="text-white/40 font-mono text-[8px] tracking-wider uppercase mt-1 pl-1 whitespace-nowrap">
-            Auto-centering to domain...
+            {error.toLowerCase().includes('landmass') ? 'Telemetry rejected.' : 'Restoring domain lock...'}
           </div>
         </div>
       )}

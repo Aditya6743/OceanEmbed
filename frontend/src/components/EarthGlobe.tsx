@@ -68,55 +68,15 @@ const gridFragmentShader = `
   }
 `;
 
-const tchpFragmentShader = `
-  varying vec3 vPosition;
-  uniform float time;
-  uniform float showTchp;
-  
-  float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 4321.5453); }
-  float noise(vec3 x) {
-      vec3 p = floor(x);
-      vec3 f = fract(x);
-      f = f*f*(3.0-2.0*f);
-      return mix(mix(mix(hash(p+vec3(0,0,0)), hash(p+vec3(1,0,0)),f.x),
-                 mix(hash(p+vec3(0,1,0)), hash(p+vec3(1,1,0)),f.x),f.y),
-             mix(mix(hash(p+vec3(0,0,1)), hash(p+vec3(1,0,1)),f.x),
-                 mix(hash(p+vec3(0,1,1)), hash(p+vec3(1,1,1)),f.x),f.y),f.z);
-  }
-
-  void main() {
-    if (showTchp < 0.1) discard;
-    vec3 p = normalize(vPosition);
-    float lat = asin(p.y) * 180.0 / 3.14159265359;
-    float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
-    
-    // TCHP Heatmap active in North Indian Ocean
-    if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
-      float n = noise(p * 10.0 + time * 0.15);
-      float n2 = noise(p * 20.0 - time * 0.1);
-      float heat = smoothstep(0.4, 0.8, n * 0.6 + n2 * 0.4);
-      
-      vec3 hotColor = mix(vec3(1.0, 0.8, 0.0), vec3(1.0, 0.1, 0.0), heat * 1.5);
-      if (heat > 0.05) {
-          gl_FragColor = vec4(hotColor, heat * showTchp * 0.9);
-      } else discard;
-    } else discard;
-  }
-`;
-
-export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?: boolean }) {
+export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }: { alwaysShowGrid?: boolean, showStars?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
   const gridShaderRef = useRef<THREE.ShaderMaterial>(null);
-  const tchpShaderRef = useRef<THREE.ShaderMaterial>(null);
+  const landMaskRef = useRef<{ data: Uint8ClampedArray; width: number; height: number } | null>(null);
   
   const selectedLocation = useOceanStore(state => state.selectedLocation);
   const setLocation = useOceanStore(state => state.setLocation);
   const error = useOceanStore(state => state.error);
-  
-  // We simulate toggles for the presentation (you can hook these to buttons later)
-  const showTchp = true; // Simulating AI outputting high TCHP
-  const showThermocline = true; // Simulating deep layer discovery
   
   const { gl } = useThree();
   
@@ -135,6 +95,25 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
         tex.magFilter = THREE.LinearFilter;
         tex.needsUpdate = true;
       });
+      
+      // Extract specular map data to a hidden canvas to detect Land (black) vs Ocean (white)
+      try {
+        const img = specularMap.image;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          landMaskRef.current = {
+            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data,
+            width: canvas.width,
+            height: canvas.height
+          };
+        }
+      } catch (e) {
+        console.warn("Could not extract land mask data", e);
+      }
     }
   }, [colorMap, specularMap, normalMap, gl]);
 
@@ -145,7 +124,6 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       if (targetQuaternionRef.current) globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
     } else if (globeRef.current && !selectedLocation) {
       targetQuaternionRef.current = null;
-      // Gentle auto-rotation
       globeRef.current.rotation.y += 0.0005;
     }
 
@@ -154,28 +132,38 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       const target = (alwaysShowGrid || showErrorBounds) ? 1.0 : 0.0;
       gridShaderRef.current.uniforms.showHighlight.value += (target - gridShaderRef.current.uniforms.showHighlight.value) * 0.1;
     }
-    
-    if (tchpShaderRef.current) {
-      tchpShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-      const targetTchp = showTchp ? 1.0 : 0.0;
-      tchpShaderRef.current.uniforms.showTchp.value += (targetTchp - tchpShaderRef.current.uniforms.showTchp.value) * 0.05;
-    }
   });
 
   const handleClick = (e: any) => {
     if (e.delta > 2) return;
-    playSimplePing();
     e.stopPropagation();
+    playSimplePing();
     
+    // 1. Calculate Latitude and Longitude first
     const point = globeRef.current!.worldToLocal(e.point.clone()).normalize();
     const lat = Math.asin(point.y) * (180 / Math.PI);
     const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
     
+    // 2. Out of Bounds Check (Takes priority)
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
-      useOceanStore.getState().setError("Out of bounds", { x: e.clientX, y: e.clientY });
+      useOceanStore.getState().setError("OUT OF BOUNDS", { x: e.clientX, y: e.clientY });
       targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0));
       setTimeout(() => { targetQuaternionRef.current = null; }, 1500);
       return;
+    }
+
+    // 3. Exact Pixel Collision Detection for Landmass (Only inside the grid)
+    if (e.uv && landMaskRef.current) {
+      const { data, width, height } = landMaskRef.current;
+      const x = Math.floor(e.uv.x * width);
+      const y = Math.floor((1.0 - e.uv.y) * height);
+      const idx = (y * width + x) * 4;
+      const brightness = data[idx];
+      
+      if (brightness < 30) {
+        useOceanStore.getState().setError("LANDMASS DETECTED", { x: e.clientX, y: e.clientY });
+        return;
+      }
     }
     
     setLocation({
@@ -194,7 +182,6 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
   }, [selectedLocation]);
 
   const gridUniforms = useMemo(() => ({ time: { value: 0 }, showHighlight: { value: 0 } }), []);
-  const tchpUniforms = useMemo(() => ({ time: { value: 0 }, showTchp: { value: 0 } }), []);
 
   return (
     <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
@@ -202,47 +189,24 @@ export default function EarthGlobe({ alwaysShowGrid = false }: { alwaysShowGrid?
       <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
       
-      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />
+      {showStars && <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />}
       
-      {/* 1. Subsurface Thermocline Inner Core (Green/Cyan glowing layer under the surface) */}
-      {showThermocline && (
-        <Sphere args={[1.97, 64, 64]} raycast={() => null}>
-          <meshPhongMaterial 
-            color="#00ffcc" 
-            emissive="#0088aa"
-            transparent={true} 
-            opacity={0.3} 
-            blending={THREE.AdditiveBlending} 
-          />
-        </Sphere>
-      )}
-
-      {/* 2. Main Earth Surface */}
-      <Sphere args={[2, 128, 128]} onClick={handleClick}>
+      {/* Main Earth Surface (Clean, No Heatmaps) */}
+      <Sphere 
+        args={[2, 128, 128]} 
+        onClick={handleClick}
+        onPointerEnter={() => document.body.style.cursor = 'crosshair'}
+        onPointerLeave={() => document.body.style.cursor = 'auto'}
+      >
         <meshPhongMaterial 
           map={colorMap}
           specularMap={specularMap} normalMap={normalMap} normalScale={new THREE.Vector2(0.5, 0.5)}
           specular={new THREE.Color('#0a5c7a')}
           shininess={15}
-          transparent={showThermocline} // Make crust slightly transparent to see thermocline
-          opacity={showThermocline ? 0.85 : 1.0}
-        />
-      </Sphere>
-      
-      {/* 3. TCHP Cyclone Heatmap Layer (Red/Orange Glow) */}
-      <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-        <shaderMaterial
-          ref={tchpShaderRef}
-          vertexShader={vertexShader}
-          fragmentShader={tchpFragmentShader}
-          uniforms={tchpUniforms}
-          transparent={true}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
         />
       </Sphere>
 
-      {/* 4. SIH Grid Boundaries */}
+      {/* SIH Grid Boundaries */}
       <Sphere args={[2.005, 128, 128]} raycast={() => null}>
         <shaderMaterial ref={gridShaderRef} vertexShader={vertexShader} fragmentShader={gridFragmentShader} uniforms={gridUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
       </Sphere>

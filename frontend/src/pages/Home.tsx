@@ -49,6 +49,21 @@ export default function Home() {
   const { error, errorPosition, setError } = useOceanStore();
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
+  // Auto-clear floating cursor errors so they don't get stuck on screen
+  React.useEffect(() => {
+    if (error && errorPosition) {
+      const t = setTimeout(() => setError(null), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [error, errorPosition, setError]);
+
+  // Clear errors when navigating away from this page
+  React.useEffect(() => {
+    return () => {
+      useOceanStore.getState().setError(null);
+    };
+  }, []);
+
   const handleExplore = () => {
     useOceanStore.getState().setAutoPilotMode(false);
     navigate('/explore');
@@ -122,7 +137,7 @@ export default function Home() {
                 onClick={handleExplore}
                 className="group flex items-center justify-center gap-3 px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] tracking-[0.2em] font-bold rounded-sm transition-all shadow-[0_0_20px_rgba(8,145,178,0.3)]"
               >
-                <span>EXPLORE OCEAN</span>
+                <span>SUBMERGE</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </button>
               
@@ -222,20 +237,17 @@ export default function Home() {
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (
         <div 
-          className="fixed z-50 pointer-events-none animate-in fade-in slide-in-from-bottom-2 duration-200"
-          style={{ 
-            left: errorPosition.x + 20, 
-            top: errorPosition.y - 20 
-          }}
+          className="fixed pointer-events-none z-[100] bg-red-950/80 px-3 py-2 border border-red-500/30 rounded-md backdrop-blur-md shadow-lg transition-all duration-100 animate-in fade-in zoom-in-50"
+          style={{ left: errorPosition.x + 15, top: errorPosition.y - 15 }}
         >
-          <div className="bg-black/80 backdrop-blur-md border border-red-500/40 rounded-sm py-1.5 px-3 shadow-[0_0_20px_rgba(220,38,38,0.2)] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-red-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500/80 animate-pulse"></div>
+            <span className="text-red-400/90 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
               {error}
             </span>
           </div>
           <div className="text-white/40 font-mono text-[8px] tracking-wider uppercase mt-1 pl-1 whitespace-nowrap">
-            Telemetry rejected.
+            {error.toLowerCase().includes('landmass') ? 'Telemetry rejected.' : 'Restoring domain lock...'}
           </div>
         </div>
       )}

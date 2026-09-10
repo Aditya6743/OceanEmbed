@@ -7,11 +7,15 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Hide navbar on the Solutions page for a cleaner fullscreen dashboard
+  if (location.pathname === '/solutions') return null;
+  
   // Simplified uncluttered navbar
   const navLinks: Array<{ name: string; id: string; path?: string }> = [
     { name: 'Data', id: 'data' },
     { name: 'Model', id: 'model' },
     { name: 'About', id: 'about' },
+    { name: 'Solutions', id: 'mosdac', path: '/solutions' },
   ];
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id?: string, path?: string) => {

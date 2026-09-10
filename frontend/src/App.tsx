@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ReactLenis } from '@studio-freight/react-lenis';
+
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import HowItWorks from './pages/HowItWorks';
 import Explore from './pages/Explore';
+import Solutions from './pages/Solutions';
 import Preloader from './components/Preloader';
 import CustomCursor from './components/CustomCursor';
 import GradientWaves from './components/GradientWaves';
@@ -12,8 +13,7 @@ import GradientWaves from './components/GradientWaves';
 function App() {
   const [appReady, setAppReady] = useState(false);
   return (
-    <ReactLenis root options={{ lerp: 0.04, duration: 1.8, smoothWheel: true }}>
-      <Router>
+    <Router>
       {!appReady && <Preloader onComplete={() => setAppReady(true)} />}
       <CustomCursor />
       
@@ -36,10 +36,8 @@ function App() {
                 mouseInteraction={false}
             />
           </div>
-          {/* Subtle Dark Overlay to ensure waves do not overpower content */}
           <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-transparent opacity-80"></div>
           
-          {/* Premium Neon Grid Overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(34,211,238,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(34,211,238,0.05)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]"></div>
         </div>
         <div className="relative z-10 flex flex-col min-h-screen">
@@ -49,12 +47,12 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/solutions" element={<Solutions />} />
             </Routes>
           </main>
         </div>
       </div>
     </Router>
-    </ReactLenis>
   );
 }
 
