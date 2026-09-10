@@ -31,7 +31,7 @@ def fetch_live_data():
             minimum_depth=0.0,
             maximum_depth=1.0, # We only need surface data! The AI predicts the depths!
             output_filename="indian_ocean_live.nc",
-            output_directory="./data",
+            output_directory="../data",
             username=USERNAME,
             password=PASSWORD,
             overwrite=True

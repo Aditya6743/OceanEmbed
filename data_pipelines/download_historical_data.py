@@ -26,7 +26,7 @@ try:
         minimum_depth=0.0,
         maximum_depth=1000.0,
         output_filename="indian_ocean_1year.nc",
-        output_directory="./data",
+        output_directory="../data",
         username=USERNAME,
         password=PASSWORD,
         force_download=True

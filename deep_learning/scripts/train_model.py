@@ -94,8 +94,8 @@ if __name__ == "__main__":
     
     # 5. Save Artifacts for Judges
     os.makedirs("weights", exist_ok=True)
-    torch.save(model.state_dict(), "weights/ocean_weights.pth")
-    print("\n[SUCCESS] Model weights saved to weights/ocean_weights.pth")
+    torch.save(model.state_dict(), "../weights/ocean_weights.pth")
+    print("\n[SUCCESS] Model weights saved to ../weights/ocean_weights.pth")
     
     plt.figure(figsize=(10,5))
     plt.plot(history, color='#0ea5e9', linewidth=2)
@@ -103,5 +103,5 @@ if __name__ == "__main__":
     plt.xlabel("Epoch")
     plt.ylabel("Mean Squared Error (MSE)")
     plt.grid(True, alpha=0.3)
-    plt.savefig("training_loss_curve.png", dpi=300, bbox_inches='tight')
-    print("[SUCCESS] Loss curve saved to training_loss_curve.png")
+    plt.savefig("../results/training_loss_curve.png", dpi=300, bbox_inches='tight')
+    print("[SUCCESS] Loss curve saved to ../results/training_loss_curve.png")
