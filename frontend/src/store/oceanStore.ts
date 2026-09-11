@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { OceanLocation, PredictionResponse } from '../types/ocean';
+import type { OceanLocation, PredictionResponse, LiveArgoMarker } from '../types/ocean';
 
 interface OceanState {
   selectedLocation: OceanLocation | null;
@@ -11,6 +11,9 @@ interface OceanState {
   hoveredDepth: number | null;
   autoPilotMode: boolean;
   activeHighlight: string | null;
+  showArgoTubes: boolean;
+  showGlobeArgo: boolean;
+  selectedArgoMarker: LiveArgoMarker | null;
   setActiveHighlight: (highlight: string | null) => void;
   setSelectedDate: (date: string) => void;
   
@@ -20,6 +23,9 @@ interface OceanState {
   setError: (error: string | null, pos?: { x: number, y: number }) => void;
   setHoveredDepth: (depth: number | null) => void;
   setAutoPilotMode: (mode: boolean) => void;
+  setShowArgoTubes: (show: boolean) => void;
+  setShowGlobeArgo: (show: boolean) => void;
+  setSelectedArgoMarker: (marker: LiveArgoMarker | null) => void;
   reset: () => void;
 }
 
@@ -33,6 +39,9 @@ export const useOceanStore = create<OceanState>((set) => ({
   hoveredDepth: null,
   autoPilotMode: false,
   activeHighlight: null,
+  showArgoTubes: true,
+  showGlobeArgo: true,
+  selectedArgoMarker: null,
   
   setLocation: (loc) => set({ selectedLocation: loc, prediction: null, error: null, errorPosition: null }),
   setPrediction: (data) => set({ prediction: data, isLoading: false, error: null, errorPosition: null }),
@@ -41,6 +50,9 @@ export const useOceanStore = create<OceanState>((set) => ({
   setHoveredDepth: (depth) => set({ hoveredDepth: depth }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   setAutoPilotMode: (mode) => set({ autoPilotMode: mode }),
+  setShowArgoTubes: (show) => set({ showArgoTubes: show }),
+  setShowGlobeArgo: (show) => set({ showGlobeArgo: show }),
+  setSelectedArgoMarker: (marker) => set({ selectedArgoMarker: marker }),
   setActiveHighlight: (highlight) => set({ activeHighlight: highlight }),
-  reset: () => set({ selectedLocation: null, prediction: null, isLoading: false, error: null, errorPosition: null }),
+  reset: () => set({ selectedLocation: null, prediction: null, selectedArgoMarker: null, isLoading: false, error: null, errorPosition: null }),
 }));
