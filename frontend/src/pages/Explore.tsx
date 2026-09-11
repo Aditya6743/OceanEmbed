@@ -190,21 +190,16 @@ export default function Explore() {
             <span className="text-[10px] text-cyan-400 font-mono tracking-[0.3em] font-bold">ORBITAL SENSORS</span>
           </div>
 
-          {/* Live ARGO Fleet Status & Toggle */}
-          <div className="pointer-events-auto flex items-center gap-2">
+                    {/* Live ARGO Fleet Status & Toggle */}
+          <div className="pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
+            <span className={`text-[9px] font-mono tracking-widest font-bold ${showGlobeArgo ? 'text-lime-400' : 'text-slate-400'}`}>
+              LIVE ARGO FLEET
+            </span>
             <button
               onClick={() => setShowGlobeArgo(!showGlobeArgo)}
-              className={`flex items-center gap-2 px-2.5 py-1 rounded-md border backdrop-blur-md transition-all text-[9px] font-mono tracking-widest font-bold ${
-                showGlobeArgo
-                  ? 'bg-lime-950/60 border-lime-500/40 text-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.2)] hover:bg-lime-900/60'
-                  : 'bg-black/60 border-white/10 text-white/40 hover:text-white/70'
-              }`}
+              className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showGlobeArgo ? 'bg-lime-500 shadow-[0_0_10px_rgba(132,204,22,0.5)]' : 'bg-slate-700'}`}
             >
-              <div className={`w-2 h-2 rounded-full transition-colors ${showGlobeArgo ? 'bg-lime-400 animate-pulse shadow-[0_0_6px_#a3e635]' : 'bg-white/20'}`} />
-              <span>LIVE ARGO FLEET</span>
-              <span className={`px-1.5 py-0.2 rounded text-[8px] ${showGlobeArgo ? 'bg-lime-500/20 text-lime-300' : 'bg-white/5 text-white/30'}`}>
-                {showGlobeArgo ? 'ONLINE' : 'HIDDEN'}
-              </span>
+              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showGlobeArgo ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
             </button>
           </div>
 
