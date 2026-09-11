@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert } from 'lucide-react';
+import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert , ChevronDown, ChevronUp, Fish, Thermometer} from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
@@ -39,6 +39,7 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 
 export default function Explore() {
+  const [isReportExpanded, setIsReportExpanded] = React.useState<boolean>(false);
 
   const generateTacticalReport = () => {
     if (!prediction) return [];
@@ -94,7 +95,42 @@ export default function Explore() {
             color: 'text-amber-400',
             desc: `Elevated benthic shear stress at ${maxGradDepth}m (Gradient: ${maxGrad.toFixed(3)} °C/m). High risk to submarine infrastructure.`
         });
+    } else {
+        threats.push({
+            type: 'CABLE STATUS',
+            icon: <Zap className="w-3 h-3 text-emerald-400" />,
+            color: 'text-emerald-400',
+            desc: `Thermal gradients are stable (Max: ${maxGrad.toFixed(3)} °C/m). Low stress on benthic infrastructure.`
+        });
     }
+
+    // 4. Ecological / Fisheries (Mixed Layer Depth)
+    const mld = prediction.estimated_thermocline || 50;
+    threats.push({
+        type: 'ECOLOGY & FISHERIES',
+        icon: <Fish className="w-3 h-3 text-blue-400" />,
+        color: 'text-blue-400',
+        desc: `Mixed Layer Depth detected at ${mld}m. Primary nutrient upwelling zone restricted below this boundary.`
+    });
+
+    // 5. Climate / IOD Anomaly
+    const surfaceSST = prediction.surface_data.sst;
+    let climateStatus = "Neutral conditions";
+    let climateColor = "text-slate-400";
+    if (surfaceSST > 28.5) {
+        climateStatus = "Severe warming anomaly detected. Positive IOD pattern risk elevated.";
+        climateColor = "text-red-400";
+    } else if (surfaceSST < 24.0) {
+        climateStatus = "Severe cooling anomaly detected. Negative IOD pattern risk elevated.";
+        climateColor = "text-cyan-400";
+    }
+    
+    threats.push({
+        type: 'IOD CLIMATE ANOMALY',
+        icon: <Thermometer className={`w-3 h-3 ${climateColor}`} />,
+        color: climateColor,
+        desc: `Surface temperature of ${surfaceSST.toFixed(1)}°C. ${climateStatus}`
+    });
 
     return threats;
   };
@@ -363,22 +399,32 @@ export default function Explore() {
               </div>
             </div>
 
-            {/* Tactical Threat Report */}
-            <div className="mt-4 p-4 bg-black/60 border border-slate-700/50 rounded-lg backdrop-blur-md relative overflow-hidden">
-                <h3 className="text-slate-200 text-[11px] font-bold font-mono tracking-widest mb-3 flex items-center gap-2 border-b border-slate-700/50 pb-2">
-                    <ShieldAlert size={14} className="text-red-500" /> TACTICAL THREAT REPORT
-                </h3>
-                <div className="space-y-3">
-                    {generateTacticalReport().map((threat: any, idx: number) => (
-                        <div key={idx} className="bg-slate-900/50 border border-slate-800 rounded p-2 flex items-start gap-3">
-                            <div className="mt-1">{threat.icon}</div>
-                            <div>
-                                <div className={`text-[10px] font-bold font-mono tracking-wider ${threat.color}`}>{threat.type}</div>
-                                <div className="text-slate-400 text-[10px] font-mono leading-relaxed mt-0.5">{threat.desc}</div>
-                            </div>
-                        </div>
-                    ))}
+            {/* Tactical Threat Report (Collapsible) */}
+            <div className="mt-4 bg-black/60 border border-slate-700/50 rounded-lg backdrop-blur-md relative overflow-hidden transition-all duration-300">
+                <div 
+                    className="p-3 flex justify-between items-center cursor-pointer hover:bg-slate-800/50"
+                    onClick={() => setIsReportExpanded(!isReportExpanded)}
+                >
+                    <h3 className="text-slate-200 text-[11px] font-bold font-mono tracking-widest flex items-center gap-2">
+                        <ShieldAlert size={14} className={isReportExpanded ? "text-red-500" : "text-amber-500"} /> 
+                        TACTICAL THREAT REPORT ({generateTacticalReport().length})
+                    </h3>
+                    {isReportExpanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
                 </div>
+                
+                {isReportExpanded && (
+                    <div className="p-3 pt-0 space-y-3 border-t border-slate-700/50 mt-2">
+                        {generateTacticalReport().map((threat: any, idx: number) => (
+                            <div key={idx} className="bg-slate-900/50 border border-slate-800 rounded p-2 flex items-start gap-3 transition-all hover:border-slate-600">
+                                <div className="mt-1">{threat.icon}</div>
+                                <div>
+                                    <div className={`text-[10px] font-bold font-mono tracking-wider ${threat.color}`}>{threat.type}</div>
+                                    <div className="text-slate-400 text-[10px] font-mono leading-relaxed mt-0.5">{threat.desc}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
 
