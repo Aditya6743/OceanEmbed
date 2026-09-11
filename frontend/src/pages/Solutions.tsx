@@ -448,7 +448,7 @@ export default function Solutions() {
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} isRotationLocked={isRotationLocked} />
             <RotationController isRotationLocked={isRotationLocked} />
-            <MosdacGlobe viewMode={activeTab} />
+            <MosdacGlobe viewMode={activeTab} isRotationLocked={isRotationLocked} />
             <OrbitControls makeDefault 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
                 enableZoom={true} minDistance={3.0} maxDistance={8.0} 

@@ -259,7 +259,7 @@ function ArgoBeacon({ float, isSelected, onSelect }: { float: LiveArgoMarker, is
   );
 }
 
-export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' }) {
+export default function MosdacGlobe({ viewMode = 'climate', isRotationLocked = false }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso', isRotationLocked?: boolean }) {
   const { showGlobeArgo, selectedArgoMarker, setSelectedArgoMarker } = useOceanStore();
   const [argoFloats, setArgoFloats] = useState<LiveArgoMarker[]>([]);
   useEffect(() => {
@@ -293,7 +293,7 @@ export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy
   }, [colorMap, specularMap, normalMap, gl]);
 
   useFrame((state) => {
-    if (globeRef.current) globeRef.current.rotation.y += 0.0005;
+    if (globeRef.current && !isRotationLocked) globeRef.current.rotation.y += 0.0005;
     if (tchpShaderRef.current) tchpShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
     if (fisheryShaderRef.current) fisheryShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
     if (navyShaderRef.current) navyShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
