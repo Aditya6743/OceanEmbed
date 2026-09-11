@@ -5,6 +5,10 @@ import { fetchLiveArgoFleet, getRelativeArgoTime } from '../data/liveArgoFleet';
 import { useOceanStore } from '../store/oceanStore';
 import { Html } from '@react-three/drei';
 
+const env = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env;
+const BASE_URL = env?.VITE_API_URL || 'http://localhost:8000/api/v1';
+
+
 import { Sphere, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -307,11 +311,11 @@ export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy
 
   useEffect(() => {
     const loader = new THREE.TextureLoader();
-    loader.load('http://localhost:8000/api/v1/spatial/heatmap/tchp', setTchpMap, undefined, () => console.warn('Failed to load tchp'));
-    loader.load('http://localhost:8000/api/v1/spatial/heatmap/fishery', setFisheryMap);
-    loader.load('http://localhost:8000/api/v1/spatial/heatmap/navy', setNavyMap);
-    loader.load('http://localhost:8000/api/v1/spatial/heatmap/benthic', setBenthicMap);
-    loader.load('http://localhost:8000/api/v1/spatial/heatmap/iod', setIodMap);
+    loader.load(`${BASE_URL}/spatial/heatmap/tchp`, setTchpMap, undefined, () => console.warn('Failed to load tchp'));
+    loader.load(`${BASE_URL}/spatial/heatmap/fishery`, setFisheryMap);
+    loader.load(`${BASE_URL}/spatial/heatmap/navy`, setNavyMap);
+    loader.load(`${BASE_URL}/spatial/heatmap/benthic`, setBenthicMap);
+    loader.load(`${BASE_URL}/spatial/heatmap/iod`, setIodMap);
   }, []);
   const sharedUniforms = useMemo(() => ({ 
     time: { value: 0 }, 
