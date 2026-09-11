@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 class HistoryService:
     def __init__(self):
         base_dir = Path(__file__).resolve().parent.parent.parent.parent
-        self.csv_path = base_dir / "ml-pipeline" / "data" / "processed" / "bob_3d_temperature.csv"
+        self.csv_path = base_dir / "baseline_model" / "data" / "processed" / "bob_3d_temperature.csv"
         self._df = None
         
     def _load_data(self):

@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import MosdacGlobe from '../components/MosdacGlobe';
@@ -8,47 +8,69 @@ import { useOceanStore } from '../store/oceanStore';
 
 type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
 
-import { useFrame, useThree } from '@react-three/fiber';
-import * as THREE from 'three';
+import { useThree } from '@react-three/fiber';
 
 function CameraResetTrigger({ activeTab }: { activeTab: string }) {
     const { camera, controls } = useThree();
-    const [isAnimating, setIsAnimating] = useState(false);
     
-    // The exact front facing coordinates matching the user's screenshot
-    const targetPos = useMemo(() => new THREE.Vector3(1.2, 0, 5.35), []);
-    const targetLook = useMemo(() => new THREE.Vector3(0, 0, 0), []);
-
     useEffect(() => {
         if (!controls) return;
         
-        setIsAnimating(true);
+        // 1. Completely lock out user and physics engine to prevent ANY glitches or fighting
+        (controls as any).enabled = false;
         (controls as any).autoRotate = false;
         
-        // Let the lerp run for exactly 1.5 seconds, then lock it perfectly into place
-        const timeout = setTimeout(() => {
-            setIsAnimating(false);
-            if (controls) {
-                // Hard snap to the absolute perfect front coordinates to ensure 100% accuracy
-                camera.position.copy(targetPos);
-                camera.lookAt(targetLook);
-                (controls as any).target.copy(targetLook);
-                (controls as any).update();
-                (controls as any).autoRotate = true; // Resume spin
-            }
-        }, 1500);
+        let animId: number;
+        let progress = 0;
         
-        return () => clearTimeout(timeout);
-    }, [activeTab, controls, targetPos, targetLook]);
-    
-    useFrame(() => {
-        if (isAnimating && controls) {
-            // Smoothly fly directly to the perfect front position
-            camera.position.lerp(targetPos, 0.08);
-            (controls as any).target.lerp(targetLook, 0.08);
-            (controls as any).update();
-        }
-    });
+        let startAzimuth = (controls as any).getAzimuthalAngle();
+        let startPolar = (controls as any).getPolarAngle();
+        let startDist = (controls as any).getDistance();
+        
+        // Normalize azimuth for shortest path
+        startAzimuth = startAzimuth % (2 * Math.PI);
+        if (startAzimuth > Math.PI) startAzimuth -= 2 * Math.PI;
+        if (startAzimuth < -Math.PI) startAzimuth += 2 * Math.PI;
+        
+        // The mathematically verified coordinates to center India (Azimuth +0.22, Polar PI/2)
+        const targetAzimuth = 0.22; 
+        const targetPolar = Math.PI / 2; 
+        const targetDist = 5.5;
+        
+        const animate = () => {
+            progress += 0.04; // Animation speed
+            if (progress <= 1) {
+                const ease = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+                
+                const currentAzimuth = startAzimuth + (targetAzimuth - startAzimuth) * ease;
+                const currentPolar = startPolar + (targetPolar - startPolar) * ease;
+                const currentDist = startDist + (targetDist - startDist) * ease;
+                
+                // Directly control the camera using pure spherical math
+                camera.position.setFromSphericalCoords(currentDist, currentPolar, currentAzimuth);
+                camera.lookAt(0, 0, 0);
+                (controls as any).target.set(0,0,0);
+                
+                // Call update to sync OrbitControls with the new camera position
+                (controls as any).update();
+                
+                animId = requestAnimationFrame(animate);
+            } else {
+                // 2. Animation complete! Hand control perfectly back to the user
+                (controls as any).enabled = true;
+                (controls as any).autoRotate = true; 
+            }
+        };
+        
+        animate();
+        
+        return () => {
+            cancelAnimationFrame(animId);
+            if (controls) {
+                (controls as any).enabled = true;
+            }
+        };
+    }, [activeTab, controls]);
     
     return null;
 }

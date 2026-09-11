@@ -8,6 +8,7 @@ import json
 import urllib.request
 import urllib.parse
 import urllib.error
+from functools import lru_cache
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -99,6 +100,7 @@ def _interpolate_to_standard_depths(
     )
 
 
+@lru_cache(maxsize=256)
 def fetch_nearby_argo_floats(
     lat: float, lon: float, date_str: str
 ) -> List[dict]:
@@ -184,6 +186,7 @@ def fetch_nearby_argo_floats(
     return results
 
 
+@lru_cache(maxsize=8)
 def fetch_active_argo_fleet(days: int = 30) -> List[dict]:
     """
     Fetch all active ARGO floats in the North Indian Ocean basin with their

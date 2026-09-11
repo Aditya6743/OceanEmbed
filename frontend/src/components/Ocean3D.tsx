@@ -227,6 +227,7 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
   });
 
   useEffect(() => {
+    setIsDiving(false); // Reset dive state on new prediction
     setAnimating(true);
     const t = setTimeout(() => setAnimating(false), 2000);
     return () => clearTimeout(t);
@@ -336,6 +337,7 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
 
 export default function Ocean3D({ prediction }: { prediction?: PredictionResponse }) {
   const [isDiving, setIsDiving] = useState(false);
+  const { autoPilotMode, activeHighlight } = useOceanStore();
 
   if (!prediction) return null;
 
@@ -345,6 +347,12 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
     if (navigator.vibrate) try { navigator.vibrate([40, 50, 40]); } catch(e) {}
     playDiveSound();
   };
+
+  useEffect(() => {
+    if (autoPilotMode && activeHighlight === '3d' && !isDiving) {
+      handleDive();
+    }
+  }, [autoPilotMode, activeHighlight, isDiving]);
 
   return (
     <div className="w-full h-full relative bg-transparent group">

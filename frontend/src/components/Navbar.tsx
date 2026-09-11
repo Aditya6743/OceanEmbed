@@ -77,7 +77,7 @@ export default function Navbar() {
             rel="noopener noreferrer"
             className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-cyan-400 font-bold bg-cyan-500/10 border border-cyan-500/30 px-4 py-1.5 rounded-full hover:bg-cyan-500/20 transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)]"
           >
-            DEVELOPER AI
+            DEVELOPER API
           </a>
           <button 
             onClick={() => {
