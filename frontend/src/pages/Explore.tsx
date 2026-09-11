@@ -102,9 +102,9 @@ export default function Explore() {
     }
     
     const steps = [
-      setTimeout(() => setLoadingStep(1), 600),
-      setTimeout(() => setLoadingStep(2), 1400),
-      setTimeout(() => setLoadingStep(3), 2200)
+      setTimeout(() => setLoadingStep(1), 0),
+      setTimeout(() => setLoadingStep(2), 0),
+      setTimeout(() => setLoadingStep(3), 0)
     ];
     
     const predictionTimeout = setTimeout(async () => {
@@ -125,7 +125,7 @@ export default function Explore() {
           setError(err.message || "Failed to connect to ML Backend.");
         }
       }
-    }, 3000);
+    }, 0); // Removed artificial cinematic delay
 
     return (
     ) => {
