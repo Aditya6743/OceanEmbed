@@ -8,6 +8,35 @@ interface TemperatureChartProps {
   rmse?: number;
 }
 
+
+const renderCustomLegend = (props: any) => {
+  const { payload } = props;
+  const config: Record<string, { label: string, color: string }> = {
+    temperature: { label: 'PREDICTION', color: '#22d3ee' },
+    reference: { label: 'ARGO REF', color: '#a3e635' },
+    tempRange: { label: 'CONFIDENCE', color: 'rgba(255,255,255,0.4)' },
+    gradient: { label: 'dT/dz', color: '#f59e0b' },
+    speed_of_sound: { label: 'SONAR VEL', color: '#c084fc' }
+  };
+
+  return (
+    <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-3 w-full pb-8">
+      {payload.map((entry: any, index: number) => {
+        const conf = config[entry.value];
+        if (!conf) return null;
+        return (
+          <div key={`item-${index}`} className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: conf.color }}></div>
+            <span className="text-[10px] font-mono font-bold tracking-[0.15em]" style={{ color: conf.color }}>
+              {conf.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5 }: TemperatureChartProps) {
   const { hoveredDepth, setHoveredDepth } = useOceanStore();
   
@@ -50,7 +79,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
       <ComposedChart
         data={data}
         layout="vertical"
-        margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
+        margin={{ top: 35, right: 30, left: 0, bottom: 20 }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
@@ -121,20 +150,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
           cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1, strokeDasharray: '4 4' }}
         />
         
-        <Legend 
-          verticalAlign="top" 
-          height={36} 
-          iconType="circle"
-          wrapperStyle={{ fontSize: '10px', fontFamily: 'monospace', color: '#888' }}
-          formatter={(value) => {
-            if (value === 'temperature') return <span className="text-cyan-400/80 tracking-widest">PREDICTION</span>;
-            if (value === 'reference') return <span className="text-lime-400/80 tracking-widest">ARGO REF</span>;
-            if (value === 'tempRange') return <span className="text-white/30 tracking-widest">CONFIDENCE</span>;
-            if (value === 'gradient') return <span className="text-amber-500/80 tracking-widest">dT/dz</span>;
-            if (value === 'speed_of_sound') return <span className="text-purple-400/80 tracking-widest">SONAR VEL</span>;
-            return null;
-          }}
-        />
+        <Legend verticalAlign="top" height={75} content={renderCustomLegend} />
 
         {thermoclineDepth !== undefined && (
           <ReferenceLine y={thermoclineDepth} stroke="#ef4444" strokeOpacity={0.4} strokeDasharray="3 3" xAxisId="temp" />

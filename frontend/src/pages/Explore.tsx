@@ -7,6 +7,8 @@ import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
 import HistoryChart from '../components/HistoryChart';
 import AnomalyHeatmap from '../components/AnomalyHeatmap';
+import GradientWaves from '../components/GradientWaves';
+import { jsPDF } from 'jspdf';
 import { useOceanStore } from '../store/oceanStore';
 import { fetchOceanPrediction, fetchHistory, type HistoryDataPoint } from '../lib/api';
 import { startAutoPilot, stopAutoPilot } from '../lib/autopilot';
@@ -48,14 +50,14 @@ export default function Explore() {
     // 1. Disaster Mgmt (Cyclone Risk)
     if (prediction.surface_data.sst > 26.5) {
         threats.push({
-            type: 'CYCLONE RISK',
+            type: 'CYCLONE RISK DETECTED',
             icon: <ShieldAlert className="w-3 h-3 text-red-400" />,
             color: 'text-red-400',
             desc: `High Tropical Cyclone Heat Potential (TCHP). Surface temp of ${prediction.surface_data.sst.toFixed(1)}°C supports rapid storm intensification.`
         });
     } else {
         threats.push({
-            type: 'CYCLONE RISK',
+            type: 'CYCLONE RISK DETECTED',
             icon: <ShieldAlert className="w-3 h-3 text-slate-400" />,
             color: 'text-slate-400',
             desc: `Low TCHP. Surface conditions (${prediction.surface_data.sst.toFixed(1)}°C) do not support cyclogenesis.`
@@ -69,14 +71,14 @@ export default function Explore() {
         const minIndex = speeds.indexOf(minSpeed);
         const sofarDepth = prediction.profile.depth[minIndex];
         threats.push({
-            type: 'SONAR STEALTH',
+            type: 'SUBMARINE EVASION ADVANTAGE',
             icon: <Crosshair className="w-3 h-3 text-emerald-400" />,
             color: 'text-emerald-400',
             desc: `Optimal SOFAR acoustic channel detected at ${sofarDepth}m. Maximum sonar evasion capability achieved.`
         });
     } else {
         threats.push({
-            type: 'SONAR STEALTH',
+            type: 'SUBMARINE EVASION ADVANTAGE',
             icon: <Crosshair className="w-3 h-3 text-slate-500 animate-pulse" />,
             color: 'text-slate-500',
             desc: `Awaiting acoustic telemetry from PyTorch backend...`
@@ -86,7 +88,7 @@ export default function Explore() {
     // 3. Fisheries (Ecology)
     const mld = prediction.estimated_thermocline || 50;
     threats.push({
-        type: 'ECOLOGY & FISHERIES',
+        type: 'ECOLOGY: BLEACHING RISK',
         icon: <Fish className="w-3 h-3 text-blue-400" />,
         color: 'text-blue-400',
         desc: `Mixed Layer Depth detected at ${mld}m. Primary nutrient upwelling zone restricted below this boundary.`
@@ -105,14 +107,14 @@ export default function Explore() {
     }
     if (maxGrad > 0.05) {
         threats.push({
-            type: 'CABLE STRESS',
+            type: 'BENTHIC SHEAR RISK',
             icon: <Zap className="w-3 h-3 text-amber-400" />,
             color: 'text-amber-400',
             desc: `Elevated benthic shear stress at ${maxGradDepth}m (Gradient: ${maxGrad.toFixed(3)} °C/m). High risk to submarine infrastructure.`
         });
     } else {
         threats.push({
-            type: 'CABLE STATUS',
+            type: 'BENTHIC SHEAR RISK',
             icon: <Zap className="w-3 h-3 text-emerald-400" />,
             color: 'text-emerald-400',
             desc: `Thermal gradients are stable (Max: ${maxGrad.toFixed(3)} °C/m). Low stress on benthic infrastructure.`
@@ -131,7 +133,7 @@ export default function Explore() {
         climateColor = "text-cyan-400";
     }
     threats.push({
-        type: 'IOD CLIMATE ANOMALY',
+        type: 'IOD POSITIVE PHASE',
         icon: <Thermometer className={`w-3 h-3 ${climateColor}`} />,
         color: climateColor,
         desc: `Surface temperature of ${surfaceSST.toFixed(1)}°C. ${climateStatus}`
@@ -238,6 +240,85 @@ export default function Explore() {
     if (!selectedLocation) return;
     setIsLoading(true);
   };
+  const downloadReport = (format: 'txt' | 'json' | 'pdf') => {
+    const report = generateTacticalReport();
+    
+    if (format === 'pdf') {
+        const doc = new jsPDF();
+        doc.setFillColor(3, 7, 18); // Dark background #030712
+        doc.rect(0, 0, 210, 297, 'F');
+        
+        doc.setTextColor(34, 211, 238); // Cyan-400
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.text("OCEANIC INTELLIGENCE REPORT", 20, 25);
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Generated: ${new Date().toUTCString()}`, 20, 32);
+        doc.text(`Target Region: ${selectedLocation?.region || 'N/A'}`, 20, 37);
+        
+        let y = 55;
+        
+        report.forEach(threat => {
+            if (y > 270) {
+                doc.addPage();
+                doc.setFillColor(3, 7, 18);
+                doc.rect(0, 0, 210, 297, 'F');
+                y = 20;
+            }
+            
+            // Set Color based on threat type
+            if (threat.type.includes('CYCLONE')) doc.setTextColor(249, 115, 22);
+            else if (threat.type.includes('SUBMARINE')) doc.setTextColor(20, 184, 166);
+            else if (threat.type.includes('ECOLOGY')) doc.setTextColor(16, 185, 129);
+            else if (threat.type.includes('BENTHIC')) doc.setTextColor(139, 92, 246);
+            else if (threat.type.includes('IOD')) doc.setTextColor(244, 63, 94);
+            else doc.setTextColor(34, 211, 238);
+            
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text(`[ ${threat.type} ]`, 20, y);
+            y += 7;
+            
+            doc.setTextColor(200, 200, 200);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            const lines = doc.splitTextToSize(threat.desc, 170);
+            doc.text(lines, 20, y);
+            y += (lines.length * 6) + 12;
+        });
+        
+        doc.save(`OceanEmbed_Intel_${new Date().toISOString().split('T')[0]}.pdf`);
+        return;
+    }
+    
+    let fileContent = '';
+    let type = '';
+    let ext = '';
+    
+    if (format === 'txt') {
+        fileContent = "OCEANIC INTELLIGENCE REPORT\n===========================\n\n" + report.map(t => `[${t.type}]\n${t.desc}`).join('\n\n');
+        type = 'text/plain';
+        ext = 'txt';
+    } else {
+        fileContent = JSON.stringify(report, null, 2);
+        type = 'application/json';
+        ext = 'json';
+    }
+    
+    const blob = new Blob([fileContent], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `OceanEmbed_Intel_${new Date().toISOString().split('T')[0]}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleExportCSV = () => {
     if (!prediction || !selectedLocation) return;
     const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Speed of Sound (m/s)', 'Argo Reference (C)']];
@@ -339,16 +420,20 @@ export default function Explore() {
           <div className="relative z-10 flex flex-col gap-3 h-full animate-in fade-in slide-in-from-bottom-8 duration-700 pb-2">
             
             {/* HEADER COMPONENT */}
-            <div className="flex justify-between items-end border-b border-white/10 pb-2 shrink-0">
+            <div className="flex justify-between items-start border-b border-white/10 pb-2 shrink-0">
               <div>
-                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 text-[9px] font-mono tracking-[0.2em] mb-1">
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 text-[9px] font-mono tracking-[0.2em] mb-2 mt-1">
                   <Activity className="w-3 h-3" /> TARGET LOCKED
                 </div>
-                <h2 className="text-xl font-black text-white tracking-tighter mb-1 uppercase">{selectedLocation.region}</h2>
+                <div className="flex items-end gap-4 mb-2">
+                  <h2 className="text-xl font-black text-white tracking-tighter uppercase leading-none">{selectedLocation.region}</h2>
+                  <div className="flex items-center gap-2 text-[10px] font-mono font-bold leading-none mb-0.5">
+                    <span className="text-white/40">LAT: <span className="text-cyan-400">{selectedLocation.latitude.toFixed(4)}°</span></span>
+                    <span className="text-white/40">LON: <span className="text-cyan-400">{selectedLocation.longitude.toFixed(4)}°</span></span>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2 text-[9px] font-mono text-white/50">
-                  <span className="bg-white/5 px-2 py-1.5 rounded border border-white/10">LAT: {selectedLocation.latitude.toFixed(4)}°</span>
-                  <span className="bg-white/5 px-2 py-1.5 rounded border border-white/10">LON: {selectedLocation.longitude.toFixed(4)}°</span>
-                  <div className="flex items-center gap-2 bg-cyan-950/30 px-3 py-1 rounded border border-cyan-500/30 transition-colors hover:bg-cyan-900/40">
+                  <div className="flex items-center gap-2 bg-cyan-950/30 px-3 py-1.5 rounded border border-cyan-500/30 transition-colors hover:bg-cyan-900/40">
                     <span className="text-cyan-500 font-bold tracking-widest text-[9px] uppercase">Select Date</span>
                     <input 
                       type="date" 
@@ -364,7 +449,8 @@ export default function Explore() {
                 </div>
               </div>
               
-              <div className="flex gap-2 shrink-0">
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <div className="flex gap-2 mt-auto mb-1">
                 {autoPilotMode && (
                   <button 
                     onClick={stopAutoPilot}
@@ -375,24 +461,19 @@ export default function Explore() {
                 )}
                                 <button 
                   onClick={() => setIsMaximized(!isMaximized)}
-                  className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-3 overflow-hidden group ${
+                  className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-3 group ${
                     !isMaximized 
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_8px_25px_rgba(6,182,212,0.4)] border border-cyan-400/50 hover:shadow-[0_12px_30px_rgba(6,182,212,0.7)] hover:-translate-y-0.5' 
-                      : 'bg-slate-800/80 backdrop-blur-md border border-white/10 text-white/70 hover:bg-slate-700 hover:text-white'
+                      ? 'bg-black/40 border border-white/10 hover:bg-black/60 hover:border-white/20' 
+                      : 'bg-slate-800/80 backdrop-blur-md border border-white/10 hover:bg-slate-700'
                   }`}
                   title={isMaximized ? "Minimize Dashboard" : "Maximize Dashboard"}
                 >
-                  {/* Glossy shine effect that sweeps across on hover */}
-                  {!isMaximized && (
-                      <div className="absolute top-0 left-[-100%] w-[120%] h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-25deg] group-hover:left-[200%] transition-all duration-1000 ease-in-out"></div>
-                  )}
-                  
                   {isMaximized ? (
-                      <Minimize2 className="w-4 h-4 transition-transform group-hover:scale-110" />
+                      <Minimize2 className="w-4 h-4 text-white/70 group-hover:text-white" />
                   ) : (
-                      <Maximize2 className="w-4 h-4 transition-transform group-hover:scale-110 drop-shadow-md" />
+                      <Maximize2 className="w-4 h-4 text-cyan-400" />
                   )}
-                  <span className="text-[11px] font-bold tracking-widest uppercase drop-shadow-md relative z-10 hidden sm:block">
+                  <span className={`text-[11px] font-bold tracking-widest uppercase relative z-10 hidden sm:block ${!isMaximized ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : 'text-white/70 group-hover:text-white'}`}>
                     {isMaximized ? "Close View" : "Expand Data"}
                   </span>
                 </button>
@@ -411,7 +492,7 @@ export default function Explore() {
                     className="px-4 py-2 bg-amber-950/40 hover:bg-amber-900 border border-amber-500/30 rounded text-amber-400 hover:text-amber-300 transition-all flex items-center justify-center gap-2 font-mono text-[10px] tracking-widest font-bold"
                     title="Tactical Briefing"
                   >
-                    <ShieldAlert className="w-4 h-4" /> AI BRIEFING
+                    <ShieldAlert className="w-4 h-4" /> INTELLIGENCE REPORT
                   </button>
                   <button 
                     onClick={handleExportCSV}
@@ -422,6 +503,7 @@ export default function Explore() {
                   </button>
                   </>
                 )}
+                </div>
               </div>
             </div>
 
@@ -677,58 +759,93 @@ export default function Explore() {
 
       {/* OCEANIC INTELLIGENCE MODAL */}
       {showReportModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-xl animate-in fade-in duration-500">
-            <div className="w-[650px] max-w-[95vw] bg-slate-900/40 border border-white/10 rounded-2xl shadow-2xl overflow-hidden relative">
+        <div 
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 backdrop-blur-xl animate-in fade-in duration-500"
+            onClick={() => setShowReportModal(false)}
+        >
+            <div 
+                className="w-[700px] max-w-[95vw] bg-[#020617]/80 backdrop-blur-3xl border border-cyan-500/20 rounded-xl shadow-[0_0_60px_rgba(8,145,178,0.15)] overflow-hidden relative"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Modal Background Waves */}
+                <div className="absolute inset-0 z-0 pointer-events-none rounded-2xl overflow-hidden">
+                    <GradientWaves 
+                        horizonColor="#020617"
+                        waveColor="#0891b2"
+                        crestColor="#22d3ee"
+                        speed={0.6}
+                        amplitude={2.1}
+                        waveScale={1.5}
+                        tilt={1.1}
+                        zoom={1.5}
+                        height={4.5}
+                        fogDepth={18}
+                        brightness={0.8}
+                        opacity={1.0}
+                        mouseInteraction={false}
+                    />
+                    {/* Exact same darkening gradient used in App.tsx */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-[#030712]/50 to-transparent opacity-90"></div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none z-0"></div>
                 {/* Soft Aurora Background Glow */}
-                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
                 
                 <div className="p-6 border-b border-white/5 flex justify-between items-center relative z-10">
                     <h3 className="text-sky-100/90 text-[13px] font-medium tracking-widest flex items-center gap-3">
                         <Activity size={18} className="text-sky-400 opacity-80" />
                         OCEANIC INTELLIGENCE REPORT
                     </h3>
-                    <button onClick={() => setShowReportModal(false)} className="text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full p-2">
-                        <X size={16} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 mr-2 bg-black/40 border border-white/10 rounded-lg p-1 backdrop-blur-sm">
+                            <span className="text-[9px] text-white/30 uppercase tracking-widest font-mono mr-2 ml-2 hidden sm:block">Export:</span>
+                            <button onClick={() => downloadReport('pdf')} className="px-2 py-1 text-[9px] font-mono font-bold text-white/50 hover:text-cyan-400 hover:bg-cyan-950/50 rounded transition-all" title="Export as PDF">PDF</button>
+                            <button onClick={() => downloadReport('txt')} className="px-2 py-1 text-[9px] font-mono font-bold text-white/50 hover:text-cyan-400 hover:bg-cyan-950/50 rounded transition-all" title="Export as Text">TXT</button>
+                            <button onClick={() => downloadReport('json')} className="px-2 py-1 text-[9px] font-mono font-bold text-white/50 hover:text-cyan-400 hover:bg-cyan-950/50 rounded transition-all" title="Export as JSON">JSON</button>
+                        </div>
+                        <button onClick={() => setShowReportModal(false)} className="text-white/40 hover:text-white transition-colors bg-white/5 hover:bg-white/10 rounded-full p-2">
+                            <X size={16} />
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="p-6 space-y-3 max-h-[75vh] overflow-y-auto custom-scrollbar relative z-10">
                     {generateTacticalReport().map((threat: any, idx: number) => {
                         let config = {
-                            bgHover: 'hover:bg-sky-500/5 hover:border-sky-500/20 border-sky-500/10',
-                            glow: 'bg-sky-400',
-                            iconBox: 'border-sky-500/10 text-sky-300',
-                            title: 'text-sky-200/90'
+                            accent: 'text-sky-400',
+                            border: 'border-sky-500/30',
+                            iconBg: 'bg-sky-500/10'
                         };
                         
                         if (threat.type.includes('CYCLONE')) {
-                            config = { bgHover: 'hover:bg-orange-500/5 hover:border-orange-500/20 border-orange-500/10', glow: 'bg-orange-400', iconBox: 'border-orange-500/10 text-orange-400', title: 'text-orange-300/90' };
-                        } else if (threat.type.includes('SONAR')) {
-                            config = { bgHover: 'hover:bg-teal-500/5 hover:border-teal-500/20 border-teal-500/10', glow: 'bg-teal-400', iconBox: 'border-teal-500/10 text-teal-400', title: 'text-teal-300/90' };
+                            config = { accent: 'text-orange-500', border: 'border-orange-500/40', iconBg: 'bg-orange-500/10' };
+                        } else if (threat.type.includes('SUBMARINE')) {
+                            config = { accent: 'text-teal-400', border: 'border-teal-500/40', iconBg: 'bg-teal-500/10' };
                         } else if (threat.type.includes('ECOLOGY')) {
-                            config = { bgHover: 'hover:bg-emerald-500/5 hover:border-emerald-500/20 border-emerald-500/10', glow: 'bg-emerald-400', iconBox: 'border-emerald-500/10 text-emerald-400', title: 'text-emerald-300/90' };
-                        } else if (threat.type.includes('CABLE')) {
-                            config = { bgHover: 'hover:bg-violet-500/5 hover:border-violet-500/20 border-violet-500/10', glow: 'bg-violet-400', iconBox: 'border-violet-500/10 text-violet-400', title: 'text-violet-300/90' };
+                            config = { accent: 'text-emerald-400', border: 'border-emerald-500/40', iconBg: 'bg-emerald-500/10' };
+                        } else if (threat.type.includes('BENTHIC')) {
+                            config = { accent: 'text-violet-400', border: 'border-violet-500/40', iconBg: 'bg-violet-500/10' };
                         } else if (threat.type.includes('IOD')) {
-                            config = { bgHover: 'hover:bg-rose-500/5 hover:border-rose-500/20 border-rose-500/10', glow: 'bg-rose-400', iconBox: 'border-rose-500/10 text-rose-400', title: 'text-rose-300/90' };
+                            config = { accent: 'text-rose-400', border: 'border-rose-500/40', iconBg: 'bg-rose-500/10' };
                         }
 
                         return (
                             <div 
                                 key={idx} 
-                                className={`relative overflow-hidden bg-white/5 border rounded-xl p-5 flex items-start gap-4 transition-all duration-500 group ${config.bgHover}`}
+                                className={`relative overflow-hidden bg-black/60 backdrop-blur-md border ${config.border} rounded-lg p-5 flex items-start gap-5 transition-colors duration-300 group hover:bg-black/80`}
                             >
-                                <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 group-hover:opacity-20 transition-opacity duration-700 ${config.glow}`}></div>
+                                {/* Sharp left-edge accent line instead of a fuzzy blob */}
+                                <div className={`absolute left-0 top-0 bottom-0 w-1 opacity-70 ${config.iconBg.replace('bg-', 'bg-').replace('/10', '')}`}></div>
                                 
-                                <div className={`mt-0.5 bg-black/20 p-2.5 rounded-lg border opacity-80 group-hover:opacity-100 transition-opacity ${config.iconBox}`}>
+                                <div className={`shrink-0 p-2.5 rounded-md border border-white/5 opacity-90 group-hover:opacity-100 transition-opacity ${config.iconBg} ${config.accent}`}>
                                     {threat.icon}
                                 </div>
                                 
                                 <div className="relative z-10 flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className={`text-xs font-medium tracking-wider uppercase ${config.title}`}>{threat.type}</div>
+                                    <div className="flex items-center gap-3 mb-1.5">
+                                        <div className={`text-[11px] font-bold tracking-[0.2em] uppercase ${config.accent}`}>{threat.type}</div>
                                     </div>
-                                    <div className="text-slate-300/70 text-[13px] leading-relaxed font-light group-hover:text-slate-200 transition-colors">
+                                    <div className="text-slate-300/80 text-[12px] leading-relaxed font-light">
                                         {threat.desc}
                                     </div>
                                 </div>
