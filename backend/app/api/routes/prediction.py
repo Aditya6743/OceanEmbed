@@ -11,6 +11,9 @@ from app.services.satellite_data import SatelliteDataService
 from app.services.inference import infer_service
 from app.services.argo_service import fetch_nearby_argo_floats
 
+def mackenzie_speed_of_sound(T, S, D):
+    return 1448.96 + 4.591*T - 5.304e-2*(T**2) + 2.374e-4*(T**3) + 1.340*(S-35) + 1.63e-2*D + 1.675e-7*(D**2) - 1.025e-2*T*(S-35) - 7.139e-13*T*(D**3)
+
 router = APIRouter()
 
 
@@ -44,7 +47,7 @@ async def predict_profile(
     return PredictionResponse(
         location=OceanLocation(latitude=lat, longitude=lon, date=date, region="NORTH INDIAN OCEAN"),
         surface_data=surface,
-        profile=OceanProfile(depth=depths, temperature=temps, reference_temperature=refs),
+        profile=OceanProfile(depth=depths, temperature=temps, speed_of_sound=[round(mackenzie_speed_of_sound(t, surface.sss, d), 2) for t, d in zip(temps, depths)], reference_temperature=refs),
         model_version=version,
         estimated_thermocline=mld,
         metrics=PredictionMetrics(**metrics),
