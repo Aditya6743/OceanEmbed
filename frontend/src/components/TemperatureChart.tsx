@@ -68,6 +68,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" opacity={0.05} horizontal={true} vertical={true} />
         
         {/* Primary Axis: Temperature */}
+        <XAxis xAxisId="sos" type="number" hide={true} domain={['auto', 'auto']} />
         <XAxis 
           xAxisId="temp"
           type="number" 
@@ -130,6 +131,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
             if (value === 'reference') return <span className="text-lime-400/80 tracking-widest">ARGO REF</span>;
             if (value === 'tempRange') return <span className="text-white/30 tracking-widest">CONFIDENCE</span>;
             if (value === 'gradient') return <span className="text-amber-500/80 tracking-widest">dT/dz</span>;
+            if (value === 'speed_of_sound') return <span className="text-purple-400/80 tracking-widest">SONAR VEL</span>;
             return null;
           }}
         />
@@ -165,7 +167,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
         />
 
         {profile.speed_of_sound && (
-          <Line xAxisId="temp" type="monotone" dataKey="speed_of_sound" stroke="transparent" dot={false} activeDot={false} isAnimationActive={false} />
+          <Line xAxisId="sos" type="monotone" dataKey="speed_of_sound" stroke="#c084fc" strokeWidth={1.5} strokeDasharray="3 3" dot={false} activeDot={{ r: 3, fill: '#050505', stroke: '#c084fc', strokeWidth: 2 }} isAnimationActive={true} />
         )}
         {profile.reference_temperature && (
           <Line 
