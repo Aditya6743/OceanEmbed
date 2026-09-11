@@ -26,6 +26,13 @@ async def health():
     return {"status": "ok", "version": settings.VERSION}
 
 
+
+from fastapi.responses import RedirectResponse
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
+
 app.include_router(prediction_router, prefix=settings.API_V1_STR, tags=["predict"])
 app.include_router(metadata_router, prefix=settings.API_V1_STR, tags=["metadata"])
 app.include_router(spatial_router, prefix=settings.API_V1_STR + "/spatial", tags=["spatial"])
