@@ -39,8 +39,8 @@ export const useOceanStore = create<OceanState>((set) => ({
   hoveredDepth: null,
   autoPilotMode: false,
   activeHighlight: null,
-  showArgoTubes: true,
-  showGlobeArgo: true,
+  showArgoTubes: false,
+  showGlobeArgo: false,
   selectedArgoMarker: null,
   
   setLocation: (loc) => set({ selectedLocation: loc, prediction: null, error: null, errorPosition: null }),
