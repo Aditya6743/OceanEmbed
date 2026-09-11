@@ -10,7 +10,7 @@ type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
 
 import { useThree } from '@react-three/fiber';
 
-function CameraResetTrigger({ activeTab }: { activeTab: string }) {
+function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string, isRotationLocked: boolean }) {
     const { camera, controls } = useThree();
     
     useEffect(() => {
@@ -402,7 +402,20 @@ export default function Solutions() {
 
       {/* 3D Visualization (Right Panel 65%) */}
       <div className="w-[65%] h-full pt-20 relative z-0 bg-black">
-                {/* ARGO HUD Overlay */}
+                {/* Lock Auto-Rotate Button */}
+        <div className="absolute top-24 right-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
+          <span className={`text-[9px] font-mono tracking-widest font-bold ${isRotationLocked ? 'text-amber-400' : 'text-slate-400'}`}>
+            {isRotationLocked ? 'ROTATION: LOCKED' : 'ROTATION: AUTO'}
+          </span>
+          <button
+            onClick={() => setIsRotationLocked(!isRotationLocked)}
+            className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${isRotationLocked ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-slate-700'}`}
+          >
+            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${isRotationLocked ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+
+        {/* ARGO HUD Overlay */}
         <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
           <span className={`text-[9px] font-mono tracking-widest font-bold ${showGlobeArgo ? 'text-lime-400' : 'text-slate-400'}`}>
             LIVE ARGO FLEET
@@ -416,12 +429,12 @@ export default function Solutions() {
         </div>
         <Canvas className="w-full h-full" camera={{ position: [5, 2, 5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
-            <CameraResetTrigger activeTab={activeTab} />
+            <CameraResetTrigger activeTab={activeTab} isRotationLocked={isRotationLocked} />
             <MosdacGlobe viewMode={activeTab} />
             <OrbitControls makeDefault 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
                 enableZoom={true} minDistance={3.0} maxDistance={8.0} 
-                autoRotate={true} autoRotateSpeed={0.3}
+                autoRotate={!isRotationLocked} autoRotateSpeed={0.3}
             />
             </Suspense>
         </Canvas>
