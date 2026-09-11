@@ -19,6 +19,7 @@ class SurfaceData(BaseModel):
 class OceanProfile(BaseModel):
     depth: List[int]
     temperature: List[float]
+    speed_of_sound: Optional[List[float]] = None
     reference_temperature: Optional[List[float]] = None
 
 class PredictionMetrics(BaseModel):

@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2 } from 'lucide-react';
+import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert } from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
@@ -39,6 +39,65 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 
 export default function Explore() {
+
+  const generateTacticalReport = () => {
+    if (!prediction) return [];
+    const threats = [];
+    
+    // 1. Sonar Stealth
+    if (prediction.profile.speed_of_sound) {
+        const speeds = prediction.profile.speed_of_sound;
+        const minSpeed = Math.min(...speeds);
+        const minIndex = speeds.indexOf(minSpeed);
+        const sofarDepth = prediction.profile.depth[minIndex];
+        threats.push({
+            type: 'SONAR STEALTH',
+            icon: <Crosshair className="w-3 h-3 text-emerald-400" />,
+            color: 'text-emerald-400',
+            desc: `Optimal SOFAR acoustic channel detected at ${sofarDepth}m. Maximum sonar evasion capability achieved.`
+        });
+    }
+
+    // 2. Cyclone Potential
+    if (prediction.surface_data.sst > 26.5) {
+        threats.push({
+            type: 'CYCLONE RISK',
+            icon: <ShieldAlert className="w-3 h-3 text-red-400" />,
+            color: 'text-red-400',
+            desc: `High Tropical Cyclone Heat Potential (TCHP). Surface temp of ${prediction.surface_data.sst.toFixed(1)}°C supports rapid storm intensification.`
+        });
+    } else {
+        threats.push({
+            type: 'CYCLONE RISK',
+            icon: <ShieldAlert className="w-3 h-3 text-slate-400" />,
+            color: 'text-slate-400',
+            desc: `Low TCHP. Surface conditions (${prediction.surface_data.sst.toFixed(1)}°C) do not support cyclogenesis.`
+        });
+    }
+
+    // 3. Subsea Cable Stress (Gradient)
+    let maxGrad = 0;
+    let maxGradDepth = 0;
+    for(let i=0; i<prediction.profile.depth.length-1; i++) {
+        const dz = prediction.profile.depth[i+1] - prediction.profile.depth[i];
+        const dt = Math.abs(prediction.profile.temperature[i] - prediction.profile.temperature[i+1]);
+        if(dz > 0 && (dt/dz) > maxGrad) {
+            maxGrad = dt/dz;
+            maxGradDepth = prediction.profile.depth[i];
+        }
+    }
+    
+    if (maxGrad > 0.05) {
+        threats.push({
+            type: 'CABLE STRESS',
+            icon: <Zap className="w-3 h-3 text-amber-400" />,
+            color: 'text-amber-400',
+            desc: `Elevated benthic shear stress at ${maxGradDepth}m (Gradient: ${maxGrad.toFixed(3)} °C/m). High risk to submarine infrastructure.`
+        });
+    }
+
+    return threats;
+  };
 
   const { 
     selectedLocation, 
@@ -140,11 +199,12 @@ export default function Explore() {
   };
   const handleExportCSV = () => {
     if (!prediction || !selectedLocation) return;
-    const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Argo Reference (C)']];
+    const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Speed of Sound (m/s)', 'Argo Reference (C)']];
     prediction.profile.depth.forEach((d: number, i: number) => {
       rows.push([
         d.toString(),
         prediction.profile.temperature[i].toFixed(4),
+        prediction.profile.speed_of_sound?.[i]?.toFixed(2) || 'N/A',
         prediction.profile.reference_temperature?.[i]?.toFixed(4) || 'N/A'
       ]);
     });
@@ -300,9 +360,27 @@ export default function Explore() {
                     <Download className="w-4 h-4" />
                   </button>
                 )}
-                
               </div>
             </div>
+
+            {/* Tactical Threat Report */}
+            <div className="mt-4 p-4 bg-black/60 border border-slate-700/50 rounded-lg backdrop-blur-md relative overflow-hidden">
+                <h3 className="text-slate-200 text-[11px] font-bold font-mono tracking-widest mb-3 flex items-center gap-2 border-b border-slate-700/50 pb-2">
+                    <ShieldAlert size={14} className="text-red-500" /> TACTICAL THREAT REPORT
+                </h3>
+                <div className="space-y-3">
+                    {generateTacticalReport().map((threat: any, idx: number) => (
+                        <div key={idx} className="bg-slate-900/50 border border-slate-800 rounded p-2 flex items-start gap-3">
+                            <div className="mt-1">{threat.icon}</div>
+                            <div>
+                                <div className={`text-[10px] font-bold font-mono tracking-wider ${threat.color}`}>{threat.type}</div>
+                                <div className="text-slate-400 text-[10px] font-mono leading-relaxed mt-0.5">{threat.desc}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
 
             { /* ERROR STATE */ }
             {error && !isLoading && (
