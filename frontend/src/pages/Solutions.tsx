@@ -22,6 +22,34 @@ function RotationController({ isRotationLocked }: { isRotationLocked: boolean })
     return null;
 }
 
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
+
+function NativeXR() {
+    const { gl } = useThree();
+    useEffect(() => {
+        gl.xr.enabled = true;
+        const vrBtn = VRButton.createButton(gl);
+        const arBtn = ARButton.createButton(gl);
+        
+        // Clean placement so they don't overlap
+        arBtn.style.bottom = '30px';
+        arBtn.style.left = 'calc(50% - 120px)';
+        
+        vrBtn.style.bottom = '30px';
+        vrBtn.style.left = 'calc(50% + 20px)';
+
+        document.body.appendChild(vrBtn);
+        document.body.appendChild(arBtn);
+        
+        return () => {
+            if (vrBtn.parentNode) vrBtn.parentNode.removeChild(vrBtn);
+            if (arBtn.parentNode) arBtn.parentNode.removeChild(arBtn);
+        };
+    }, [gl]);
+    return null;
+}
+
 function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string, isRotationLocked: boolean }) {
     const { camera, controls } = useThree();
     
@@ -446,6 +474,7 @@ export default function Solutions() {
         </div>
         <Canvas className="w-full h-full" camera={{ position: [5, 2, 5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
+            <NativeXR />
             <CameraResetTrigger activeTab={activeTab} isRotationLocked={isRotationLocked} />
             <RotationController isRotationLocked={isRotationLocked} />
             <MosdacGlobe viewMode={activeTab} isRotationLocked={isRotationLocked} />
