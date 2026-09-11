@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import type { PredictionResponse } from '../types/ocean';
 import { useOceanStore } from '../store/oceanStore';
 import { ArrowDownCircle } from 'lucide-react';
+import ArgoTubes, { getTempColor } from './ArgoTubes';
 
 const playDiveSound = () => {
   try {
@@ -163,7 +164,7 @@ function DepthPlate({ layer, isHovered, isDimmed, isThermocline, hoveredDepth }:
 function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: PredictionResponse, isDiving: boolean, setIsDiving: (d: boolean) => void }) {
 
   const groupRef = useRef<THREE.Group>(null);
-  const { hoveredDepth, setHoveredDepth } = useOceanStore();
+  const { hoveredDepth, setHoveredDepth, showArgoTubes } = useOceanStore();
   const [, setAnimating] = useState(true);
   
 
@@ -232,19 +233,6 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
   }, [prediction]);
 
   // Enhanced, highly saturated premium color map
-  const getTempColor = (temp: number) => {
-    const t = Math.max(0, Math.min(1, temp / 30)); 
-    let hue;
-    if (t < 0.3) { 
-      hue = 0.65 - (t / 0.3) * 0.15; // Deep Blue -> Cyan
-    } else if (t < 0.7) { 
-      hue = 0.5 - ((t - 0.3) / 0.4) * 0.35; // Cyan -> Yellow
-    } else { 
-      hue = 0.15 - ((t - 0.7) / 0.3) * 0.18; // Yellow -> Vivid Crimson
-    }
-    const finalHue = hue < 0 ? hue + 1 : hue;
-    return new THREE.Color().setHSL(finalHue, 1.0, 0.55).getHexString();
-  };
 
   const layers = prediction.profile.depth
     .map((depth, idx) => ({ depth, temp: prediction.profile.temperature[idx] }))
@@ -338,6 +326,10 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
           )
         })}
       </group>
+      {/* 5. ARGO GROUND TRUTH TUBES */}
+      {showArgoTubes && prediction.argo_floats && prediction.argo_floats.length > 0 && (
+        <ArgoTubes floats={prediction.argo_floats} />
+      )}
     </group>
   );
 }

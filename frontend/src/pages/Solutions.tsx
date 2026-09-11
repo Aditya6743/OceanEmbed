@@ -4,6 +4,7 @@ import { OrbitControls } from '@react-three/drei';
 import MosdacGlobe from '../components/MosdacGlobe';
 import { Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useOceanStore } from '../store/oceanStore';
 
 type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
 
@@ -54,6 +55,7 @@ function CameraResetTrigger({ activeTab }: { activeTab: string }) {
 
 
 export default function Solutions() {
+  const { showGlobeArgo, setShowGlobeArgo } = useOceanStore();
   const [activeTab, setActiveTab] = useState<ViewMode>('climate');
   const navigate = useNavigate();
   const [liveData, setLiveData] = useState({ tchp: 85.4, depth: 75.2, gradient: -0.15, lat: 15.3, lon: 65.2 });
@@ -375,8 +377,26 @@ export default function Solutions() {
         </div>
       </div>
 
+
       {/* 3D Visualization (Right Panel 65%) */}
       <div className="w-[65%] h-full pt-20 relative z-0 bg-black">
+        {/* ARGO HUD Overlay */}
+        <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-2">
+          <button
+            onClick={() => setShowGlobeArgo(!showGlobeArgo)}
+            className={`flex items-center gap-2 px-2.5 py-1 rounded-md border backdrop-blur-md transition-all text-[9px] font-mono tracking-widest font-bold ${
+              showGlobeArgo
+                ? 'bg-lime-950/60 border-lime-500/40 text-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.2)] hover:bg-lime-900/60'
+                : 'bg-black/60 border-white/10 text-white/40 hover:text-white/70'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full transition-colors ${showGlobeArgo ? 'bg-lime-400 animate-pulse shadow-[0_0_6px_#a3e635]' : 'bg-white/20'}`} />
+            <span>LIVE ARGO FLEET</span>
+            <span className={`px-1.5 py-0.2 rounded text-[8px] ${showGlobeArgo ? 'bg-lime-500/20 text-lime-300' : 'bg-white/5 text-white/30'}`}>
+              {showGlobeArgo ? 'ONLINE' : 'HIDDEN'}
+            </span>
+          </button>
+        </div>
         <Canvas className="w-full h-full" camera={{ position: [5, 2, 5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} />

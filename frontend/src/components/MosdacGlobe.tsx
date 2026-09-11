@@ -1,5 +1,10 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
+import type { LiveArgoMarker } from '../types/ocean';
+import { fetchLiveArgoFleet, getRelativeArgoTime } from '../data/liveArgoFleet';
+import { useOceanStore } from '../store/oceanStore';
+import { Html } from '@react-three/drei';
+
 import { Sphere, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -218,7 +223,46 @@ const ensoFragmentShader = `
   }
 `;
 
+
+function ArgoBeacon({ float, isSelected, onSelect }: { float: LiveArgoMarker, isSelected: boolean, onSelect: (f: LiveArgoMarker) => void }) {
+  const [hovered, setHovered] = useState(false);
+  const pos = useMemo(() => {
+    const phi = (90 - float.lat) * (Math.PI / 180);
+    const theta = (float.lon + 180) * (Math.PI / 180);
+    const radius = 2.016;
+    return new THREE.Vector3(
+      -(radius * Math.sin(phi) * Math.cos(theta)),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+    );
+  }, [float.lat, float.lon]);
+
+  return (
+    <group position={pos}>
+      <mesh onClick={(e) => { e.stopPropagation(); onSelect(float); }} onPointerEnter={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }} onPointerLeave={(e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }} visible={false}><sphereGeometry args={[0.035, 8, 8]} /><meshBasicMaterial /></mesh>
+      <mesh raycast={() => null}><sphereGeometry args={[isSelected ? 0.009 : 0.005, 12, 12]} /><meshBasicMaterial color={isSelected ? "#a3e635" : "#4ade80"} /></mesh>
+      <mesh raycast={() => null}><sphereGeometry args={[isSelected ? 0.016 : (hovered ? 0.013 : 0.008), 12, 12]} /><meshBasicMaterial color="#a3e635" transparent opacity={isSelected ? 0.6 : (hovered ? 0.45 : 0.25)} /></mesh>
+      {(hovered || isSelected) && (
+        <Html position={[0, 0.05, 0]} center zIndexRange={[100, 0]} style={{ pointerEvents: 'none' }}>
+          <div className="bg-black/90 border border-lime-500/50 p-2 rounded backdrop-blur-md whitespace-nowrap animate-in fade-in zoom-in duration-200">
+            <div className="text-lime-400 text-[10px] font-bold tracking-wider mb-1">ARGO FLOAT #{float.id}</div>
+            <div className="text-white/70 text-[9px] font-mono mb-1">{float.lat.toFixed(3)}°N, {float.lon.toFixed(3)}°E</div>
+            <div className="text-cyan-400/80 text-[8px] uppercase tracking-widest">{getRelativeArgoTime(float.timestamp)}</div>
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
+
 export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' }) {
+  const { showGlobeArgo, selectedArgoMarker, setSelectedArgoMarker } = useOceanStore();
+  const [argoFloats, setArgoFloats] = useState<LiveArgoMarker[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    fetchLiveArgoFleet().then(floats => { if (mounted && floats) setArgoFloats(floats); });
+    return () => { mounted = false; };
+  }, []);
   const globeRef = useRef<THREE.Group>(null);
   const tchpShaderRef = useRef<THREE.ShaderMaterial>(null);
   const fisheryShaderRef = useRef<THREE.ShaderMaterial>(null);
@@ -323,6 +367,10 @@ export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy
           <shaderMaterial ref={ensoShaderRef} vertexShader={vertexShader} fragmentShader={ensoFragmentShader} uniforms={sharedUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
         </Sphere>
       )}
+
+      {showGlobeArgo && argoFloats.map((float) => (
+        <ArgoBeacon key={float.id} float={float} isSelected={selectedArgoMarker?.id === float.id} onSelect={(f) => setSelectedArgoMarker(f)} />
+      ))}
     </group>
   );
 }
