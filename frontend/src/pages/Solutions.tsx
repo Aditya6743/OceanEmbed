@@ -58,7 +58,7 @@ function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string
             } else {
                 // 2. Animation complete! Hand control perfectly back to the user
                 (controls as any).enabled = true;
-                (controls as any).autoRotate = true; 
+                (controls as any).autoRotate = !isRotationLocked; 
             }
         };
         
@@ -79,6 +79,7 @@ function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string
 export default function Solutions() {
   const { showGlobeArgo, setShowGlobeArgo } = useOceanStore();
   const [activeTab, setActiveTab] = useState<ViewMode>('climate');
+  const [isRotationLocked, setIsRotationLocked] = useState(false);
   const navigate = useNavigate();
   const [liveData, setLiveData] = useState({ tchp: 85.4, depth: 75.2, gradient: -0.15, lat: 15.3, lon: 65.2 });
 
