@@ -1,7 +1,5 @@
 import { Suspense, useState, useEffect, } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { VRButton, XR, createXRStore } from '@react-three/xr';
-const store = createXRStore();
 import { OrbitControls } from '@react-three/drei';
 import MosdacGlobe from '../components/MosdacGlobe';
 import { Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock } from 'lucide-react';
@@ -446,9 +444,7 @@ export default function Solutions() {
             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showGlobeArgo ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
           </button>
         </div>
-        <VRButton store={store} className="absolute bottom-6 right-6 z-30 bg-purple-600/80 hover:bg-purple-500 border border-purple-400 text-white px-4 py-2 rounded-full font-mono text-xs font-bold shadow-[0_0_15px_rgba(168,85,247,0.5)] transition-all" />
         <Canvas className="w-full h-full" camera={{ position: [5, 2, 5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
-            <XR store={store}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} isRotationLocked={isRotationLocked} />
             <RotationController isRotationLocked={isRotationLocked} />
@@ -459,7 +455,6 @@ export default function Solutions() {
                 autoRotate={!isRotationLocked} autoRotateSpeed={0.3}
             />
             </Suspense>
-            </XR>
         </Canvas>
       </div>
     </div>

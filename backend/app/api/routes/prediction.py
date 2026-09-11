@@ -27,10 +27,8 @@ async def predict_profile(
         )
 
     surface = SatelliteDataService.get_surface_observations(lat, lon, date)
-    # Apply Climate Shock Simulator offset
-    simulated_sst = surface.sst + temp_offset
     depths, temps, refs, mld, version, metrics = infer_service.predict(
-        simulated_sst, surface.ssh, surface.sss, lat, lon, date
+        surface.sst, surface.ssh, surface.sss, lat, lon, date
     )
 
     # Fetch live ARGO floats — non-blocking, never fails the prediction
