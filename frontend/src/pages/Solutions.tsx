@@ -10,6 +10,17 @@ type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
 
 import { useThree } from '@react-three/fiber';
 
+
+function RotationController({ isRotationLocked }: { isRotationLocked: boolean }) {
+    const { controls } = useThree();
+    useEffect(() => {
+        if (controls) {
+            (controls as any).autoRotate = !isRotationLocked;
+        }
+    }, [isRotationLocked, controls]);
+    return null;
+}
+
 function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string, isRotationLocked: boolean }) {
     const { camera, controls } = useThree();
     
@@ -431,6 +442,7 @@ export default function Solutions() {
         <Canvas className="w-full h-full" camera={{ position: [5, 2, 5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} isRotationLocked={isRotationLocked} />
+            <RotationController isRotationLocked={isRotationLocked} />
             <MosdacGlobe viewMode={activeTab} />
             <OrbitControls makeDefault 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
