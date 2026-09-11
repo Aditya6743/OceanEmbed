@@ -10,9 +10,9 @@ const env = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env;
 const BASE_URL = env?.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 
-export async function fetchOceanPrediction(lat: number, lon: number, date: string): Promise<PredictionResponse> {
+export async function fetchOceanPrediction(lat: number, lon: number, date: string, tempOffset: number = 0): Promise<PredictionResponse> {
   try {
-    const query = new URLSearchParams({ lat: String(lat), lon: String(lon), date });
+    const query = new URLSearchParams({ lat: String(lat), lon: String(lon), date, temp_offset: String(tempOffset) });
     const res = await fetch(`${BASE_URL}/predict?${query}`);
 
     if (!res.ok) {

@@ -30,6 +30,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
       temperature: temp,
       tempRange: [Number((temp - ci).toFixed(2)), Number((temp + ci).toFixed(2))],
       gradient: Number(gradient.toFixed(4)),
+      speed_of_sound: profile.speed_of_sound?.[index],
       reference: profile.reference_temperature?.[index]
     };
   });
@@ -112,6 +113,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
             if (name === 'reference') return [`${Number(value).toFixed(2)} °C`, 'ARGO GROUND TRUTH'];
             if (name === 'tempRange') return [`${value[0]} to ${value[1]} °C`, '±95% CONFIDENCE'];
             if (name === 'gradient') return [`${Number(value).toFixed(4)} °C/m`, 'THERMAL GRADIENT'];
+            if (name === 'speed_of_sound') return [`${Number(value).toFixed(1)} m/s`, 'ACOUSTIC SONAR SPEED'];
             return [null, null];
           }}
           labelFormatter={(label: any) => `DEPTH: ${label}m`}
@@ -162,6 +164,17 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
           isAnimationActive={true}
         />
 
+        {profile.speed_of_sound && (
+          <Line 
+            xAxisId="temp"
+            type="monotone" 
+            dataKey="speed_of_sound" 
+            stroke="transparent" 
+            dot={false}
+            activeDot={false}
+            isAnimationActive={false}
+          />
+        )}
         {profile.reference_temperature && (
           <Line 
             xAxisId="temp"

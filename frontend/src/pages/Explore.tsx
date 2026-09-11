@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2 } from 'lucide-react';
+import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2 , ThermometerSun} from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
@@ -39,6 +39,7 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 
 export default function Explore() {
+  const [climateOffset, setClimateOffset] = React.useState<number>(0);
 
   const { 
     selectedLocation, 
@@ -110,7 +111,7 @@ export default function Explore() {
     const predictionTimeout = setTimeout(async () => {
       if (selectedLocation) {
         try {
-          const data = await fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate);
+          const data = await fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate, climateOffset);
           setPrediction(data);
           
           try {
@@ -132,7 +133,7 @@ export default function Explore() {
       steps.forEach(clearTimeout);
       clearTimeout(predictionTimeout);
     };
-  }, [isLoading, selectedLocation, selectedDate, setPrediction, setError]);
+  }, [isLoading, selectedLocation, selectedDate, climateOffset, setPrediction, setError]);
 
   const handleRunInference = () => {
     if (!selectedLocation) return;
@@ -140,11 +141,12 @@ export default function Explore() {
   };
   const handleExportCSV = () => {
     if (!prediction || !selectedLocation) return;
-    const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Argo Reference (C)']];
+    const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Speed of Sound (m/s)', 'Argo Reference (C)']];
     prediction.profile.depth.forEach((d: number, i: number) => {
       rows.push([
         d.toString(),
         prediction.profile.temperature[i].toFixed(4),
+        prediction.profile.speed_of_sound?.[i]?.toFixed(2) || 'N/A',
         prediction.profile.reference_temperature?.[i]?.toFixed(4) || 'N/A'
       ]);
     });
@@ -300,8 +302,31 @@ export default function Explore() {
                     <Download className="w-4 h-4" />
                   </button>
                 )}
-                
               </div>
+            </div>
+            
+            {/* Climate Shock Simulator */}
+            <div className="mt-4 p-4 bg-red-950/20 border border-red-500/30 rounded-lg backdrop-blur-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 blur-xl rounded-full"></div>
+                <h3 className="text-red-400 text-xs font-bold font-mono tracking-widest mb-2 flex items-center gap-2">
+                    <ThermometerSun size={14} /> CLIMATE SHOCK SIMULATOR
+                </h3>
+                <p className="text-[10px] text-red-200/60 mb-3 leading-relaxed">
+                    Inject artificial surface warming into the AI to simulate ecological collapse and thermocline disruption.
+                </p>
+                <div className="flex items-center gap-4">
+                    <input 
+                        type="range" 
+                        min="0" max="3" step="0.5" 
+                        value={climateOffset} 
+                        onChange={(e) => {
+                            setClimateOffset(parseFloat(e.target.value));
+                            setIsLoading(true);
+                        }}
+                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-red-500"
+                    />
+                    <span className="text-red-400 font-mono font-bold w-12 text-right">+{climateOffset.toFixed(1)}°C</span>
+                </div>
             </div>
 
             { /* ERROR STATE */ }

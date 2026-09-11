@@ -18,6 +18,7 @@ export interface SurfaceData {
 export interface OceanProfile {
   depth: number[];
   temperature: number[];
+  speed_of_sound?: number[];
   reference_temperature?: number[];
 }
 
