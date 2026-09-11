@@ -201,7 +201,7 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
   ]);
   useEffect(() => {
     let mounted = true;
-    fetchLiveArgoFleet().then(floats => {
+    fetchLiveArgoFleet().then((floats: LiveArgoMarker[]) => {
       if (mounted && floats && floats.length > 0) {
         setArgoFloats(floats);
       }
