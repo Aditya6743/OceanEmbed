@@ -28,6 +28,24 @@ export interface PredictionMetrics {
   correlation: number;
 }
 
+export interface ArgoFloat {
+  id: string;
+  lat: number;
+  lon: number;
+  timestamp?: string;
+  depths: number[];
+  temperatures: number[];
+}
+
+export interface LiveArgoMarker {
+  id: string;
+  lat: number;
+  lon: number;
+  timestamp: string;
+  cycleNumber?: number;
+  dataTypes?: string[];
+}
+
 export interface PredictionResponse {
   location: OceanLocation;
   surface_data: SurfaceData;
@@ -35,4 +53,5 @@ export interface PredictionResponse {
   model_version: string;
   estimated_thermocline?: number;
   metrics?: PredictionMetrics;
+  argo_floats?: ArgoFloat[];
 }

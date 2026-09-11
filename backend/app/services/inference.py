@@ -4,12 +4,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
-
-# Keep scikit-learn available for preprocessing tasks if needed
-from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger("uvicorn")
 

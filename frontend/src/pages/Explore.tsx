@@ -40,7 +40,26 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 export default function Explore() {
 
-  const { selectedLocation, prediction, isLoading, error, errorPosition, selectedDate, setSelectedDate, setIsLoading, setPrediction, reset, setError, autoPilotMode, activeHighlight } = useOceanStore();
+  const { 
+    selectedLocation, 
+    prediction, 
+    isLoading, 
+    error, 
+    errorPosition, 
+    selectedDate, 
+    setSelectedDate, 
+    setIsLoading, 
+    setPrediction, 
+    reset, 
+    setError, 
+    autoPilotMode, 
+    activeHighlight, 
+    showArgoTubes, 
+    setShowArgoTubes,
+    showGlobeArgo,
+    setShowGlobeArgo,
+    selectedArgoMarker
+  } = useOceanStore();
   const [loadingStep, setLoadingStep] = useState(0);
   const [historyData, setHistoryData] = React.useState<HistoryDataPoint[]>([]);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -162,14 +181,46 @@ export default function Explore() {
         </Canvas>
 
         {/* Cinematic HUD Overlay */}
-        <div className="absolute top-6 left-6 z-20 pointer-events-none">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="absolute top-6 left-6 z-20 pointer-events-none flex flex-col gap-2">
+          <div className="flex items-center gap-3">
             <div className="relative flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
             </div>
             <span className="text-[10px] text-cyan-400 font-mono tracking-[0.3em] font-bold">ORBITAL SENSORS</span>
           </div>
+
+          {/* Live ARGO Fleet Status & Toggle */}
+          <div className="pointer-events-auto flex items-center gap-2">
+            <button
+              onClick={() => setShowGlobeArgo(!showGlobeArgo)}
+              className={`flex items-center gap-2 px-2.5 py-1 rounded-md border backdrop-blur-md transition-all text-[9px] font-mono tracking-widest font-bold ${
+                showGlobeArgo
+                  ? 'bg-lime-950/60 border-lime-500/40 text-lime-400 shadow-[0_0_15px_rgba(163,230,53,0.2)] hover:bg-lime-900/60'
+                  : 'bg-black/60 border-white/10 text-white/40 hover:text-white/70'
+              }`}
+            >
+              <div className={`w-2 h-2 rounded-full transition-colors ${showGlobeArgo ? 'bg-lime-400 animate-pulse shadow-[0_0_6px_#a3e635]' : 'bg-white/20'}`} />
+              <span>LIVE ARGO FLEET</span>
+              <span className={`px-1.5 py-0.2 rounded text-[8px] ${showGlobeArgo ? 'bg-lime-500/20 text-lime-300' : 'bg-white/5 text-white/30'}`}>
+                {showGlobeArgo ? 'ONLINE' : 'HIDDEN'}
+              </span>
+            </button>
+          </div>
+
+          {selectedArgoMarker && (
+            <div className="pointer-events-auto bg-black/90 border border-lime-500/40 rounded-md p-2 px-2.5 backdrop-blur-md font-mono w-max max-w-[240px] shadow-[0_0_15px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center justify-between gap-3 text-lime-400 font-bold mb-1">
+                <span className="text-[8.5px] tracking-wider font-mono">TARGET: ARGO #{selectedArgoMarker.id}</span>
+                <span className="text-cyan-300 text-[8px] bg-cyan-950/50 border border-cyan-500/30 px-1 py-0.2 rounded shrink-0">
+                  {selectedArgoMarker.lat.toFixed(2)}°N, {selectedArgoMarker.lon.toFixed(2)}°E
+                </span>
+              </div>
+              <div className="text-white/60 text-[7.5px] truncate">
+                TIME: {new Date(selectedArgoMarker.timestamp).toUTCString().replace('GMT', 'UTC')}
+              </div>
+            </div>
+          )}
         </div>
         
 
@@ -430,9 +481,22 @@ export default function Explore() {
                 {/* ROW 2: VISUALIZATIONS */}
                 <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0">
                   <div className={`w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === '3d' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
-                    <div className="text-[9px] text-white/40 font-mono tracking-[0.2em] mb-2 shrink-0 flex justify-between">
+                    <div className="text-[9px] text-white/40 font-mono tracking-[0.2em] mb-2 shrink-0 flex justify-between items-center">
                       <span>3D THERMODYNAMIC VOLUME</span>
-                      <span>0 — 1000m</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowArgoTubes(!showArgoTubes)}
+                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm border transition-all text-[8px] tracking-widest font-bold ${
+                            showArgoTubes
+                              ? 'bg-lime-950/40 border-lime-500/40 text-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.15)]'
+                              : 'bg-white/5 border-white/10 text-white/30 hover:text-white/50'
+                          }`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full transition-colors ${showArgoTubes ? 'bg-lime-400' : 'bg-white/20'}`} />
+                          ARGO
+                        </button>
+                        <span>0 — 1000m</span>
+                      </div>
                     </div>
                     <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-transparent shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-row">
                       <div className="flex-1 relative min-w-0 h-full"><Ocean3D prediction={prediction} /></div><AnomalyHeatmap profile={prediction.profile} />

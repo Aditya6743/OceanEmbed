@@ -27,6 +27,13 @@ class PredictionMetrics(BaseModel):
     bias: float
     correlation: float
 
+class ArgoFloat(BaseModel):
+    id: str
+    lat: float
+    lon: float
+    depths: List[int]
+    temperatures: List[float]
+
 class PredictionResponse(BaseModel):
     location: OceanLocation
     surface_data: SurfaceData
@@ -34,6 +41,7 @@ class PredictionResponse(BaseModel):
     model_version: str
     estimated_thermocline: Optional[int] = None
     metrics: Optional[PredictionMetrics] = None
+    argo_floats: Optional[List[ArgoFloat]] = None
 
 class SatelliteMetadata(BaseModel):
     sources: List[dict]
