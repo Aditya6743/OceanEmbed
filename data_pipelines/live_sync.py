@@ -41,6 +41,11 @@ def fetch_live_data():
         print(f"[{datetime.datetime.now()}] ERROR fetching live data: {e}")
 
 if __name__ == "__main__":
-    print("Starting OceanEmbed Live Hourly Pipeline...")
-    # Run once immediately
-    fetch_live_data()
+    print("Starting OceanEmbed Live Hourly Pipeline (Daemon Mode)...")
+    while True:
+        try:
+            fetch_live_data()
+        except Exception as e:
+            print(f"Error in hourly loop: {e}")
+        print(f"[{datetime.datetime.now()}] Sleeping for 60 minutes...")
+        time.sleep(3600)

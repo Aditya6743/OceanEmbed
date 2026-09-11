@@ -58,7 +58,11 @@ export default function Navbar() {
                 key={link.name} 
                 href={link.path || `/#${link.id}`}
                 onClick={(e) => handleNavClick(e, link.id, link.path)}
-                className="text-[11px] font-mono tracking-[0.1em] uppercase transition-colors text-white/40 hover:text-white"
+                className={`text-[11px] font-mono tracking-[0.1em] uppercase transition-all ${
+                  link.name === 'Solutions' 
+                    ? 'text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-4 py-1.5 rounded-full hover:bg-cyan-500/20 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)]' 
+                    : 'text-white/40 hover:text-white'
+                }`}
               >
                 {link.name}
               </a>
@@ -71,9 +75,9 @@ export default function Navbar() {
             href="https://oceanembed-backend-av3e.onrender.com/docs" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-purple-400 font-bold bg-purple-500/10 border border-purple-500/30 px-4 py-1.5 rounded-full hover:bg-purple-500/20 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)]"
+            className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-cyan-400 font-bold bg-cyan-500/10 border border-cyan-500/30 px-4 py-1.5 rounded-full hover:bg-cyan-500/20 transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)]"
           >
-            DEVELOPER API
+            DEVELOPER AI
           </a>
           <button 
             onClick={() => {

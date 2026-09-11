@@ -1,93 +1,231 @@
-import { useRef, useMemo, useEffect } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Sphere, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 
 const vertexShader = `
   varying vec3 vPosition;
+  varying vec2 vUv;
   void main() {
     vPosition = position;
+    vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
 // TCHP Cyclone Risk Shader (Red/Orange)
 const tchpFragmentShader = `
-  varying vec3 vPosition;
   uniform float time;
-  float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 4321.5453); }
-  float noise(vec3 x) {
-      vec3 p = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);
-      return mix(mix(mix(hash(p+vec3(0,0,0)), hash(p+vec3(1,0,0)),f.x), mix(hash(p+vec3(0,1,0)), hash(p+vec3(1,1,0)),f.x),f.y), mix(mix(hash(p+vec3(0,0,1)), hash(p+vec3(1,0,1)),f.x), mix(hash(p+vec3(0,1,1)), hash(p+vec3(1,1,1)),f.x),f.y),f.z);
-  }
+  uniform sampler2D earthMap;
+  uniform sampler2D tchpMap;
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  
   void main() {
+    vec4 mapColor = texture2D(earthMap, vUv);
+    if (mapColor.r < 0.1) discard; 
+    
     vec3 p = normalize(vPosition);
     float lat = asin(p.y) * 180.0 / 3.14159265359;
     float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
-      float n = noise(p * 10.0 + time * 0.15);
-      float n2 = noise(p * 20.0 - time * 0.1);
-      float heat = smoothstep(0.4, 0.8, n * 0.6 + n2 * 0.4);
-      vec3 hotColor = mix(vec3(1.0, 0.8, 0.0), vec3(1.0, 0.1, 0.0), heat * 1.5);
-      if (heat > 0.05) gl_FragColor = vec4(hotColor, heat * 0.9); else discard;
-    } else discard;
+        float mlX = (lon - 45.0) / 60.0;
+        float mlY = (lat - 5.0) / 25.0;
+        
+        // 1. Fetch Pure, Real ML Data
+        vec4 mlData = texture2D(tchpMap, vec2(mlX, 1.0 - mlY));
+        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
+        
+        // Land masking - discard areas where the ML model outputs NaNs (black)
+        if (intensity < 0.05) discard;
+        
+        // 2. Render 100% Authentic ML Output (No Artificial Noise)
+        vec3 finalColor = mlData.rgb;
+        
+        // 3. Smooth Blending
+        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
+        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
+        
+        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
+    } else {
+        discard;
+    }
   }
 `;
 
 // Fishery Upwelling Shader (Green/Blue/Yellow pockets)
 const fisheryFragmentShader = `
-  varying vec3 vPosition;
   uniform float time;
-  float hash(vec3 p) { return fract(sin(dot(p, vec3(43.232, 12.123, 89.432))) * 1234.5453); }
-  float noise(vec3 x) {
-      vec3 p = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);
-      return mix(mix(mix(hash(p+vec3(0,0,0)), hash(p+vec3(1,0,0)),f.x), mix(hash(p+vec3(0,1,0)), hash(p+vec3(1,1,0)),f.x),f.y), mix(mix(hash(p+vec3(0,0,1)), hash(p+vec3(1,0,1)),f.x), mix(hash(p+vec3(0,1,1)), hash(p+vec3(1,1,1)),f.x),f.y),f.z);
-  }
+  uniform sampler2D earthMap;
+  uniform sampler2D fisheryMap;
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  
   void main() {
+    vec4 mapColor = texture2D(earthMap, vUv);
+    if (mapColor.r < 0.1) discard; 
+    
     vec3 p = normalize(vPosition);
     float lat = asin(p.y) * 180.0 / 3.14159265359;
     float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
-      float n = noise(p * 15.0 - time * 0.05);
-      float plankton = smoothstep(0.5, 0.7, n);
-      vec3 fishColor = mix(vec3(0.0, 0.5, 0.8), vec3(0.2, 1.0, 0.5), plankton);
-      if (plankton > 0.02) gl_FragColor = vec4(fishColor, plankton * 0.8); else discard;
-    } else discard;
+        float mlX = (lon - 45.0) / 60.0;
+        float mlY = (lat - 5.0) / 25.0;
+        
+        // 1. Fetch Pure, Real ML Data
+        vec4 mlData = texture2D(fisheryMap, vec2(mlX, 1.0 - mlY));
+        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
+        
+        // Land masking - discard areas where the ML model outputs NaNs (black)
+        if (intensity < 0.05) discard;
+        
+        // 2. Render 100% Authentic ML Output (No Artificial Noise)
+        vec3 finalColor = mlData.rgb;
+        
+        // 3. Smooth Blending
+        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
+        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
+        
+        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
+    } else {
+        discard;
+    }
   }
 `;
 
 // Naval Acoustic Shader (Cyan contour maps indicating thermocline gradients)
 const navyFragmentShader = `
-  varying vec3 vPosition;
   uniform float time;
-  float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 4321.5453); }
-  float noise(vec3 x) {
-      vec3 p = floor(x); vec3 f = fract(x); f = f*f*(3.0-2.0*f);
-      return mix(mix(mix(hash(p+vec3(0,0,0)), hash(p+vec3(1,0,0)),f.x), mix(hash(p+vec3(0,1,0)), hash(p+vec3(1,1,0)),f.x),f.y), mix(mix(hash(p+vec3(0,0,1)), hash(p+vec3(1,0,1)),f.x), mix(hash(p+vec3(0,1,1)), hash(p+vec3(1,1,1)),f.x),f.y),f.z);
-  }
+  uniform sampler2D earthMap;
+  uniform sampler2D navyMap;
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  
   void main() {
+    vec4 mapColor = texture2D(earthMap, vUv);
+    if (mapColor.r < 0.1) discard; 
+    
     vec3 p = normalize(vPosition);
     float lat = asin(p.y) * 180.0 / 3.14159265359;
     float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
-      float n = noise(p * 30.0 + time * 0.1);
-      // Sharp contour lines for sonar anomalies
-      float contour = smoothstep(0.9, 0.95, fract(n * 6.0));
-      float baseGlow = smoothstep(0.6, 0.9, n);
-      
-      vec3 navyColor = vec3(0.0, 0.8, 1.0); // High-tech Cyan
-      float alpha = contour * 0.8 + baseGlow * 0.3;
-      
-      if (alpha > 0.1) gl_FragColor = vec4(navyColor, alpha); else discard;
-    } else discard;
+        float mlX = (lon - 45.0) / 60.0;
+        float mlY = (lat - 5.0) / 25.0;
+        
+        // 1. Fetch Pure, Real ML Data
+        vec4 mlData = texture2D(navyMap, vec2(mlX, 1.0 - mlY));
+        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
+        
+        // Land masking - discard areas where the ML model outputs NaNs (black)
+        if (intensity < 0.05) discard;
+        
+        // 2. Render 100% Authentic ML Output (No Artificial Noise)
+        vec3 finalColor = mlData.rgb;
+        
+        // 3. Smooth Blending
+        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
+        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
+        
+        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
+    } else {
+        discard;
+    }
   }
 `;
 
-export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy' | 'fishery' | 'climate' }) {
+// Benthic Cable Threat Shader (Purple pulsing grid lines)
+const cableFragmentShader = `
+  uniform float time;
+  uniform sampler2D earthMap;
+  uniform sampler2D benthicMap;
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  
+  void main() {
+    vec4 mapColor = texture2D(earthMap, vUv);
+    if (mapColor.r < 0.1) discard; 
+    
+    vec3 p = normalize(vPosition);
+    float lat = asin(p.y) * 180.0 / 3.14159265359;
+    float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
+    if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
+        float mlX = (lon - 45.0) / 60.0;
+        float mlY = (lat - 5.0) / 25.0;
+        
+        // 1. Fetch Pure, Real ML Data
+        vec4 mlData = texture2D(benthicMap, vec2(mlX, 1.0 - mlY));
+        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
+        
+        // Land masking - discard areas where the ML model outputs NaNs (black)
+        if (intensity < 0.05) discard;
+        
+        // 2. Render 100% Authentic ML Output (No Artificial Noise)
+        vec3 finalColor = mlData.rgb;
+        
+        // 3. Smooth Blending
+        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
+        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
+        
+        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
+    } else {
+        discard;
+    }
+  }
+`;
+
+// IOD Climate Predictor Shader (Red/Blue dipole zones)
+const ensoFragmentShader = `
+  uniform float time;
+  uniform sampler2D earthMap;
+  uniform sampler2D iodMap;
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  
+  void main() {
+    vec4 mapColor = texture2D(earthMap, vUv);
+    if (mapColor.r < 0.1) discard; 
+    
+    vec3 p = normalize(vPosition);
+    float lat = asin(p.y) * 180.0 / 3.14159265359;
+    float lon = atan(-p.z, p.x) * 180.0 / 3.14159265359;
+    
+    if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
+        float mlX = (lon - 45.0) / 60.0;
+        float mlY = (lat - 5.0) / 25.0;
+        
+        // 1. Fetch Pure, Real ML Data
+        vec4 mlData = texture2D(iodMap, vec2(mlX, 1.0 - mlY));
+        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
+        
+        // Land masking - discard areas where the ML model outputs NaNs (black)
+        if (intensity < 0.05) discard;
+        
+        // 2. Render 100% Authentic ML Output (No Artificial Noise)
+        vec3 finalColor = mlData.rgb;
+        
+        // 3. Smooth Blending
+        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
+        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
+        
+        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
+    } else {
+        discard;
+    }
+  }
+`;
+
+export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' }) {
   const globeRef = useRef<THREE.Group>(null);
   const tchpShaderRef = useRef<THREE.ShaderMaterial>(null);
   const fisheryShaderRef = useRef<THREE.ShaderMaterial>(null);
   const navyShaderRef = useRef<THREE.ShaderMaterial>(null);
+  const cableShaderRef = useRef<THREE.ShaderMaterial>(null);
+  const ensoShaderRef = useRef<THREE.ShaderMaterial>(null);
+
   
   const { gl } = useThree();
   
@@ -111,9 +249,35 @@ export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy
     if (tchpShaderRef.current) tchpShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
     if (fisheryShaderRef.current) fisheryShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
     if (navyShaderRef.current) navyShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+    if (cableShaderRef.current) cableShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+    if (ensoShaderRef.current) ensoShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+
   });
 
-  const sharedUniforms = useMemo(() => ({ time: { value: 0 } }), []);
+  // Safe texture loading to prevent crashes if backend is restarting
+  const [tchpMap, setTchpMap] = useState<THREE.Texture | null>(null);
+  const [fisheryMap, setFisheryMap] = useState<THREE.Texture | null>(null);
+  const [navyMap, setNavyMap] = useState<THREE.Texture | null>(null);
+  const [benthicMap, setBenthicMap] = useState<THREE.Texture | null>(null);
+  const [iodMap, setIodMap] = useState<THREE.Texture | null>(null);
+
+  useEffect(() => {
+    const loader = new THREE.TextureLoader();
+    loader.load('http://localhost:8000/api/v1/spatial/heatmap/tchp', setTchpMap, undefined, () => console.warn('Failed to load tchp'));
+    loader.load('http://localhost:8000/api/v1/spatial/heatmap/fishery', setFisheryMap);
+    loader.load('http://localhost:8000/api/v1/spatial/heatmap/navy', setNavyMap);
+    loader.load('http://localhost:8000/api/v1/spatial/heatmap/benthic', setBenthicMap);
+    loader.load('http://localhost:8000/api/v1/spatial/heatmap/iod', setIodMap);
+  }, []);
+  const sharedUniforms = useMemo(() => ({ 
+    time: { value: 0 }, 
+    earthMap: { value: specularMap },
+    tchpMap: { value: tchpMap },
+    fisheryMap: { value: fisheryMap },
+    navyMap: { value: navyMap },
+    benthicMap: { value: benthicMap },
+    iodMap: { value: iodMap }
+  }), [specularMap, tchpMap, fisheryMap, navyMap, benthicMap, iodMap]);
 
   return (
     <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
@@ -146,6 +310,17 @@ export default function MosdacGlobe({ viewMode = 'climate' }: { viewMode?: 'navy
       {viewMode === 'navy' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
           <shaderMaterial ref={navyShaderRef} vertexShader={vertexShader} fragmentShader={navyFragmentShader} uniforms={sharedUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </Sphere>
+      )}
+
+      {viewMode === 'cable' && (
+        <Sphere args={[2.008, 128, 128]} raycast={() => null}>
+          <shaderMaterial ref={cableShaderRef} vertexShader={vertexShader} fragmentShader={cableFragmentShader} uniforms={sharedUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </Sphere>
+      )}
+      {viewMode === 'enso' && (
+        <Sphere args={[2.008, 128, 128]} raycast={() => null}>
+          <shaderMaterial ref={ensoShaderRef} vertexShader={vertexShader} fragmentShader={ensoFragmentShader} uniforms={sharedUniforms} transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
         </Sphere>
       )}
     </group>

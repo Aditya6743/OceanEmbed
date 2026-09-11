@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.routes.prediction import router as prediction_router
 from app.api.routes.metadata import router as metadata_router
+from app.api.routes.spatial import router as spatial_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,3 +28,4 @@ async def health():
 
 app.include_router(prediction_router, prefix=settings.API_V1_STR, tags=["predict"])
 app.include_router(metadata_router, prefix=settings.API_V1_STR, tags=["metadata"])
+app.include_router(spatial_router, prefix=settings.API_V1_STR + "/spatial", tags=["spatial"])

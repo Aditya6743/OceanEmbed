@@ -1,11 +1,57 @@
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import MosdacGlobe from '../components/MosdacGlobe';
-import { Anchor, Fish, Wind, ArrowLeft, Radar, Target } from 'lucide-react';
+import { Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-type ViewMode = 'navy' | 'fishery' | 'climate';
+type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
+
+import { useFrame, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
+
+function CameraResetTrigger({ activeTab }: { activeTab: string }) {
+    const { camera, controls } = useThree();
+    const [isAnimating, setIsAnimating] = useState(false);
+    
+    // The exact front facing coordinates matching the user's screenshot
+    const targetPos = useMemo(() => new THREE.Vector3(1.2, 0, 5.35), []);
+    const targetLook = useMemo(() => new THREE.Vector3(0, 0, 0), []);
+
+    useEffect(() => {
+        if (!controls) return;
+        
+        setIsAnimating(true);
+        (controls as any).autoRotate = false;
+        
+        // Let the lerp run for exactly 1.5 seconds, then lock it perfectly into place
+        const timeout = setTimeout(() => {
+            setIsAnimating(false);
+            if (controls) {
+                // Hard snap to the absolute perfect front coordinates to ensure 100% accuracy
+                camera.position.copy(targetPos);
+                camera.lookAt(targetLook);
+                (controls as any).target.copy(targetLook);
+                (controls as any).update();
+                (controls as any).autoRotate = true; // Resume spin
+            }
+        }, 1500);
+        
+        return () => clearTimeout(timeout);
+    }, [activeTab, controls, targetPos, targetLook]);
+    
+    useFrame(() => {
+        if (isAnimating && controls) {
+            // Smoothly fly directly to the perfect front position
+            camera.position.lerp(targetPos, 0.08);
+            (controls as any).target.lerp(targetLook, 0.08);
+            (controls as any).update();
+        }
+    });
+    
+    return null;
+}
+
 
 export default function Solutions() {
   const [activeTab, setActiveTab] = useState<ViewMode>('climate');
@@ -63,127 +109,281 @@ export default function Solutions() {
   }, []);
 
   return (
-    <div className="w-full h-screen bg-[#020617] flex flex-col font-sans text-slate-300">
+    <div className="w-full h-screen bg-transparent flex font-sans text-slate-300 overflow-hidden relative">
       
       {/* Top Navbar */}
-      <div className="h-20 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md flex items-center justify-between px-8 z-20 absolute top-0 w-full shadow-lg">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900 border border-slate-800 hover:bg-slate-800 hover:text-white transition-all text-slate-400 mr-2">
+      <div className="h-20 border-b border-white/10 bg-black/20 backdrop-blur-md flex items-center z-20 absolute top-0 w-full">
+        {/* Left Section (Matches 35% Panel) */}
+        <div className="w-[35%] px-8 flex items-center gap-4">
+          <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900/50 border border-white/10 hover:bg-slate-800 hover:text-white transition-all text-slate-400 mr-2 shrink-0">
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-xl font-black tracking-widest uppercase text-white">Advanced <span className="text-cyan-400">Analysis</span></h1>
+            <h1 className="text-xl font-black tracking-widest uppercase text-white whitespace-nowrap">Advanced <span className="text-cyan-400">Analysis</span></h1>
             <p className="text-slate-400 text-[10px] uppercase tracking-widest mt-1">AI Tactical Hub</p>
           </div>
         </div>
-        <div className="flex gap-4">
+        
+        {/* Right Section (Matches 65% Panel) - perfectly centers the buttons over the globe */}
+        <div className="w-[65%] flex justify-center gap-3 overflow-x-auto no-scrollbar pr-8">
           <button 
             onClick={() => setActiveTab('climate')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'climate' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.2)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300'
             }`}
           >
-            <Wind size={14} /> DISASTER MGMT
+            <Wind size={12} /> DISASTER MGMT
           </button>
           <button 
             onClick={() => setActiveTab('navy')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'navy' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300'
             }`}
           >
-            <Anchor size={14} /> NAVAL OPS
+            <Anchor size={12} /> NAVAL OPS
           </button>
           <button 
             onClick={() => setActiveTab('fishery')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all ${
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'fishery' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300'
             }`}
           >
-            <Fish size={14} /> FISHERIES
+            <Fish size={12} /> FISHERIES
+          </button>
+          <button 
+            onClick={() => setActiveTab('cable')}
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
+              activeTab === 'cable' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300'
+            }`}
+          >
+            <AlertTriangle size={12} /> BENTHIC CABLE
+          </button>
+          <button 
+            onClick={() => setActiveTab('enso')}
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
+              activeTab === 'enso' ? 'bg-red-500/20 text-red-400 border border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : 'bg-slate-900 text-slate-500 border border-slate-800 hover:text-slate-300'
+            }`}
+          >
+            <ThermometerSun size={12} /> IOD CLIMATE
           </button>
         </div>
       </div>
 
-      {/* Dynamic Overlay Info Box - LEFT */}
-      <div className="absolute left-8 top-32 z-10 bg-slate-950/80 backdrop-blur-md border border-slate-800 p-6 rounded-xl w-96 shadow-2xl">
-        {activeTab === 'climate' && (
-          <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-            <h2 className="text-orange-400 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><Wind size={16}/> Cyclone Risk Index</h2>
-            <p className="text-slate-400 text-xs mb-4">Monitoring Tropical Cyclone Heat Potential (TCHP) in real-time. The AI reconstructs subsurface temperatures to calculate total heat energy stored down to the D26 isotherm.</p>
-            <div className="bg-black/50 rounded-lg p-4 border border-orange-500/20 mb-4">
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Peak Heat Potential</div>
-              <div className="text-2xl font-mono text-orange-400">{liveData.tchp.toFixed(1)} <span className="text-sm">kJ/cm²</span></div>
-              <div className="w-full bg-slate-800 h-1.5 mt-3 rounded-full overflow-hidden">
-                <div className="bg-orange-500 h-full transition-all duration-1000" style={{width: `${(liveData.tchp / 120) * 100}%`}}></div>
+      {/* Control Panel / Insights Sidebar (Left Panel 35%) */}
+      <div className="w-[35%] h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto shadow-2xl relative custom-scrollbar pointer-events-auto">
+        <div className="w-[96%] mx-auto h-full flex flex-col">
+          {activeTab === 'climate' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h2 className="text-orange-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Wind size={20}/> Disaster Management</h2>
+              <p className="text-slate-400 text-[13px] mb-3 leading-relaxed">Continuous AI-driven monitoring of Tropical Cyclone Heat Potential (TCHP). The Deep Learning architecture reconstructs the 3D temperature volume to calculate the total latent heat energy stored above the 26°C isotherm (D26), providing early warning metrics for rapid cyclone intensification.</p>
+              
+              <div className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-lg mb-4">
+                <span className="text-xs font-bold text-orange-400 uppercase tracking-wider block mb-2">Strategic Application</span>
+                <span className="text-[13px] text-orange-200/70 leading-relaxed block">Monitor the TCHP dial below. If the live AI indicates a value entering the Critical Danger Zone (&gt;60 kJ/cm²), issue immediate evacuation warnings for adjacent coastal regions.</span>
+              </div>
+
+              <div className="bg-black/50 rounded-lg p-5 border border-orange-500/20 mb-4 shadow-lg">
+                <div className="text-xs uppercase tracking-widest text-slate-500 mb-2 flex justify-between">
+                  <span>Calculated TCHP</span>
+                  <span className="text-orange-500/50 font-bold animate-pulse">LIVE AI INFERENCE</span>
+                </div>
+                <div className="text-4xl font-mono text-orange-400 mb-4">{liveData.tchp.toFixed(1)} <span className="text-lg text-orange-400/50">kJ/cm²</span></div>
+                <div className="w-full bg-slate-800 h-2 mt-4 rounded-full overflow-hidden shadow-inner">
+                  <div className="bg-orange-500 h-full transition-all duration-1000 relative" style={{width: `${(liveData.tchp / 120) * 100}%`}}>
+                    <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/50 animate-pulse"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-orange-500 rounded-sm shadow-[0_0_15px_#f97316]"></div>
+                  <span className="text-xs font-mono text-white">TCHP &gt; 60 kJ/cm² (DANGER ZONE)</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-1 rounded">{(liveData.tchp > 60) ? 'CRITICAL RISK' : 'STABLE'}</span>
               </div>
             </div>
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-800">
-              <div className="w-3 h-3 bg-orange-500 rounded-sm shadow-[0_0_10px_#f97316]"></div>
-              <span className="text-[10px] font-mono text-white">TCHP &gt; 60 kJ/cm² (DANGER ZONE)</span>
+          )}
+
+          {activeTab === 'navy' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h2 className="text-cyan-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Radar size={20}/> Naval Acoustic Ops</h2>
+              <p className="text-slate-400 text-[13px] mb-3 leading-relaxed">Tactical subsurface mapping of Acoustic Stealth Zones. By analyzing the AI's 15-layer thermodynamic prediction, the system locates the Sonic Layer Depth (SLD) and maximum negative temperature gradients to optimize submarine sonar evasion.</p>
+              
+              <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-lg mb-4">
+                <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-2">Strategic Application</span>
+                <span className="text-[13px] text-cyan-200/70 leading-relaxed block">Direct fleet operations to navigate below the Optimum Evasion Depth. The glowing Cyan anomalies on the globe represent the steepest thermocline gradient where active sonar pings will effectively bounce off.</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-black/50 rounded-lg p-5 border border-cyan-500/20 relative overflow-hidden shadow-lg">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl"></div>
+                  <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Optimum Evasion Depth</div>
+                  <div className="text-3xl font-mono text-cyan-400">{liveData.depth.toFixed(1)}<span className="text-lg text-cyan-400/50">m</span></div>
+                </div>
+                <div className="bg-black/50 rounded-lg p-5 border border-cyan-500/20 relative overflow-hidden shadow-lg">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-2xl"></div>
+                  <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Max Thermal Gradient</div>
+                  <div className="text-3xl font-mono text-cyan-400">{liveData.gradient.toFixed(3)}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-cyan-400 rounded-sm shadow-[0_0_15px_#22d3ee]"></div>
+                  <span className="text-xs font-mono text-white">SONAR ANOMALY LAYER</span>
+                </div>
+                <span className="text-[10px] text-slate-500 font-mono bg-slate-900 px-2 py-1 rounded">STEALTH ENABLED</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'fishery' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Target size={20}/> PFZ Identification</h2>
+              <p className="text-slate-400 text-[13px] mb-3 leading-relaxed">Commercial mapping of Potential Fishing Zones (PFZ). The Neural Network correlates surface temperature fronts with subsurface thermodynamic anomalies to instantly pinpoint cold-water nutrient upwellings supporting phytoplankton.</p>
+              
+              <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-lg mb-4">
+                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-2">Strategic Application</span>
+                <span className="text-[13px] text-emerald-200/70 leading-relaxed block">Dispatch commercial fishing vessels to the live Target Coordinates below. The glowing green regions on the globe represent active cold-water upwellings where massive fish populations are currently feeding.</span>
+              </div>
+
+              <div className="bg-black/50 rounded-lg p-5 border border-emerald-500/20 mb-4 font-mono text-sm text-slate-400 space-y-3 relative shadow-lg">
+                <div className="text-xs uppercase tracking-widest text-emerald-500/70 mb-3 border-b border-slate-800 pb-2 flex justify-between">
+                  <span>Target Coordinates</span>
+                  <span className="animate-pulse text-emerald-400 font-bold">UPDATING...</span>
+                </div>
+                <div className="flex justify-between text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded">
+                  <span>Lat: {liveData.lat.toFixed(4)}°N</span>
+                  <span>Lon: {liveData.lon.toFixed(4)}°E</span>
+                </div>
+                <div className="flex justify-between text-emerald-500/70 px-3">
+                  <span>Lat: {(liveData.lat + 1.2).toFixed(4)}°N</span>
+                  <span>Lon: {(liveData.lon - 0.8).toFixed(4)}°E</span>
+                </div>
+                <div className="flex justify-between text-emerald-500/40 px-3">
+                  <span>Lat: {(liveData.lat - 0.5).toFixed(4)}°N</span>
+                  <span>Lon: {(liveData.lon + 1.5).toFixed(4)}°E</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-800">
+                <div className="w-4 h-4 bg-emerald-400 rounded-sm shadow-[0_0_15px_#10b981]"></div>
+                <span className="text-xs font-mono text-white">ACTIVE PHYTOPLANKTON UPWELLING</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'cable' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h2 className="text-purple-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><AlertTriangle size={20}/> Benthic Cable Threat</h2>
+              <p className="text-slate-400 text-[13px] mb-3 leading-relaxed">Deep-sea infrastructure protection. By evaluating temperatures at 1000m depth, the AI detects severe benthic density anomalies and thermodynamic shifts that indicate underwater landslides or extreme deep-ocean currents capable of severing global fiber-optic internet cables.</p>
+              
+              <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-lg mb-4">
+                <span className="text-xs font-bold text-purple-400 uppercase tracking-wider block mb-2">Strategic Application</span>
+                <span className="text-[13px] text-purple-200/70 leading-relaxed block">Monitor the deep purple fracture zones on the map. If the Shear Stress Anomaly spikes, immediately notify telecom authorities of an imminent risk to submarine internet backbones in that sector.</span>
+              </div>
+
+              <div className="bg-black/50 rounded-lg p-5 border border-purple-500/20 mb-4 relative overflow-hidden shadow-lg">
+                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl"></div>
+                <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Benthic Shear Stress Anomaly</div>
+                <div className="text-4xl font-mono text-purple-400">{(Math.abs(liveData.gradient) * 100).toFixed(2)} <span className="text-lg text-purple-400/50">kPa</span></div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-4 bg-purple-500 rounded-sm shadow-[0_0_15px_#a855f7]"></div>
+                  <span className="text-xs font-mono text-white">SEISMIC / THERMAL FRACTURE ZONES</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'enso' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h2 className="text-red-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> IOD Climate Predictor</h2>
+              <p className="text-slate-400 text-[13px] mb-3 leading-relaxed">Regional agricultural forecasting. The AI aggregates subsurface heat potentials across the Indian Ocean to calculate the Dipole Mode Index (DMI), providing months of advance warning for Positive IOD droughts or Negative IOD monsoons.</p>
+              
+              <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-lg mb-4">
+                <span className="text-xs font-bold text-red-400 uppercase tracking-wider block mb-2">Strategic Application</span>
+                <span className="text-[13px] text-red-200/70 leading-relaxed block">Observe the regional temperature blooms (Red = Warming, Blue = Cooling). Use the DMI index to advise agricultural ministries to prepare for either a severe drought (Positive IOD) or flooding (Negative IOD).</span>
+              </div>
+
+              <div className="bg-black/50 rounded-lg p-5 border border-red-500/20 mb-4 relative shadow-lg">
+                <div className="text-xs uppercase tracking-widest text-slate-500 mb-3">Dipole Mode Index (DMI)</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-4xl font-mono text-red-400">+1.4<span className="text-lg text-red-400/50">°C</span></div>
+                  <div className="text-[10px] text-red-100 font-bold bg-red-600 px-3 py-1.5 rounded uppercase tracking-widest animate-pulse shadow-[0_0_10px_#dc2626]">POSITIVE IOD ACTIVE</div>
+                </div>
+                <div className="w-full bg-gradient-to-r from-blue-500 via-slate-700 to-red-500 h-1.5 mt-5 rounded-full relative">
+                  <div className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_15px_white] right-1/4"></div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-4 border-t border-slate-800">
+                <div className="w-4 h-4 bg-red-500 rounded-sm shadow-[0_0_15px_#ef4444]"></div>
+                <span className="text-xs font-mono text-white">ELEVATED SEA SURFACE ANOMALY</span>
+              </div>
+            </div>
+          )}
+
+          {/* ML Telemetry Status & Legend */}
+          <div className="mt-auto pt-4 border-t border-slate-800 pb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-500 uppercase tracking-wider">AI Inference Status</span>
+              <span className="text-xs text-emerald-400 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div> Live Synced</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-black/40 border border-slate-800/50 rounded p-2">
+                <div className="text-[10px] text-slate-500 uppercase">Spatial Res</div>
+                <div className="text-sm text-slate-300 font-mono">1/12° Grid</div>
+              </div>
+              <div className="bg-black/40 border border-slate-800/50 rounded p-2">
+                <div className="text-[10px] text-slate-500 uppercase">Model Loss</div>
+                <div className="text-sm text-slate-300 font-mono">MSE 0.20</div>
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Data Scale</span>
+              <div className="h-2 rounded-full w-full" style={{
+                background: 
+                  activeTab === 'climate' ? 'linear-gradient(to right, #000000, #57106e, #bc3754, #f98e09, #fcffa4)' :
+                  activeTab === 'navy' ? 'linear-gradient(to right, #440154, #3b528b, #21918c, #5ec962, #fde725)' :
+                  activeTab === 'fishery' ? 'linear-gradient(to right, #004d00, #006666, #0033cc, #ffffff)' :
+                  activeTab === 'cable' ? 'linear-gradient(to right, #30123b, #4686fb, #1ae4b6, #a4fc3c, #faba39, #e4460b, #7a0403)' :
+                  'linear-gradient(to right, #3b4cc0, #dddddd, #b40426)'
+              }}></div>
+              <div className="flex justify-between mt-1.5 text-[10px] text-slate-500 font-mono">
+                <span>{
+                  activeTab === 'climate' ? '0 kJ/cm²' :
+                  activeTab === 'navy' ? 'Weak Gradient' :
+                  activeTab === 'fishery' ? 'Deep Cold' :
+                  activeTab === 'cable' ? '0°C' :
+                  '-Anomaly'
+                }</span>
+                <span>{
+                  activeTab === 'climate' ? '>150 kJ/cm²' :
+                  activeTab === 'navy' ? 'Strong Thermocline' :
+                  activeTab === 'fishery' ? 'Surface Upwelling' :
+                  activeTab === 'cable' ? '30°C' :
+                  '+Anomaly'
+                }</span>
+              </div>
             </div>
           </div>
-        )}
 
-        {activeTab === 'navy' && (
-          <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-            <h2 className="text-cyan-400 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><Radar size={16}/> Acoustic Stealth Zones</h2>
-            <p className="text-slate-400 text-xs mb-4">Mapping the 3D Thermocline Boundary using max negative temperature gradients. Submarines use this layer to bounce active SONAR signals and evade detection.</p>
-            
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-black/50 rounded-lg p-3 border border-cyan-500/20">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Optimum Depth</div>
-                <div className="text-lg font-mono text-cyan-400">{liveData.depth.toFixed(1)}m</div>
-              </div>
-              <div className="bg-black/50 rounded-lg p-3 border border-cyan-500/20">
-                <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">Max Gradient</div>
-                <div className="text-lg font-mono text-cyan-400">{liveData.gradient.toFixed(3)}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-800">
-              <div className="w-3 h-3 bg-cyan-400 rounded-sm shadow-[0_0_10px_#22d3ee]"></div>
-              <span className="text-[10px] font-mono text-white">SONAR ANOMALY (dT/dz BOUNDARY)</span>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'fishery' && (
-          <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-            <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-2 flex items-center gap-2"><Target size={16}/> Potential Fishing Zones</h2>
-            <p className="text-slate-400 text-xs mb-4">Identifying commercial Potential Fishing Zones (PFZ). The AI correlates surface temperature fronts and subsurface currents to locate cold-water nutrient upwelling.</p>
-            
-            <div className="bg-black/50 rounded-lg p-4 border border-emerald-500/20 mb-4 font-mono text-xs text-slate-400 space-y-2">
-              <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-2 border-b border-slate-800 pb-1">Live Coordinate Feeds</div>
-              <div className="flex justify-between text-emerald-400">
-                <span>Lat: {liveData.lat.toFixed(4)}°N</span>
-                <span>Lon: {liveData.lon.toFixed(4)}°E</span>
-              </div>
-              <div className="flex justify-between text-emerald-500/70">
-                <span>Lat: {(liveData.lat + 1.2).toFixed(4)}°N</span>
-                <span>Lon: {(liveData.lon - 0.8).toFixed(4)}°E</span>
-              </div>
-              <div className="flex justify-between text-emerald-500/40">
-                <span>Lat: {(liveData.lat - 0.5).toFixed(4)}°N</span>
-                <span>Lon: {(liveData.lon + 1.5).toFixed(4)}°E</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-800">
-              <div className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_10px_#10b981]"></div>
-              <span className="text-[10px] font-mono text-white">PHYTOPLANKTON UPWELLING</span>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* 3D Visualization */}
-      <div className="flex-1 w-full relative">
-        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+      {/* 3D Visualization (Right Panel 65%) */}
+      <div className="w-[65%] h-full pt-20 relative z-0 bg-black">
+        <Canvas className="w-full h-full" camera={{ position: [5, 2, 5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
+            <CameraResetTrigger activeTab={activeTab} />
             <MosdacGlobe viewMode={activeTab} />
-            <OrbitControls 
+            <OrbitControls makeDefault 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
-                enableZoom={true} minDistance={4.8} maxDistance={8} 
+                enableZoom={true} minDistance={3.0} maxDistance={8.0} 
                 autoRotate={true} autoRotateSpeed={0.3}
             />
             </Suspense>

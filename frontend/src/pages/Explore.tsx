@@ -144,13 +144,13 @@ export default function Explore() {
     
     <div className="w-full h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
       
-      {/* LEFT PANEL - INTERACTIVE GLOBE */}
-      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-transparent border-r border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_-20px_0_50px_rgba(0,0,0,0.8)]'}`} >
+      {/* RIGHT PANEL (Now rendered on Right via flex-row-reverse) - INTERACTIVE GLOBE */}
+      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-transparent border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#030712_100%)] z-10" />
         
         <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={null}>
-            <EarthGlobe alwaysShowGrid={true} showStars={false} />
+            <EarthGlobe alwaysShowGrid={true} showStars={true} />
             <OrbitControls 
               ref={controlsRef}
               enablePan={false} enableDamping dampingFactor={0.03} rotateSpeed={0.4}
@@ -228,7 +228,11 @@ export default function Explore() {
                 )}
                 <button 
                   onClick={() => setIsMaximized(!isMaximized)}
-                  className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-white/50 hover:text-white transition-all flex items-center justify-center"
+                  className={`px-3 py-2 rounded transition-all flex items-center justify-center \${
+                    !isMaximized 
+                      ? 'bg-cyan-950/60 border border-cyan-400/50 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.4)] animate-pulse hover:bg-cyan-900 hover:shadow-[0_0_25px_rgba(34,211,238,0.6)]' 
+                      : 'bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
+                  }`}
                   title={isMaximized ? "Minimize Dashboard" : "Maximize Dashboard"}
                 >
                   {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}

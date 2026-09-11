@@ -16,7 +16,6 @@ export default function ResultsSection() {
         </p>
 
         <div className="w-full rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-xl relative overflow-hidden flex flex-col shadow-2xl p-8 md:p-12">
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
           
           <div className="z-10 grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="bg-black/40 border border-white/10 rounded-xl p-6 text-left backdrop-blur-md">

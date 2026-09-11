@@ -22,6 +22,10 @@ MODEL_PATH = Path(__file__).resolve().parents[3] / "deep_learning" / "weights" /
 class OceanSpatialAutoencoder(nn.Module):
     def __init__(self):
         super().__init__()
+        self.register_buffer('input_mean', torch.tensor([28.0, 35.0, 0.0, 0.0, 0.0]).view(1, 5, 1, 1))
+        self.register_buffer('input_std', torch.tensor([3.0, 1.0, 0.5, 0.5, 0.5]).view(1, 5, 1, 1))
+        self.register_buffer('target_mean', torch.tensor([15.0]).view(1, 1, 1, 1))
+        self.register_buffer('target_std', torch.tensor([10.0]).view(1, 1, 1, 1))
         self.encoder = nn.Sequential(
             nn.Conv2d(5, 16, kernel_size=3, padding=1),
             nn.ReLU(),
@@ -35,9 +39,11 @@ class OceanSpatialAutoencoder(nn.Module):
             nn.Conv2d(32, 15, kernel_size=3, padding=1)
         )
     def forward(self, x):
-        features = self.encoder(x)
+        x_norm = (x - self.input_mean) / self.input_std
+        features = self.encoder(x_norm)
         embedding = self.embedding_layer(features)
-        return self.decoder(embedding)
+        out_norm = self.decoder(embedding)
+        return (out_norm * self.target_std) + self.target_mean
 
 
 class InferenceService:
