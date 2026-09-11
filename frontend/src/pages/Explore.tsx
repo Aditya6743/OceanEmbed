@@ -46,7 +46,7 @@ export default function Explore() {
     const threats = [];
     
     // 1. Sonar Stealth
-    if (prediction.profile.speed_of_sound) {
+    if (prediction.profile.speed_of_sound && prediction.profile.speed_of_sound.length > 0) {
         const speeds = prediction.profile.speed_of_sound;
         const minSpeed = Math.min(...speeds);
         const minIndex = speeds.indexOf(minSpeed);
@@ -56,6 +56,13 @@ export default function Explore() {
             icon: <Crosshair className="w-3 h-3 text-emerald-400" />,
             color: 'text-emerald-400',
             desc: `Optimal SOFAR acoustic channel detected at ${sofarDepth}m. Maximum sonar evasion capability achieved.`
+        });
+    } else {
+        threats.push({
+            type: 'SONAR STEALTH',
+            icon: <Crosshair className="w-3 h-3 text-slate-500 animate-pulse" />,
+            color: 'text-slate-500',
+            desc: `Awaiting acoustic telemetry from PyTorch backend...`
         });
     }
 
