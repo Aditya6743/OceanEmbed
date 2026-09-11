@@ -26,7 +26,7 @@ SEARCH_DAYS = 90
 # Maximum number of floats to return
 MAX_FLOATS = 3
 # Timeout for Argovis HTTP calls (seconds)
-HTTP_TIMEOUT = 8
+HTTP_TIMEOUT = 2
 
 
 def _fetch_json(url: str) -> Optional[list]:
