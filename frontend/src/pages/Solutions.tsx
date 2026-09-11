@@ -2,7 +2,7 @@ import { Suspense, useState, useEffect, } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import MosdacGlobe from '../components/MosdacGlobe';
-import { Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun } from 'lucide-react';
+import { Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOceanStore } from '../store/oceanStore';
 
@@ -11,13 +11,14 @@ type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
 import { useThree } from '@react-three/fiber';
 
 
+import { useFrame } from '@react-three/fiber';
 function RotationController({ isRotationLocked }: { isRotationLocked: boolean }) {
     const { controls } = useThree();
-    useEffect(() => {
+    useFrame(() => {
         if (controls) {
             (controls as any).autoRotate = !isRotationLocked;
         }
-    }, [isRotationLocked, controls]);
+    });
     return null;
 }
 
@@ -415,15 +416,19 @@ export default function Solutions() {
       {/* 3D Visualization (Right Panel 65%) */}
       <div className="w-[65%] h-full pt-20 relative z-0 bg-black">
                 {/* Lock Auto-Rotate Button */}
-        <div className="absolute top-24 right-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
-          <span className={`text-[9px] font-mono tracking-widest font-bold ${isRotationLocked ? 'text-amber-400' : 'text-slate-400'}`}>
-            {isRotationLocked ? 'ROTATION: LOCKED' : 'ROTATION: AUTO'}
-          </span>
+        <div className="absolute top-24 right-6 z-20 pointer-events-auto">
           <button
             onClick={() => setIsRotationLocked(!isRotationLocked)}
-            className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${isRotationLocked ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-slate-700'}`}
+            className={`flex items-center gap-2 bg-black/60 border px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all ${isRotationLocked ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-cyan-500/30'}`}
           >
-            <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${isRotationLocked ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+            <span className={`text-[9px] font-mono tracking-widest font-bold ${isRotationLocked ? 'text-amber-400' : 'text-slate-300'}`}>
+              ROTATION
+            </span>
+            {isRotationLocked ? (
+              <Lock size={12} className="text-amber-500" />
+            ) : (
+              <Unlock size={12} className="text-cyan-400" />
+            )}
           </button>
         </div>
 
