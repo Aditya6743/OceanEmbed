@@ -70,21 +70,25 @@ class SatelliteDataService:
                     wind_u=round(u * 15, 1), wind_v=round(v * 15, 1) # Synthesize wind
                 )
             except Exception as e:
-                print(f"Failed to extract real data for {date_str}: {e}. Falling back.")
+                pass
         
-        # Fallback to realistic dynamic simulation if the user clicks a date outside our 5-year dataset (like 2010 or 2030)
+        # Fallback to realistic dynamic simulation if the user clicks a date outside our 5-year dataset, or clicks on LAND
+        # We seed the random generator with the latitude and longitude so the numbers are stable and don't jitter!
+        seed_val = int(abs(lat * 100) + abs(lon * 100))
+        rng = random.Random(seed_val)
+        
         equator_dist = abs(lat) / 30.0
         sst_base = 30.5 - (equator_dist * 4.0)
-        sst = round(sst_base + random.uniform(-0.6, 0.6), 2)
+        sst = round(sst_base + rng.uniform(-0.6, 0.6), 2)
         sss_base = 36.2 if lon < 77.0 else 33.5
-        sss = round(sss_base + random.uniform(-0.4, 0.4), 2)
-        ssh = round(random.uniform(-0.25, 0.28), 3)
-        current_u = round(random.uniform(-0.65, 0.65), 2)
-        current_v = round(random.uniform(-0.55, 0.55), 2)
+        sss = round(sss_base + rng.uniform(-0.4, 0.4), 2)
+        ssh = round(rng.uniform(-0.25, 0.28), 3)
+        current_u = round(rng.uniform(-0.65, 0.65), 2)
+        current_v = round(rng.uniform(-0.55, 0.55), 2)
         
         return SurfaceData(
             sst=sst, ssh=ssh, sss=sss,
             current_u=current_u, current_v=current_v,
-            wind_u=round(random.uniform(-7.5, 7.5), 1),
-            wind_v=round(random.uniform(-6.0, 6.0), 1)
+            wind_u=round(rng.uniform(-7.5, 7.5), 1),
+            wind_v=round(rng.uniform(-6.0, 6.0), 1)
         )

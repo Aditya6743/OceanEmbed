@@ -131,8 +131,8 @@ export default function Solutions() {
             tchp: calculatedTchp > 0 ? calculatedTchp : 85.4, // Fallback if ocean is cold
             depth: stealthDepth || 75.2,
             gradient: maxGrad || -0.15,
-            lat: prev.lat + (Math.random() - 0.5) * 0.05,
-            lon: prev.lon + (Math.random() - 0.5) * 0.05
+            lat: prev.lat,
+            lon: prev.lon
           }));
         }
       } catch (e) {
