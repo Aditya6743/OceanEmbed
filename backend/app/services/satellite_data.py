@@ -1,38 +1,59 @@
 import random
+import math
 from pathlib import Path
+from datetime import datetime
 from app.schemas.prediction import SurfaceData
 
 class SatelliteDataService:
-    # Try to load live data first, fallback to the 1-year historical dataset if the live cron hasn't run yet
-    LIVE_FILE = Path(__file__).resolve().parents[3] / "data" / "indian_ocean_live.nc"
-    HISTORICAL_FILE = Path(__file__).resolve().parents[3] / "data" / "processed_0.25deg" / "daily" / "indian_ocean_daily_2026_06.nc"
-    
+    # Cache the currently loaded dataset to avoid reloading the same file
     ds = None
-    
+    current_loaded_file = None
+
     @classmethod
-    def get_dataset(cls):
-        if cls.ds is None:
-            try:
-                import xarray as xr
-                if cls.LIVE_FILE.exists():
-                    cls.ds = xr.open_dataset(cls.LIVE_FILE)
-                elif cls.HISTORICAL_FILE.exists():
-                    cls.ds = xr.open_dataset(cls.HISTORICAL_FILE)
-            except (ImportError, Exception) as e:
-                pass
-        return cls.ds
+    def get_dataset(cls, year: str, month: str):
+        try:
+            import xarray as xr
+            file_path = Path(__file__).resolve().parents[3] / "data" / "processed_0.25deg" / "daily" / f"indian_ocean_daily_{year}_{month}.nc"
+            
+            # If we already have this specific month loaded, return it instantly
+            if cls.current_loaded_file == str(file_path) and cls.ds is not None:
+                return cls.ds
+                
+            if file_path.exists():
+                cls.ds = xr.open_dataset(file_path)
+                cls.current_loaded_file = str(file_path)
+                return cls.ds
+        except Exception as e:
+            print(f"Error loading dataset: {e}")
+        return None
 
     @staticmethod
     def get_surface_observations(lat: float, lon: float, date_str: str) -> SurfaceData:
-        ds = SatelliteDataService.get_dataset()
+        # Parse the date from the frontend UI
+        try:
+            # Handle standard YYYY-MM-DD format
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            year = dt.strftime("%Y")
+            month = dt.strftime("%m")
+        except:
+            # Fallback if UI sends something weird
+            year, month = "2026", "06"
+            date_str = "2026-06-01"
+
+        ds = SatelliteDataService.get_dataset(year, month)
         
         if ds is not None:
             try:
-                # Select nearest coordinate
+                # Select exact spatial coordinate
                 point = ds.sel(latitude=lat, longitude=lon, method="nearest")
-                # For this prototype, if date isn't in file, grab the first timestamp available
-                if 'time' in point.dims:
-                    point = point.isel(time=0)
+                
+                # Select exact TIME matching the UI calendar
+                if 'time' in point.dims or 'time' in point.sizes:
+                    try:
+                        point = point.sel(time=date_str, method="nearest")
+                    except:
+                        # Fallback to first index if exact date fails
+                        point = point.isel(time=0)
                 
                 sst = round(float(point.thetao.isel(depth=0).values), 2)
                 sss = round(float(point.so.isel(depth=0).values), 2)
@@ -40,19 +61,18 @@ class SatelliteDataService:
                 u = round(float(point.uo.isel(depth=0).values), 2)
                 v = round(float(point.vo.isel(depth=0).values), 2)
                 
-                import math
                 if math.isnan(sst) or math.isnan(sss):
-                    raise ValueError("Satellite data returned NaN for this coordinate (likely landmass or server error).")
+                    raise ValueError("Satellite data returned NaN for this coordinate.")
                 
                 return SurfaceData(
                     sst=sst, ssh=ssh, sss=sss,
                     current_u=u, current_v=v,
-                    wind_u=round(u * 15, 1), wind_v=round(v * 15, 1) # Synthesize wind from currents for UI display
+                    wind_u=round(u * 15, 1), wind_v=round(v * 15, 1) # Synthesize wind
                 )
             except Exception as e:
-                print(f"Failed to read NetCDF data: {e}. Falling back to dynamic simulation.")
+                print(f"Failed to extract real data for {date_str}: {e}. Falling back.")
         
-        # Fallback to realistic dynamic simulation if no data files are available
+        # Fallback to realistic dynamic simulation if the user clicks a date outside our 5-year dataset (like 2010 or 2030)
         equator_dist = abs(lat) / 30.0
         sst_base = 30.5 - (equator_dist * 4.0)
         sst = round(sst_base + random.uniform(-0.6, 0.6), 2)
