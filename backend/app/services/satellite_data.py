@@ -5,7 +5,7 @@ from app.schemas.prediction import SurfaceData
 class SatelliteDataService:
     # Try to load live data first, fallback to the 1-year historical dataset if the live cron hasn't run yet
     LIVE_FILE = Path(__file__).resolve().parents[3] / "data" / "indian_ocean_live.nc"
-    HISTORICAL_FILE = Path(__file__).resolve().parents[3] / "data" / "indian_ocean_1year.nc"
+    HISTORICAL_FILE = Path(__file__).resolve().parents[3] / "data" / "processed_0.25deg" / "daily" / "indian_ocean_daily_2026_06.nc"
     
     ds = None
     
