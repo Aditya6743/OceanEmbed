@@ -230,6 +230,7 @@ export default function Solutions() {
                 <div className="w-3 h-3 bg-orange-400 rounded-sm shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
                 <span className="text-[11px] font-medium tracking-wider text-slate-300">HIGH CYCLOGENESIS RISK ZONE</span>
               </div>
+
 <div className="relative bg-white/5 border border-orange-500/10 rounded-xl p-5 mt-4 overflow-hidden group transition-all duration-500 hover:bg-white/10 hover:border-orange-500/20">
                 <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-orange-500/5 rounded-full blur-[50px] pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
                 <div className="flex items-start gap-4 relative z-10">

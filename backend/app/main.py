@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.api.routes.prediction import router as prediction_router
 from app.api.routes.metadata import router as metadata_router
 from app.api.routes.spatial import router as spatial_router
+from app.api.routes.iot import router as iot_router
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -20,6 +21,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(iot_router, prefix="/api/iot", tags=["IoT Simulators"])
+
+
+from app.services.scheduler import start_scheduler
+import logging
+
+logger = logging.getLogger(__name__)
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Initializing Background Cron Jobs...")
+    start_scheduler()
 
 @app.get("/health")
 async def health():
