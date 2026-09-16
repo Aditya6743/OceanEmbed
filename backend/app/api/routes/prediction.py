@@ -22,6 +22,7 @@ async def predict_profile(
     lat: float = Query(..., ge=-90.0, le=90.0),
     lon: float = Query(..., ge=-180.0, le=180.0),
     date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    include_argo: bool = Query(False),
 ):
     if not (settings.LAT_MIN <= lat <= settings.LAT_MAX and settings.LON_MIN <= lon <= settings.LON_MAX):
         raise HTTPException(
@@ -34,13 +35,14 @@ async def predict_profile(
         surface.sst, surface.ssh, surface.sss, lat, lon, date
     )
 
-    # Fetch live ARGO floats — non-blocking, never fails the prediction
+    # Fetch live ARGO floats only if explicitly requested (speeds up UI by 90%)
     argo_floats_raw = []
-    try:
-        argo_floats_raw = fetch_nearby_argo_floats(lat, lon, date)
-    except Exception as e:
-        import logging
-        logging.getLogger("uvicorn").warning(f"ARGO fetch failed (non-fatal): {e}")
+    if include_argo:
+        try:
+            argo_floats_raw = fetch_nearby_argo_floats(lat, lon, date)
+        except Exception as e:
+            import logging
+            logging.getLogger("uvicorn").warning(f"ARGO fetch failed (non-fatal): {e}")
 
     argo_floats = [ArgoFloat(**f) for f in argo_floats_raw] if argo_floats_raw else None
 

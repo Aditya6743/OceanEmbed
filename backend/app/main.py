@@ -24,15 +24,15 @@ app.add_middleware(
 app.include_router(iot_router, prefix="/api/iot", tags=["IoT Simulators"])
 
 
-from app.services.scheduler import start_scheduler
+# from app.services.scheduler import start_scheduler
 import logging
 
 logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Initializing Background Cron Jobs...")
-    start_scheduler()
+    logger.info("Initializing Background Cron Jobs (Disabled missing apscheduler)...")
+    pass
 
 @app.get("/health")
 async def health():

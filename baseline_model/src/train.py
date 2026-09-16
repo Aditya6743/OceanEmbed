@@ -6,8 +6,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from math import sqrt
 
-PROCESSED_DATA = "ml-pipeline/data/processed/bob_3d_temperature.csv"
-MODEL_DIR = "ml-pipeline/weights/"
+PROCESSED_DATA = "baseline_model/data/processed/bob_3d_temperature.csv"
+MODEL_DIR = "baseline_model/weights/"
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 def create_features(df):

@@ -1,0 +1,17 @@
+@@ -2,6 +2,7 @@
+ import { motion, AnimatePresence } from 'framer-motion';
+ import { Activity, Shield, Anchor, Zap, Thermometer, ChevronRight, Map, Cpu, Navigation, Lock } from 'lucide-react';
+ import MosdacGlobe from '../components/MosdacGlobe';
++import { useOceanStore } from '../store/oceanStore';
+ 
+ export default function Solutions() {
+   const [activeTab, setActiveTab] = useState('climate');
+@@ -10,6 +11,7 @@
+     depth: 75.2,
+     gradient: -0.15,
+     lat: 15.3,
+     lon: 65.2,
+     dmi: 1.4,
+-    sst: 29.5
++    sst: 29.5,
++    ssh: 0.5,

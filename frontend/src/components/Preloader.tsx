@@ -207,7 +207,7 @@ export default function Preloader({ onComplete }: { onComplete: () => void }) {
       <div className="absolute inset-0 pointer-events-none p-8 flex flex-col justify-between z-20">
         <div className="flex justify-between items-start w-full">
           <div className="text-[10px] font-mono text-cyan-200/50 tracking-widest">
-            <div className={`transition-colors duration-500 ${isComplete ? 'text-white font-bold' : ''}`}>SYS.INIT // v2.4.0</div>
+            <div className={`transition-colors duration-500 ${isComplete ? 'text-white font-bold' : ''}`}>SYS.INIT // v6.0.0</div>
             <div className={`mt-1 transition-colors duration-500 text-cyan-400 ${isComplete ? 'animate-none' : 'animate-pulse'}`}>
               {isComplete ? 'UPLINK ESTABLISHED' : 'UPLINK ACTIVE'}
             </div>

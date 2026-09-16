@@ -244,7 +244,7 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
       if (targetQuaternionRef.current) globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
     } else if (globeRef.current && !selectedLocation) {
       targetQuaternionRef.current = null;
-      globeRef.current.rotation.y += 0.0005;
+      // globeRef.current.rotation.y += 0.0005;
     }
 
     if (gridShaderRef.current) {

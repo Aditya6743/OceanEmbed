@@ -31,7 +31,7 @@ interface OceanState {
 
 export const useOceanStore = create<OceanState>((set) => ({
   selectedLocation: null,
-  selectedDate: '2026-05-01', // Lock to a date that works with our training data for the demo
+  selectedDate: '2026-06-01', // Lock to a date that works with our training data for the demo
   prediction: null,
   isLoading: false,
   error: null,

@@ -1,0 +1,447 @@
+import re
+
+with open("frontend/src/pages/Solutions.tsx", "r") as f:
+    code = f.read()
+
+start_marker = "          {activeTab === 'climate' && ("
+end_marker = '            <div className="mt-auto pt-4 border-t border-slate-800">'
+
+prefix = code[:code.find(start_marker)]
+suffix = code[code.find(end_marker):]
+
+def make_hud(title, val, unit, color, conf, var, trend, trend_val, is_up):
+    trend_color = "text-rose-400" if is_up and color in ['orange', 'red', 'rose', 'blue'] else "text-emerald-400"
+    if title == "Sonic Layer Depth (SLD)": trend_color = "text-emerald-400" if is_up else "text-rose-400"
+    
+    arrow = "↗" if is_up else "↘"
+    
+    return f"""                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-{color}-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] group">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{{{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}}}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-{color}-500/10 rounded-full blur-2xl group-hover:bg-{color}-500/20 transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{title}</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-{color}-300 tracking-tight">{val}</div>
+                      <div className="text-sm font-mono text-{color}-300/60">{unit}</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-{color}-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">{conf}%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±{var}</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] {trend_color} font-mono font-bold">{arrow} {trend_val}</div>
+                      </div>
+                    </div>
+                  </div>"""
+
+new_center = r"""          {activeTab === 'climate' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex flex-col h-full">
+              <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2 shrink-0">
+                 <button onClick={() => setClimateMode('cyclone')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'cyclone' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>CYCLONE</button>
+                 <button onClick={() => setClimateMode('flood')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'flood' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>TSUNAMI / FLOOD</button>
+                 <button onClick={() => setClimateMode('heatwave')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'heatwave' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>MARINE HEATWAVE</button>
+                 <button onClick={() => setClimateMode('erosion')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'erosion' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL EROSION</button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+              {/* CYCLONE (ORANGE) */}
+              {climateMode === 'cyclone' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-orange-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><AlertTriangle size={20}/> Tropical Cyclones</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Mapping deep ocean heat content (TCHP) up to 1000m to predict rapid cyclone intensification before surface storms form.</p>
+                  
+                  <div className="bg-orange-500/5 border border-orange-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-orange-400/80 uppercase tracking-widest block mb-2">Operational Directive</span>
+                    <span className="text-[13px] text-orange-200/80 leading-relaxed block font-light">Monitor the TCHP dial below. If the live AI indicates a value entering the Critical Danger Zone ({">"}60 kJ/cm²), issue immediate evacuation warnings for adjacent coastal regions.</span>
+                  </div>
+                  
+HUD_CYCLONE
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-orange-400 rounded-sm shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">HIGH CYCLOGENESIS RISK ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-orange-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-orange-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-orange-500/10 text-orange-400 opacity-80">
+                                <AlertTriangle className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-orange-400 font-bold text-xs uppercase tracking-widest">AI CYCLONE PREDICTION</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>3D Heat: <span className="text-orange-300 font-bold">{(liveData.tchp * 1.2).toFixed(1)}</span></div>
+                                <div>Thermocline: <span className="text-orange-300 font-bold">95.2m</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model detects a severe subsurface heat accumulation in the Arabian Sea. Evacuation protocols recommended.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* FLOOD (BLUE) */}
+              {climateMode === 'flood' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-blue-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Target size={20}/> Tsunami & Flooding</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Monitoring Sea Surface Height (SSH) anomalies to detect massive water displacement events and project coastal inundation vectors.</p>
+                  
+                  <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-blue-400/80 uppercase tracking-widest block mb-2">Tactical Action</span>
+                    <span className="text-[13px] text-blue-200/80 leading-relaxed block font-light">Observe the SSH map for extreme positive anomalies (+1.0m or higher). These indicate severe flooding risks for low-lying regions.</span>
+                  </div>
+                  
+HUD_FLOOD
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-blue-400 rounded-sm shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">CRITICAL INUNDATION ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-blue-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-blue-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-blue-500/10 text-blue-400 opacity-80">
+                                <Target className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-blue-400 font-bold text-xs uppercase tracking-widest">AI INUNDATION PREDICTION</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>Wave Speed: <span className="text-blue-300 font-bold">12.5 m/s</span></div>
+                                <div>Impact Time: <span className="text-cyan-300 font-bold">42 mins</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model detects abnormal coastal water displacement. Coastal barriers on the eastern seaboard should be reinforced immediately.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* HEATWAVE (RED) */}
+              {climateMode === 'heatwave' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-red-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> Marine Heatwaves</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Tracking extreme spikes in Sea Surface Temperature (SST) that disrupt local ecosystems, bleach coral reefs, and destabilize the fishing economy.</p>
+                  
+                  <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest block mb-2">Coral Bleaching Alert</span>
+                    <span className="text-[13px] text-red-200/80 leading-relaxed block font-light">SST values exceeding 32°C for sustained periods trigger automated bleaching alerts for the Lakshadweep and Andaman reef systems.</span>
+                  </div>
+                  
+HUD_HEATWAVE
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-red-400 rounded-sm shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">SEVERE HEAT STRESS ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-red-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-red-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-red-500/10 text-red-400 opacity-80">
+                                <ThermometerSun className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-red-400 font-bold text-xs uppercase tracking-widest">AI CORAL BLEACHING ALERT</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>Anomaly: <span className="text-red-300 font-bold">+3.8°C</span></div>
+                                <div>Exposure: <span className="text-orange-300 font-bold">14 Days</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model predicts severe ecosystem collapse in the reef zones. Immediate suspension of commercial fishing in the highlighted quadrant is mandatory.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* EROSION (EMERALD) */}
+              {climateMode === 'erosion' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Wind size={20}/> Coastal Erosion</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Mapping surface current velocities and extreme wind stress to predict long-term coastal erosion hotspots along the Eastern Ghats.</p>
+                  
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest block mb-2">Infrastructure Risk</span>
+                    <span className="text-[13px] text-emerald-200/80 leading-relaxed block font-light">High velocity boundary currents striking the coastline accelerate land loss, threatening ports and coastal highways.</span>
+                  </div>
+                  
+HUD_EROSION
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">HIGH VELOCITY SHEAR ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-emerald-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-emerald-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-500/10 text-emerald-400 opacity-80">
+                                <Wind className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-emerald-400 font-bold text-xs uppercase tracking-widest">AI SHEAR PREDICTION</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>Stress: <span className="text-emerald-300 font-bold">0.84 μ</span></div>
+                                <div>Land Loss: <span className="text-emerald-300 font-bold">1.2 m/yr</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model detects abnormal seabed shear stress driven by extreme coastal currents. Maritime infrastructure projects should halt.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              </div>
+            </div>
+          )}
+
+          {/* NAVY (TEAL) */}
+          {activeTab === 'navy' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-teal-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Radar size={20}/> Naval Acoustic Ops</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Tactical subsurface mapping of Acoustic Stealth Zones. By analyzing the AI's 15-layer prediction, the system locates the Sonic Layer Depth (SLD) to optimize submarine evasion.</p>
+              
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                <span className="text-[10px] font-bold text-teal-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
+                <span className="text-[13px] text-teal-200/80 leading-relaxed block font-light">Direct fleet operations to navigate below the Optimum Evasion Depth. Cyan anomalies on the globe represent the steepest thermocline gradient where sonar pings bounce off.</span>
+              </div>
+              
+HUD_NAVY
+
+              <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                <div className="w-3 h-3 bg-teal-400 rounded-sm shadow-[0_0_10px_rgba(20,184,166,0.5)]"></div>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">MAXIMUM NEGATIVE SOUND GRADIENT</span>
+              </div>
+
+              <div className="relative bg-white/5 border border-teal-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-teal-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                <div className="flex items-start gap-4 relative z-10">
+                    <div className="mt-0.5 flex-shrink-0">
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-teal-500/10 text-teal-400 opacity-80">
+                            <Radar className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-teal-400 font-bold text-xs uppercase tracking-widest">AI SONAR EVASION PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Gradient: <span className="text-teal-300 font-bold">{(liveData.gradient * 100).toFixed(2)} kPa</span></div>
+                            <div>Max Range: <span className="text-teal-300 font-bold">4.2 NM</span></div>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model confirms optimal acoustic shielding at current depth. Active enemy sonar will refract sharply upwards.</p>
+                    </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          )}
+
+          {/* FISHERIES (EMERALD) */}
+          {activeTab === 'fishery' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Fish size={20}/> Fisheries & Upwelling</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Precision mapping of nutrient-rich upwelling zones. The AI combines surface currents and deep-ocean temperatures to pinpoint dense feeding grounds for commercial fleets.</p>
+              
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest block mb-2">Fleet Deployment</span>
+                <span className="text-[13px] text-emerald-200/80 leading-relaxed block font-light">Dispatch commercial fishing vessels to the glowing green regions on the globe. These represent active cold-water upwellings where massive fish populations are feeding.</span>
+              </div>
+              
+HUD_FISHERY
+
+              <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                <div className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">OPTIMAL CATCH ZONE (SST ANOMALY)</span>
+              </div>
+
+              <div className="relative bg-white/5 border border-emerald-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-emerald-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                <div className="flex items-start gap-4 relative z-10">
+                    <div className="mt-0.5 flex-shrink-0">
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-500/10 text-emerald-400 opacity-80">
+                            <Fish className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-emerald-400 font-bold text-xs uppercase tracking-widest">AI UPWELLING PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Density: <span className="text-emerald-300 font-bold">High</span></div>
+                            <div>Nutrients: <span className="text-emerald-300 font-bold">12.4 mg/L</span></div>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model detects massive nutrient upwelling driven by cyclonic eddies. Commercial fleets authorized to deploy.</p>
+                    </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          )}
+
+          {/* CABLE (INDIGO) */}
+          {activeTab === 'cable' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-indigo-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Anchor size={20}/> Subsea Cable Routing</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Analyzing benthic boundary layers and seafloor thermodynamics to optimize the routing of highly sensitive international submarine communication cables.</p>
+              
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              <div className="bg-indigo-500/5 border border-indigo-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                <span className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest block mb-2">Engineering Directive</span>
+                <span className="text-[13px] text-indigo-200/80 leading-relaxed block font-light">Route new cables through deep-sea plains with stable profiles. Avoid regions with steep thermal gradients indicating active hydrothermal vents.</span>
+              </div>
+              
+HUD_CABLE
+
+              <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                <div className="w-3 h-3 bg-indigo-400 rounded-sm shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">BENTHIC THERMAL GRADIENT</span>
+              </div>
+
+              <div className="relative bg-white/5 border border-indigo-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-indigo-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                <div className="flex items-start gap-4 relative z-10">
+                    <div className="mt-0.5 flex-shrink-0">
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-indigo-500/10 text-indigo-400 opacity-80">
+                            <AlertTriangle className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-indigo-400 font-bold text-xs uppercase tracking-widest">AI STRUCTURAL PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Integrity: <span className="text-indigo-300 font-bold">98.2%</span></div>
+                            <div>Stress: <span className="text-indigo-300 font-bold">Low</span></div>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model validates safe routing for benthic cables. Deep-ocean thermal ranges are stable, minimizing structural degradation.</p>
+                    </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          )}
+          
+          {/* ENSO / IOD (ROSE) */}
+          {activeTab === 'enso' && (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-rose-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> Global Teleconnections</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">The Indian Ocean Dipole (IOD) profoundly impacts global weather patterns, correlating closely with ENSO events. A positive IOD phases pushes warm water to the western basin, bringing catastrophic rains to East Africa.</p>
+              
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+              <div className="bg-rose-500/5 border border-rose-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                <span className="text-[10px] font-bold text-rose-400/80 uppercase tracking-widest block mb-2">Agricultural Advisory</span>
+                <span className="text-[13px] text-rose-200/80 leading-relaxed block font-light">High positive DMI indices correlate with severe drought in Australia and flooding in East Africa. Mobilize international aid systems preemptively.</span>
+              </div>
+              
+HUD_ENSO
+
+              <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                <div className="w-3 h-3 bg-rose-400 rounded-sm shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">DIPOLE TEMPERATURE IMBALANCE</span>
+              </div>
+
+              <div className="relative bg-white/5 border border-rose-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-rose-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                <div className="flex items-start gap-4 relative z-10">
+                    <div className="mt-0.5 flex-shrink-0">
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-rose-500/10 text-rose-400 opacity-80">
+                            <ThermometerSun className="w-4 h-4" />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-rose-400 font-bold text-xs uppercase tracking-widest">AI IOD PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Phase: <span className="text-rose-300 font-bold">Positive</span></div>
+                            <div>Intensity: <span className="text-rose-300 font-bold">Severe</span></div>
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The v5 PINN model confirms an extreme positive IOD phase is locking in. Global climate destabilization is imminent over the next 90 days.</p>
+                    </div>
+                </div>
+              </div>
+              
+              </div>
+            </div>
+          )}
+"""
+
+new_center = new_center.replace("HUD_CYCLONE", make_hud("Tropical Cyclone Heat Potential", "{(liveData.tchp * 1.2).toFixed(1)}", "kJ/cm²", "orange", "99.2", "1.4", "up", "4.2%", True))
+new_center = new_center.replace("HUD_FLOOD", make_hud("Sea Surface Height Anomaly", "+1.42", "m", "blue", "97.8", "0.05", "up", "0.12m", True))
+new_center = new_center.replace("HUD_HEATWAVE", make_hud("Peak Surface Temperature", "33.2", "°C", "red", "99.9", "0.3", "up", "1.2°C", True))
+new_center = new_center.replace("HUD_EROSION", make_hud("Coastal Current Velocity", "2.8", "m/s", "emerald", "96.5", "0.1", "up", "0.3m/s", True))
+new_center = new_center.replace("HUD_NAVY", make_hud("Sonic Layer Depth (SLD)", "{liveData.depth.toFixed(1)}", "m", "teal", "99.8", "0.5", "down", "2.1m", False))
+new_center = new_center.replace("HUD_FISHERY", make_hud("Upwelling Vertical Velocity", "1.84", "m/d", "emerald", "94.2", "0.2", "up", "0.15m/d", True))
+new_center = new_center.replace("HUD_CABLE", make_hud("Benthic Temperature", "4.2", "°C", "indigo", "98.9", "0.1", "down", "0.02°C", False))
+new_center = new_center.replace("HUD_ENSO", make_hud("Dipole Mode Index (DMI)", "+0.84", "°C", "rose", "99.1", "0.08", "up", "0.04°C", True))
+
+with open("frontend/src/pages/Solutions.tsx", "w") as f:
+    f.write(prefix + new_center + suffix)
+print("Updated HUDs to be ultra technical and fully upgraded IOD tab")

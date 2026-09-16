@@ -2,16 +2,17 @@ import { Suspense, useState, useEffect, } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import MosdacGlobe from '../components/MosdacGlobe';
-import { Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock , Activity} from 'lucide-react';
+import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOceanStore } from '../store/oceanStore';
 
-type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso';
+type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso' | 'iot';
 
 import { useThree } from '@react-three/fiber';
 
 
 import { useFrame } from '@react-three/fiber';
+
 function RotationController({ isRotationLocked }: { isRotationLocked: boolean }) {
     const { controls } = useThree();
     useFrame(() => {
@@ -22,7 +23,7 @@ function RotationController({ isRotationLocked }: { isRotationLocked: boolean })
     return null;
 }
 
-function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string, isRotationLocked: boolean }) {
+function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked }: { activeTab: string, climateMode: string, isRotationLocked: boolean }) {
     const { camera, controls } = useThree();
     
     useEffect(() => {
@@ -82,17 +83,35 @@ function CameraResetTrigger({ activeTab, isRotationLocked }: { activeTab: string
                 (controls as any).enabled = true;
             }
         };
-    }, [activeTab, controls]);
+    }, [activeTab, _c, controls]);
     
     return null;
 }
 
 
 export default function Solutions() {
-  const { showGlobeArgo, setShowGlobeArgo } = useOceanStore();
+
+
+
+  const { showGlobeArgo, setShowGlobeArgo, setSelectedDate } = useOceanStore();
   const [activeTab, setActiveTab] = useState<ViewMode>('climate');
+  const [climateMode, setClimateMode] = useState<'cyclone'|'flood'|'heatwave'|'erosion'>('cyclone');
   const [isRotationLocked, setIsRotationLocked] = useState(false);
   const navigate = useNavigate();
+
+  const today = new Date();
+  const maxDate = new Date();
+  maxDate.setDate(today.getDate() + 10);
+  const todayStr = today.toISOString().split('T')[0];
+  const maxDateStr = maxDate.toISOString().split('T')[0];
+  
+  const { selectedDate } = useOceanStore();
+  
+  useEffect(() => {
+    if (selectedDate === '2026-06-01') {
+      setSelectedDate(todayStr);
+    }
+  }, []);
   const [liveData, setLiveData] = useState({ tchp: 85.4, depth: 75.2, gradient: -0.15, lat: 15.3, lon: 65.2 });
 
   useEffect(() => {
@@ -152,12 +171,27 @@ export default function Solutions() {
       <div className="h-20 border-b border-white/10 bg-black/20 backdrop-blur-md flex items-center z-20 absolute top-0 w-full">
         {/* Left Section (Matches 35% Panel) */}
         <div className="w-[35%] px-8 flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900/50 border border-white/10 hover:bg-slate-800 hover:text-white transition-all text-slate-400 mr-2 shrink-0">
+          <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900/50 border border-white/10 hover:bg-slate-800 hover:text-white transition-all text-slate-400 shrink-0">
             <ArrowLeft size={18} />
           </button>
-          <div>
+          <div className="shrink-0">
             <h1 className="text-xl font-black tracking-widest uppercase text-white whitespace-nowrap">Advanced <span className="text-sky-300">Analysis</span></h1>
             <p className="text-slate-400 text-[10px] uppercase tracking-widest mt-1">AI Tactical Hub</p>
+          </div>
+          
+          {/* PREMIUM DATE PICKER */}
+          <div className="ml-auto relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Calendar className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+            </div>
+            <input 
+              type="date"
+              min={todayStr}
+              max={maxDateStr}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent text-cyan-100 font-mono text-xs py-1.5 pl-9 pr-3 outline-none focus:outline-none appearance-none cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer z-10"
+            />
           </div>
         </div>
         
@@ -207,253 +241,650 @@ export default function Solutions() {
       </div>
 
       {/* Control Panel / Insights Sidebar (Left Panel 35%) */}
-      <div className="w-[35%] h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto shadow-2xl relative custom-scrollbar pointer-events-auto">
+      <div className="w-[35%] h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto">
         <div className="w-[96%] mx-auto h-full flex flex-col">
+          
+
+
           {activeTab === 'climate' && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              <h2 className="text-orange-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><AlertTriangle size={20}/> Cyclone Readiness</h2>
-              <p className="text-slate-300/80 text-[13px] mb-3 leading-relaxed font-light">Continuous AI-driven monitoring of Tropical Cyclone Heat Potential (TCHP). The Deep Learning architecture reconstructs the 3D temperature volume to calculate the total latent heat energy stored above the 26°C isotherm (D26), providing early warning metrics for rapid cyclone intensification.</p>
-              
-              <div className="bg-orange-500/5 border border-orange-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-orange-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
-                <span className="text-[13px] text-orange-200/80 leading-relaxed block font-light">Monitor the TCHP dial below. If the live AI indicates a value entering the Critical Danger Zone (&gt;60 kJ/cm²), issue immediate evacuation warnings for adjacent coastal regions.</span>
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex flex-col h-full">
+              <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2 shrink-0">
+                 <button onClick={() => setClimateMode('cyclone')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'cyclone' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>CYCLONE</button>
+                 <button onClick={() => setClimateMode('flood')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'flood' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL FLOODING</button>
+                 <button onClick={() => setClimateMode('heatwave')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'heatwave' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>MARINE HEATWAVE</button>
+                 <button onClick={() => setClimateMode('erosion')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'erosion' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL EROSION</button>
               </div>
               
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
               
-              <div className="bg-black/20 backdrop-blur-md rounded-xl p-5 border border-orange-500/10 mb-4 relative shadow-lg">
-                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-orange-500/5 rounded-full blur-2xl"></div>
-                <div className="text-xs uppercase tracking-widest text-slate-400 mb-2 font-medium">Tropical Cyclone Heat Potential</div>
-                <div className="text-4xl font-mono text-orange-300">{liveData.tchp.toFixed(1)} <span className="text-lg text-orange-300/50">kJ/cm²</span></div>
-              </div>
+              {/* CYCLONE (ORANGE) */}
+              {climateMode === 'cyclone' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-orange-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><AlertTriangle size={20}/> Tropical Cyclones</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Mapping deep ocean heat content (TCHP) up to 1000m to predict rapid cyclone intensification before surface storms form.</p>
+                  
+                  <div className="bg-orange-500/5 border border-orange-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-orange-400/80 uppercase tracking-widest block mb-2">Operational Directive</span>
+                    <span className="text-[13px] text-orange-200/80 leading-relaxed block font-light">Monitor the TCHP dial below. If the live AI indicates a value entering the Critical Danger Zone ({">"}60 kJ/cm²), issue immediate evacuation warnings for adjacent coastal regions.</span>
+                  </div>
+                  
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-orange-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Tropical Cyclone Heat Potential</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-orange-300 tracking-tight">{(liveData.tchp * 1.2).toFixed(1)}</div>
+                      <div className="text-sm font-mono text-orange-300/60">kJ/cm²</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-orange-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">99.2%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±1.4</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 4.2%</div>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
-                <div className="w-3 h-3 bg-orange-400 rounded-sm shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
-                <span className="text-[11px] font-medium tracking-wider text-slate-300">HIGH CYCLOGENESIS RISK ZONE</span>
-              </div>
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-orange-400 rounded-sm shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">HIGH CYCLOGENESIS RISK ZONE</span>
+                  </div>
 
-<div className="relative bg-white/5 border border-orange-500/10 rounded-xl p-5 mt-4 overflow-hidden group transition-all duration-500 hover:bg-white/10 hover:border-orange-500/20">
-                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-orange-500/5 rounded-full blur-[50px] pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <div className="flex items-start gap-4 relative z-10">
-                    <div className="mt-0.5 flex-shrink-0">
-                        <div className="bg-black/20 p-2.5 rounded-lg border border-orange-500/10 text-orange-400 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <Activity className="w-4 h-4" />
+                  <div className="relative bg-white/5 border border-orange-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-orange-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-orange-500/10 text-orange-400 opacity-80">
+                                <AlertTriangle className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-orange-400 font-bold text-xs uppercase tracking-widest">AI CYCLONE PREDICTION</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>3D Heat: <span className="text-orange-300 font-bold">{(liveData.tchp * 1.2).toFixed(1)}</span></div>
+                                <div>Thermocline: <span className="text-orange-300 font-bold">95.2m</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model detects a severe subsurface heat accumulation in the Arabian Sea. Evacuation protocols recommended.</p>
                         </div>
                     </div>
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-[11px] font-medium tracking-widest text-orange-300/90 uppercase">Oceanic Assessment</span>
-                        </div>
-                        <div className="text-slate-300/70 text-[13px] leading-relaxed font-light group-hover:text-slate-200 transition-colors">
-                            <span className="text-orange-300 font-medium">THREAT LEVEL ELEVATED.</span> High TCHP anomalies detected across the basin. Severe risk of rapid cyclone cyclogenesis in western equatorial regions.
-                        </div>
-                    </div>
+                  </div>
                 </div>
+              )}
+
+              {/* FLOOD (BLUE) */}
+              {climateMode === 'flood' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-blue-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Target size={20}/> Coastal Inundation</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Monitoring Sea Surface Height (SSH) anomalies to detect massive water displacement events and project coastal inundation vectors.</p>
+                  
+                  <div className="bg-blue-500/5 border border-blue-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-blue-400/80 uppercase tracking-widest block mb-2">Tactical Action</span>
+                    <span className="text-[13px] text-blue-200/80 leading-relaxed block font-light">Observe the SSH map for extreme positive anomalies (+1.0m or higher). These indicate severe flooding risks for low-lying regions.</span>
+                  </div>
+                  
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-blue-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Sea Surface Height Anomaly</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-blue-300 tracking-tight">+1.42</div>
+                      <div className="text-sm font-mono text-blue-300/60">m</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">97.8%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.05</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 0.12m</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-blue-400 rounded-sm shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">CRITICAL INUNDATION ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-blue-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-blue-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-blue-500/10 text-blue-400 opacity-80">
+                                <Target className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-blue-400 font-bold text-xs uppercase tracking-widest">AI INUNDATION PREDICTION</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>Wave Speed: <span className="text-blue-300 font-bold">12.5 m/s</span></div>
+                                <div>Impact Time: <span className="text-cyan-300 font-bold">42 mins</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model detects abnormal coastal water displacement. Coastal barriers on the eastern seaboard should be reinforced immediately.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* HEATWAVE (RED) */}
+              {climateMode === 'heatwave' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-red-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> Marine Heatwaves</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Tracking extreme spikes in Sea Surface Temperature (SST) that disrupt local ecosystems, bleach coral reefs, and destabilize the fishing economy.</p>
+                  
+                  <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-red-400/80 uppercase tracking-widest block mb-2">Coral Bleaching Alert</span>
+                    <span className="text-[13px] text-red-200/80 leading-relaxed block font-light">SST values exceeding 32°C for sustained periods trigger automated bleaching alerts for the Lakshadweep and Andaman reef systems.</span>
+                  </div>
+                  
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-red-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-red-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Peak Surface Temperature</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-red-300 tracking-tight">33.2</div>
+                      <div className="text-sm font-mono text-red-300/60">°C</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-red-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">99.9%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.3</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 1.2°C</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-red-400 rounded-sm shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">SEVERE HEAT STRESS ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-red-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-red-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-red-500/10 text-red-400 opacity-80">
+                                <ThermometerSun className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-red-400 font-bold text-xs uppercase tracking-widest">AI CORAL BLEACHING ALERT</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>Anomaly: <span className="text-red-300 font-bold">+3.8°C</span></div>
+                                <div>Exposure: <span className="text-orange-300 font-bold">14 Days</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model predicts severe ecosystem collapse in the reef zones. Immediate suspension of commercial fishing in the highlighted quadrant is mandatory.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* EROSION (EMERALD) */}
+              {climateMode === 'erosion' && (
+                <div className="animate-in fade-in duration-300">
+                  <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Wind size={20}/> Coastal Erosion</h2>
+                  <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Mapping surface current velocities and extreme wind stress to predict long-term coastal erosion hotspots along the Eastern Ghats.</p>
+                  
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                    <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest block mb-2">Infrastructure Risk</span>
+                    <span className="text-[13px] text-emerald-200/80 leading-relaxed block font-light">High velocity boundary currents striking the coastline accelerate land loss, threatening ports and coastal highways.</span>
+                  </div>
+                  
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-emerald-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Coastal Current Velocity</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-emerald-300 tracking-tight">2.8</div>
+                      <div className="text-sm font-mono text-emerald-300/60">m/s</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-emerald-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">96.5%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.1</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold">↗ 0.3m/s</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
+                    <div className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                    <span className="text-[11px] font-medium tracking-wider text-slate-300">HIGH VELOCITY SHEAR ZONE</span>
+                  </div>
+
+                  <div className="relative bg-white/5 border border-emerald-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                    <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-emerald-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
+                    <div className="flex items-start gap-4 relative z-10">
+                        <div className="mt-0.5 flex-shrink-0">
+                            <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-500/10 text-emerald-400 opacity-80">
+                                <Wind className="w-4 h-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="text-emerald-400 font-bold text-xs uppercase tracking-widest">AI SHEAR PREDICTION</span>
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                                <div>Stress: <span className="text-emerald-300 font-bold">0.84 μ</span></div>
+                                <div>Land Loss: <span className="text-emerald-300 font-bold">1.2 m/yr</span></div>
+                            </div>
+                            <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model detects abnormal seabed shear stress driven by extreme coastal currents. Maritime infrastructure projects should halt.</p>
+                        </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               </div>
             </div>
           )}
 
+          {/* NAVY (TEAL) */}
           {activeTab === 'navy' && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
               <h2 className="text-teal-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Radar size={20}/> Naval Acoustic Ops</h2>
-              <p className="text-slate-300/80 text-[13px] mb-3 leading-relaxed font-light">Tactical subsurface mapping of Acoustic Stealth Zones. By analyzing the AI's 15-layer thermodynamic prediction, the system locates the Sonic Layer Depth (SLD) and maximum negative temperature gradients to optimize submarine sonar evasion.</p>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Tactical subsurface mapping of Acoustic Stealth Zones. By analyzing the AI's 15-layer prediction, the system locates the Sonic Layer Depth (SLD) to optimize submarine evasion.</p>
               
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
               <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
                 <span className="text-[10px] font-bold text-teal-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
-                <span className="text-[13px] text-teal-200/80 leading-relaxed block font-light">Direct fleet operations to navigate below the Optimum Evasion Depth. The glowing Cyan anomalies on the globe represent the steepest thermocline gradient where active sonar pings will effectively bounce off.</span>
+                <span className="text-[13px] text-teal-200/80 leading-relaxed block font-light">Direct fleet operations to navigate below the Optimum Evasion Depth. Cyan anomalies on the globe represent the steepest thermocline gradient where sonar pings bounce off.</span>
               </div>
               
-              
-              <div className="bg-black/20 backdrop-blur-md rounded-xl p-5 border border-teal-500/10 mb-4 relative overflow-hidden shadow-lg">
-                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl"></div>
-                <div className="text-xs uppercase tracking-widest text-slate-400 mb-2 font-medium">Sonic Layer Depth (SLD)</div>
-                <div className="text-4xl font-mono text-teal-300">{liveData.depth.toFixed(1)} <span className="text-lg text-teal-300/50">m</span></div>
-                <div className="w-full bg-slate-800/50 h-1 mt-4 rounded-full relative">
-                  <div className="absolute top-0 left-0 h-full bg-teal-400 rounded-full shadow-[0_0_10px_rgba(20,184,166,0.5)]" style={{ width: '45%' }}></div>
-                </div>
-              </div>
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-teal-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Sonic Layer Depth (SLD)</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-teal-300 tracking-tight">{liveData.depth.toFixed(1)}</div>
+                      <div className="text-sm font-mono text-teal-300/60">m</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-teal-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">99.8%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.5</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">↘ 2.1m</div>
+                      </div>
+                    </div>
+                  </div>
 
               <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
                 <div className="w-3 h-3 bg-teal-400 rounded-sm shadow-[0_0_10px_rgba(20,184,166,0.5)]"></div>
                 <span className="text-[11px] font-medium tracking-wider text-slate-300">MAXIMUM NEGATIVE SOUND GRADIENT</span>
               </div>
-<div className="relative bg-white/5 border border-teal-500/10 rounded-xl p-5 mt-4 overflow-hidden group transition-all duration-500 hover:bg-white/10 hover:border-teal-500/20">
-                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-teal-500/5 rounded-full blur-[50px] pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+              <div className="relative bg-white/5 border border-teal-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-teal-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
                 <div className="flex items-start gap-4 relative z-10">
                     <div className="mt-0.5 flex-shrink-0">
-                        <div className="bg-black/20 p-2.5 rounded-lg border border-teal-500/10 text-teal-400 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <Activity className="w-4 h-4" />
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-teal-500/10 text-teal-400 opacity-80">
+                            <Radar className="w-4 h-4" />
                         </div>
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-[11px] font-medium tracking-widest text-teal-300/90 uppercase">Oceanic Assessment</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-teal-400 font-bold text-xs uppercase tracking-widest">AI SONAR EVASION PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+                            </span>
                         </div>
-                        <div className="text-slate-300/70 text-[13px] leading-relaxed font-light group-hover:text-slate-200 transition-colors">
-                            <span className="text-teal-300 font-medium">FLEET STATUS: OPTIMAL.</span> Extremely strong thermocline gradients detected in the Arabian Sea. Deep-water sonar evasion highly effective in current theater.
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Gradient: <span className="text-teal-300 font-bold">{(liveData.gradient * 100).toFixed(2)} kPa</span></div>
+                            <div>Max Range: <span className="text-teal-300 font-bold">4.2 NM</span></div>
                         </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model confirms optimal acoustic shielding at current depth. Active enemy sonar will refract sharply upwards.</p>
                     </div>
                 </div>
+              </div>
               </div>
             </div>
           )}
 
+          {/* FISHERIES (EMERALD) */}
           {activeTab === 'fishery' && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Target size={20}/> PFZ Identification</h2>
-              <p className="text-slate-300/80 text-[13px] mb-3 leading-relaxed font-light">Commercial mapping of Potential Fishing Zones (PFZ). The Neural Network correlates surface temperature fronts with subsurface thermodynamic anomalies to instantly pinpoint cold-water nutrient upwellings supporting phytoplankton.</p>
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Fish size={20}/> Fisheries & Upwelling</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Precision mapping of nutrient-rich upwelling zones. The AI combines surface currents and deep-ocean temperatures to pinpoint dense feeding grounds for commercial fleets.</p>
               
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
               <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
-                <span className="text-[13px] text-emerald-200/80 leading-relaxed block font-light">Dispatch commercial fishing vessels to the live Target Coordinates below. The glowing green regions on the globe represent active cold-water upwellings where massive fish populations are currently feeding.</span>
+                <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest block mb-2">Fleet Deployment</span>
+                <span className="text-[13px] text-emerald-200/80 leading-relaxed block font-light">Dispatch commercial fishing vessels to the glowing green regions on the globe. These represent active cold-water upwellings where massive fish populations are feeding.</span>
               </div>
               
-              
-              <div className="bg-black/20 backdrop-blur-md rounded-xl p-5 border border-emerald-500/10 mb-4 relative overflow-hidden shadow-lg">
-                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl"></div>
-                <div className="text-xs uppercase tracking-widest text-slate-400 mb-2 font-medium">Target Coordinates</div>
-                <div className="text-2xl font-mono text-emerald-300 mb-1">Sector 7-Alpha</div>
-                <div className="flex justify-between text-emerald-400/50 px-2 mt-2 font-mono text-xs">
-                  <span>Lat: {(liveData.lat - 0.5).toFixed(4)}°N</span>
-                  <span>Lon: {(liveData.lon + 1.5).toFixed(4)}°E</span>
-                </div>
-              </div>
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-emerald-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Upwelling Vertical Velocity</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-emerald-300 tracking-tight">1.84</div>
+                      <div className="text-sm font-mono text-emerald-300/60">m/d</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-emerald-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">94.2%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.2</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold">↗ 0.15m/d</div>
+                      </div>
+                    </div>
+                  </div>
 
               <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
                 <div className="w-3 h-3 bg-emerald-400 rounded-sm shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                <span className="text-[11px] font-medium tracking-wider text-slate-300">NUTRIENT UPWELLING / PFZ</span>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">OPTIMAL CATCH ZONE (SST ANOMALY)</span>
               </div>
-<div className="relative bg-white/5 border border-emerald-500/10 rounded-xl p-5 mt-4 overflow-hidden group transition-all duration-500 hover:bg-white/10 hover:border-emerald-500/20">
-                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-emerald-500/5 rounded-full blur-[50px] pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+              <div className="relative bg-white/5 border border-emerald-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-emerald-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
                 <div className="flex items-start gap-4 relative z-10">
                     <div className="mt-0.5 flex-shrink-0">
-                        <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-500/10 text-emerald-400 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <Activity className="w-4 h-4" />
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-emerald-500/10 text-emerald-400 opacity-80">
+                            <Fish className="w-4 h-4" />
                         </div>
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-[11px] font-medium tracking-widest text-emerald-300/90 uppercase">Oceanic Assessment</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-emerald-400 font-bold text-xs uppercase tracking-widest">AI UPWELLING PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
                         </div>
-                        <div className="text-slate-300/70 text-[13px] leading-relaxed font-light group-hover:text-slate-200 transition-colors">
-                            <span className="text-emerald-300 font-medium">ECOLOGICAL STATUS: ACTIVE.</span> Multiple shallow Mixed Layer Depths and cold-water upwelling zones identified along the Somali coast. High probability of pelagic aggregation.
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Density: <span className="text-emerald-300 font-bold">High</span></div>
+                            <div>Nutrients: <span className="text-emerald-300 font-bold">12.4 mg/L</span></div>
                         </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model detects massive nutrient upwelling driven by cyclonic eddies. Commercial fleets authorized to deploy.</p>
                     </div>
                 </div>
+              </div>
               </div>
             </div>
           )}
 
+          {/* CABLE (INDIGO) */}
           {activeTab === 'cable' && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              <h2 className="text-violet-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Anchor size={20}/> Benthic Cable Routing</h2>
-              <p className="text-slate-300/80 text-[13px] mb-3 leading-relaxed font-light">Deep-sea infrastructure protection. By evaluating temperatures at 1000m depth, the AI detects severe benthic density anomalies and thermodynamic shifts that indicate underwater landslides or extreme deep-ocean currents capable of severing global fiber-optic internet cables.</p>
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-indigo-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Anchor size={20}/> Subsea Cable Routing</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Analyzing benthic boundary layers and seafloor thermodynamics to optimize the routing of highly sensitive international submarine communication cables.</p>
               
-              <div className="bg-violet-500/5 border border-violet-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-violet-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
-                <span className="text-[13px] text-violet-200/80 leading-relaxed block font-light">Monitor the deep purple fracture zones on the map. If the Shear Stress Anomaly spikes, immediately notify telecom authorities of an imminent risk to submarine internet backbones in that sector.</span>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              <div className="bg-indigo-500/5 border border-indigo-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
+                <span className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest block mb-2">Engineering Directive</span>
+                <span className="text-[13px] text-indigo-200/80 leading-relaxed block font-light">Route new cables through deep-sea plains with stable profiles. Avoid regions with steep thermal gradients indicating active hydrothermal vents.</span>
               </div>
               
-              
-              <div className="bg-black/20 backdrop-blur-md rounded-xl p-5 border border-violet-500/10 mb-4 relative overflow-hidden shadow-lg">
-                <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl"></div>
-                <div className="text-xs uppercase tracking-widest text-slate-400 mb-2 font-medium">Benthic Shear Stress Anomaly</div>
-                <div className="text-4xl font-mono text-violet-300">{(Math.abs(liveData.gradient) * 100).toFixed(2)} <span className="text-lg text-violet-300/50">kPa</span></div>
-              </div>
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-indigo-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Benthic Temperature</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-indigo-300 tracking-tight">4.2</div>
+                      <div className="text-sm font-mono text-indigo-300/60">°C</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-indigo-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">96.65%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.1</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold">↘ 0.02°C</div>
+                      </div>
+                    </div>
+                  </div>
 
               <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
-                <div className="w-3 h-3 bg-violet-400 rounded-sm shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
-                <span className="text-[11px] font-medium tracking-wider text-slate-300">SEISMIC / THERMAL FRACTURE ZONES</span>
+                <div className="w-3 h-3 bg-indigo-400 rounded-sm shadow-[0_0_10px_rgba(99,102,241,0.5)]"></div>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">BENTHIC THERMAL GRADIENT</span>
               </div>
-<div className="relative bg-white/5 border border-violet-500/10 rounded-xl p-5 mt-4 overflow-hidden group transition-all duration-500 hover:bg-white/10 hover:border-violet-500/20">
-                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-violet-500/5 rounded-full blur-[50px] pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+              <div className="relative bg-white/5 border border-indigo-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-indigo-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
                 <div className="flex items-start gap-4 relative z-10">
                     <div className="mt-0.5 flex-shrink-0">
-                        <div className="bg-black/20 p-2.5 rounded-lg border border-violet-500/10 text-violet-400 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <Activity className="w-4 h-4" />
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-indigo-500/10 text-indigo-400 opacity-80">
+                            <AlertTriangle className="w-4 h-4" />
                         </div>
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-[11px] font-medium tracking-widest text-violet-300/90 uppercase">Oceanic Assessment</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-indigo-400 font-bold text-xs uppercase tracking-widest">AI STRUCTURAL PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            </span>
                         </div>
-                        <div className="text-slate-300/70 text-[13px] leading-relaxed font-light group-hover:text-slate-200 transition-colors">
-                            <span className="text-violet-300 font-medium">INFRASTRUCTURE RISK: NOMINAL.</span> Benthic shear stress remains within 0.05 °C/m tolerance across the Indian Ocean. No immediate fracture risks detected across telecom backbone.
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Integrity: <span className="text-indigo-300 font-bold">96.65%</span></div>
+                            <div>Stress: <span className="text-indigo-300 font-bold">Low</span></div>
                         </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model validates safe routing for benthic cables. Deep-ocean thermal ranges are stable, minimizing structural degradation.</p>
                     </div>
                 </div>
               </div>
+              </div>
             </div>
           )}
-
+          
+          {/* ENSO / IOD (ROSE) */}
           {activeTab === 'enso' && (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              <h2 className="text-rose-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> IOD Climate Monitoring</h2>
-              <p className="text-slate-300/80 text-[13px] mb-3 leading-relaxed font-light">Regional agricultural forecasting. The AI aggregates subsurface heat potentials across the Indian Ocean to calculate the Dipole Mode Index (DMI), providing months of advance warning for Positive IOD droughts or Negative IOD monsoons.</p>
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500 h-full flex flex-col">
+              <h2 className="text-rose-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> Global Teleconnections</h2>
+              <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">The Indian Ocean Dipole (IOD) profoundly impacts global weather patterns, correlating closely with ENSO events. A positive IOD phases pushes warm water to the western basin, bringing catastrophic rains to East Africa.</p>
+              
+              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
               
               <div className="bg-rose-500/5 border border-rose-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
-                <span className="text-[10px] font-bold text-rose-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
-                <span className="text-[13px] text-rose-200/80 leading-relaxed block font-light">Observe the regional temperature blooms (Red = Warming, Blue = Cooling). Use the DMI index to advise agricultural ministries to prepare for either a severe drought (Positive IOD) or flooding (Negative IOD).</span>
+                <span className="text-[10px] font-bold text-rose-400/80 uppercase tracking-widest block mb-2">Agricultural Advisory</span>
+                <span className="text-[13px] text-rose-200/80 leading-relaxed block font-light">High positive DMI indices correlate with severe drought in Australia and flooding in East Africa. Mobilize international aid systems preemptively.</span>
               </div>
               
-              
-              <div className="bg-black/20 backdrop-blur-md rounded-xl p-5 border border-rose-500/10 mb-4 relative shadow-lg">
-                <div className="text-xs uppercase tracking-widest text-slate-400 mb-3 font-medium">Dipole Mode Index (DMI)</div>
-                <div className="flex items-center justify-between">
-                  <div className="text-4xl font-mono text-rose-300">+1.4<span className="text-lg text-rose-300/50">°C</span></div>
-                  <div className="text-[9px] text-rose-100 font-bold bg-rose-500/20 border border-rose-500/30 px-3 py-1.5 rounded uppercase tracking-widest">POSITIVE IOD ACTIVE</div>
-                </div>
-                <div className="w-full bg-gradient-to-r from-blue-500/50 via-slate-700/50 to-rose-500/50 h-1 mt-5 rounded-full relative">
-                  <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-rose-200 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] right-1/4"></div>
-                </div>
-              </div>
+                  <div className="bg-black/40 backdrop-blur-md rounded-xl p-5 border border-rose-500/20 mb-4 relative overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+                    <div className="absolute inset-0 opacity-10 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)", backgroundSize: "12px 12px" }}></div>
+                    <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl transition-all duration-700"></div>
+                    
+                    <div className="flex justify-between items-start mb-3 relative z-10">
+                      <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Dipole Mode Index (DMI)</div>
+                      <div className="flex items-center gap-1.5 bg-black/60 px-2 py-0.5 rounded border border-white/10 shadow-inner">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <span className="text-[9px] text-emerald-400 font-mono tracking-widest">LIVE</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-baseline gap-2 relative z-10 mb-4">
+                      <div className="text-4xl font-mono font-light text-rose-300 tracking-tight">+0.84</div>
+                      <div className="text-sm font-mono text-rose-300/60">°C</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-rose-500/10 relative z-10">
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
+                        <div className="text-[10px] text-slate-300 font-mono">99.1%</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
+                        <div className="text-[10px] text-slate-300 font-mono">±0.08</div>
+                      </div>
+                      <div className="bg-black/20 rounded p-1.5 border border-white/5">
+                        <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 0.04°C</div>
+                      </div>
+                    </div>
+                  </div>
 
               <div className="flex items-center gap-3 pt-2 mb-4 border-t border-white/5">
                 <div className="w-3 h-3 bg-rose-400 rounded-sm shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
-                <span className="text-[11px] font-medium tracking-wider text-slate-300">ELEVATED SEA SURFACE ANOMALY</span>
+                <span className="text-[11px] font-medium tracking-wider text-slate-300">DIPOLE TEMPERATURE IMBALANCE</span>
               </div>
-<div className="relative bg-white/5 border border-rose-500/10 rounded-xl p-5 mt-4 overflow-hidden group transition-all duration-500 hover:bg-white/10 hover:border-rose-500/20">
-                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-rose-500/5 rounded-full blur-[50px] pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+              <div className="relative bg-white/5 border border-rose-500/10 rounded-xl p-5 overflow-hidden transition-all duration-500 mb-4">
+                <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-rose-500/5 rounded-full blur-[50px] pointer-events-none opacity-50"></div>
                 <div className="flex items-start gap-4 relative z-10">
                     <div className="mt-0.5 flex-shrink-0">
-                        <div className="bg-black/20 p-2.5 rounded-lg border border-rose-500/10 text-rose-400 opacity-80 group-hover:opacity-100 transition-opacity">
-                            <Activity className="w-4 h-4" />
+                        <div className="bg-black/20 p-2.5 rounded-lg border border-rose-500/10 text-rose-400 opacity-80">
+                            <ThermometerSun className="w-4 h-4" />
                         </div>
                     </div>
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-[11px] font-medium tracking-widest text-rose-300/90 uppercase">Oceanic Assessment</span>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-rose-400 font-bold text-xs uppercase tracking-widest">AI IOD PREDICTION</span>
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                            </span>
                         </div>
-                        <div className="text-slate-300/70 text-[13px] leading-relaxed font-light group-hover:text-slate-200 transition-colors">
-                            <span className="text-rose-300 font-medium">CLIMATE PATTERN: SHIFTING.</span> Positive Indian Ocean Dipole forming. Agricultural ministries in East Africa advised to prepare for intense monsoon precipitation.
+                        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-300/80 mb-2">
+                            <div>Phase: <span className="text-rose-300 font-bold">Positive</span></div>
+                            <div>Intensity: <span className="text-rose-300 font-bold">Severe</span></div>
                         </div>
+                        <p className="text-[12px] leading-relaxed text-slate-400/90 font-light">The V6 Hybrid model confirms an extreme positive IOD phase is locking in. Global climate destabilization is imminent over the next 90 days.</p>
                     </div>
                 </div>
               </div>
+              
+              </div>
             </div>
           )}
-
-          {/* ML Telemetry Status & Legend */}
-          <div className="mt-auto pt-4 border-t border-slate-800 pb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-500 uppercase tracking-wider">AI Inference Status</span>
-              <span className="text-xs text-sky-300 flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div> Live Synced</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-black/40 border border-slate-800/50 rounded p-2">
-                <div className="text-[10px] text-slate-500 uppercase">Spatial Res</div>
-                <div className="text-sm text-slate-300 font-mono">1/12° Grid</div>
-              </div>
-              <div className="bg-black/40 border border-slate-800/50 rounded p-2">
-                <div className="text-[10px] text-slate-500 uppercase">Model Loss</div>
-                <div className="text-sm text-slate-300 font-mono">MSE 0.20</div>
-              </div>
-            </div>
-
-            <div className="mt-4">
+            <div className="mt-auto pt-4 border-t border-slate-800">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Data Scale</span>
               <div className="h-2 rounded-full w-full" style={{
                 background: 
-                  activeTab === 'climate' ? 'linear-gradient(to right, #000000, #57106e, #bc3754, #f98e09, #fcffa4)' :
+                  (activeTab === 'climate' && climateMode === 'cyclone') ? 'linear-gradient(to right, #000000, #57106e, #bc3754, #f98e09, #fcffa4)' :
+                  (activeTab === 'climate' && climateMode === 'flood') ? 'linear-gradient(to right, #000000, #1c2738, #3b5c73, #729eb3, #ffffff)' :
+                  (activeTab === 'climate' && climateMode === 'heatwave') ? 'linear-gradient(to right, #000000, #b30000, #ff3300, #ffcc00, #ffffff)' :
+                  (activeTab === 'climate' && climateMode === 'erosion') ? 'linear-gradient(to right, #000000, #004d00, #008055, #33cc99, #ffffff)' :
                   activeTab === 'navy' ? 'linear-gradient(to right, #440154, #3b528b, #21918c, #5ec962, #fde725)' :
                   activeTab === 'fishery' ? 'linear-gradient(to right, #004d00, #006666, #0033cc, #ffffff)' :
                   activeTab === 'cable' ? 'linear-gradient(to right, #30123b, #4686fb, #1ae4b6, #a4fc3c, #faba39, #e4460b, #7a0403)' :
@@ -461,21 +892,26 @@ export default function Solutions() {
               }}></div>
               <div className="flex justify-between mt-1.5 text-[10px] text-slate-500 font-mono">
                 <span>{
-                  activeTab === 'climate' ? '0 kJ/cm²' :
+                  (activeTab === 'climate' && climateMode === 'cyclone') ? '0 kJ/cm²' :
+                  (activeTab === 'climate' && climateMode === 'flood') ? '-0.5 m' :
+                  (activeTab === 'climate' && climateMode === 'heatwave') ? '25 °C' :
+                  (activeTab === 'climate' && climateMode === 'erosion') ? '0 m/s' :
                   activeTab === 'navy' ? 'Weak Gradient' :
                   activeTab === 'fishery' ? 'Deep Cold' :
                   activeTab === 'cable' ? '0°C' :
                   '-Anomaly'
                 }</span>
                 <span>{
-                  activeTab === 'climate' ? '>150 kJ/cm²' :
+                  (activeTab === 'climate' && climateMode === 'cyclone') ? '>150 kJ/cm²' :
+                  (activeTab === 'climate' && climateMode === 'flood') ? '+1.0 m' :
+                  (activeTab === 'climate' && climateMode === 'heatwave') ? '>35 °C' :
+                  (activeTab === 'climate' && climateMode === 'erosion') ? '>2.0 m/s' :
                   activeTab === 'navy' ? 'Strong Thermocline' :
                   activeTab === 'fishery' ? 'Surface Upwelling' :
                   activeTab === 'cable' ? '30°C' :
                   '+Anomaly'
                 }</span>
               </div>
-            </div>
           </div>
 
         </div>
@@ -485,7 +921,7 @@ export default function Solutions() {
       {/* 3D Visualization (Right Panel 65%) */}
       <div className="w-[65%] h-full pt-20 relative z-0 bg-black">
                 {/* Lock Auto-Rotate Button */}
-        <div className="absolute top-24 right-6 z-20 pointer-events-auto">
+                <div className="absolute top-24 right-6 z-20 pointer-events-auto">
           <button
             onClick={() => setIsRotationLocked(!isRotationLocked)}
             className={`flex items-center gap-2 bg-black/60 border px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all ${isRotationLocked ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-sky-500/20'}`}
@@ -502,7 +938,7 @@ export default function Solutions() {
         </div>
 
         {/* ARGO HUD Overlay */}
-        <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
+                <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
           <span className={`text-[9px] font-mono tracking-widest font-bold ${showGlobeArgo ? 'text-lime-400' : 'text-slate-400'}`}>
             LIVE ARGO FLEET
           </span>
@@ -513,11 +949,11 @@ export default function Solutions() {
             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showGlobeArgo ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
           </button>
         </div>
-        <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+                <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
-            <CameraResetTrigger activeTab={activeTab} isRotationLocked={isRotationLocked} />
+            <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} />
             <RotationController isRotationLocked={isRotationLocked} />
-            <MosdacGlobe viewMode={activeTab} isRotationLocked={isRotationLocked} />
+            <MosdacGlobe viewMode={activeTab as any} climateSubMode={climateMode as any} isRotationLocked={isRotationLocked} />
             <OrbitControls makeDefault 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
                 enableZoom={true} minDistance={4.3} maxDistance={5.35} 

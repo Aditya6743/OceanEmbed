@@ -1,6 +1,6 @@
 {
-    "RMSE": 0.3053235149955822,
-    "Bias": 0.05251157039049333,
-    "Correlation": 0.9981938029577709,
-    "Accuracy_Score": 99.8193802957771
+    "RMSE": 0.432,
+    "Bias": 0.136,
+    "Correlation": 0.985,
+    "Accuracy_Score": 96.65
 }

@@ -13,7 +13,7 @@ logger = logging.getLogger("uvicorn")
 DEPTHS = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000]
 
 # Point to the NEW PyTorch weights we generate during training
-MODEL_PATH = Path(__file__).resolve().parents[3] / "deeplearning_engine" / "weights" / "oceanembed_hybrid_v3_7_channel.pth"
+MODEL_PATH = Path(__file__).resolve().parents[3] / "deeplearning_engine" / "weights" / "oceanembed_v6_hybrid.pth"
 STATS_PATH = Path(__file__).resolve().parents[3] / "data" / "processed" / "5_years_daily" / "normalization_stats.json"
 
 # 1. Re-declare the PyTorch Architecture exactly as it exists in train_hybrid.py
@@ -34,32 +34,34 @@ class OceanSpatialAutoencoder(nn.Module):
     def __init__(self):
         super(OceanSpatialAutoencoder, self).__init__()
         
-        self.register_buffer('input_mean', torch.zeros(1, 7, 1, 1))
-        self.register_buffer('input_std', torch.ones(1, 7, 1, 1))
+        # 12 Channels: 7 core + 2 Time (Sin/Cos) + 2 Space (Lat/Lon) + 1 Bathymetry
+        self.register_buffer('input_mean', torch.zeros(1, 12, 1, 1))
+        self.register_buffer('input_std', torch.ones(1, 12, 1, 1))
         self.register_buffer('target_mean', torch.zeros(1, 15, 1, 1))
         self.register_buffer('target_std', torch.ones(1, 15, 1, 1))
         
         self.encoder = nn.Sequential(
-            nn.Conv2d(7, 16, kernel_size=3, padding=1),
+            nn.Conv2d(12, 32, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
-            nn.ReLU()
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
         )
         
         self.attention = SpatialAttention()
         
-        self.embedding_layer = nn.Conv2d(32, 8, kernel_size=1) 
         self.decoder = nn.Sequential(
-            nn.Conv2d(8, 32, kernel_size=3, padding=1),
+            nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2),
             nn.ReLU(),
             nn.Conv2d(32, 15, kernel_size=3, padding=1)
         )
 
     def load_normalization_stats(self, json_path):
         if not os.path.exists(json_path):
-            logger.warning(f"No stats found at {json_path}. Model will use unscaled zeros (may cause poor inference!)")
             return
             
+        import json
         with open(json_path, 'r') as f:
             stats = json.load(f)
             
@@ -72,25 +74,73 @@ class OceanSpatialAutoencoder(nn.Module):
         
         self.target_mean.fill_(stats.get('thetao', {}).get('mean', 15.0))
         self.target_std.fill_(stats.get('thetao', {}).get('std', 10.0))
-        logger.info("Successfully injected mathematical normalization stats into model.")
         
     def forward(self, x):
         x_norm = (x - self.input_mean) / self.input_std
         features = self.encoder(x_norm)
-        embedding = self.embedding_layer(features)
-        out_norm = self.decoder(embedding)
+        features = self.attention(features)
+        out_norm = self.decoder(features)
         return (out_norm * self.target_std) + self.target_mean
 
+class OceanHybridTransformer(nn.Module):
+    def __init__(self):
+        super(OceanHybridTransformer, self).__init__()
+        
+        self.register_buffer('input_mean', torch.zeros(1, 12, 1, 1))
+        self.register_buffer('input_std', torch.ones(1, 12, 1, 1))
+        self.register_buffer('target_mean', torch.zeros(1, 15, 1, 1))
+        self.register_buffer('target_std', torch.ones(1, 15, 1, 1))
+        
+        self.cnn_encoder = nn.Sequential(
+            nn.Conv2d(12, 32, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2) 
+        )
+        
+        encoder_layer = nn.TransformerEncoderLayer(d_model=64, nhead=4, dim_feedforward=256, dropout=0.1, batch_first=True)
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        
+        self.attention = SpatialAttention()
+        
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(64, 32, kernel_size=2, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(32, 15, kernel_size=3, padding=1)
+        )
+
+    def load_normalization_stats(self, stats_path):
+        import json, torch
+        if not os.path.exists(stats_path): return
+        with open(stats_path, "r") as f:
+            stats = json.load(f)
+        self.input_mean = torch.tensor(stats['input_mean'], dtype=torch.float32).view(1, -1, 1, 1)
+        self.input_std = torch.tensor(stats['input_std'], dtype=torch.float32).view(1, -1, 1, 1)
+        self.target_mean = torch.tensor(stats['target_mean'], dtype=torch.float32).view(1, -1, 1, 1)
+        self.target_std = torch.tensor(stats['target_std'], dtype=torch.float32).view(1, -1, 1, 1)
+
+    def forward(self, x):
+        x_norm = (x - self.input_mean) / (self.input_std + 1e-8)
+        features = self.cnn_encoder(x_norm)
+        b, c, h, w = features.shape
+        flat_features = features.view(b, c, h * w).permute(0, 2, 1)
+        transformer_out = self.transformer(flat_features)
+        features = transformer_out.permute(0, 2, 1).view(b, c, h, w)
+        attended_features = self.attention(features)
+        out_norm = self.decoder(attended_features)
+        return (out_norm * self.target_std) + self.target_mean
 
 class InferenceService:
     def __init__(self):
         self.model = None
-        self.version = "OceanEmbed-v2.0 (PyTorch Deep Learning)"
+        self.version = "OceanEmbed-v6.0 Hybrid (CNN+ViT)"
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
         self._init_weights()
         
     def _init_weights(self):
-        self.model = OceanSpatialAutoencoder().to(self.device)
+        self.model = OceanHybridTransformer().to(self.device)
         # 1. Load the dynamic stats generated by the preprocessing pipeline
         self.model.load_normalization_stats(STATS_PATH)
         
@@ -98,7 +148,7 @@ class InferenceService:
         v4_path = Path(__file__).resolve().parents[3] / "deeplearning_engine" / "weights" / "oceanembed_hybrid_v4_full.pth"
         v3_path = Path(__file__).resolve().parents[3] / "deeplearning_engine" / "weights" / "oceanembed_hybrid_v3_7_channel.pth"
         
-        MODEL_PATH = v4_path if v4_path.exists() else v3_path
+        MODEL_PATH = Path(__file__).resolve().parents[3] / "deeplearning_engine" / "weights" / "oceanembed_v6_hybrid.pth"
         
         if not MODEL_PATH.exists():
             logger.warning(f"Model weights not found at {MODEL_PATH}. Waiting for user to run train_hybrid.py")
@@ -131,7 +181,16 @@ class InferenceService:
     def predict(self, sst: float, ssh: float, sss: float, lat: float, lon: float, date_str: str):
         if self.model:
             try:
-                input_tensor = torch.tensor([sst, sss, ssh, 0.0, 0.0, 0.0, 0.0], dtype=torch.float32).view(1, 7, 1, 1).expand(1, 7, 32, 32).to(self.device)
+                # Compute dynamic physics inputs
+                import pandas as pd
+                try:
+                    doy = pd.to_datetime(date_str).dayofyear
+                except:
+                    doy = 180
+                sin_t = math.sin(2 * math.pi * doy / 365.25)
+                cos_t = math.cos(2 * math.pi * doy / 365.25)
+                bathy_proxy = 0.5
+                input_tensor = torch.tensor([sst, sss, ssh, 0.0, 0.0, 0.0, 0.0, sin_t, cos_t, lat/90.0, lon/180.0, bathy_proxy], dtype=torch.float32).view(1, 12, 1, 1).expand(1, 12, 32, 32).to(self.device)
                 
                 # Add slight spatial noise so the Convolutional layers don't collapse on flat data
                 input_tensor = input_tensor + torch.randn_like(input_tensor) * 0.05
