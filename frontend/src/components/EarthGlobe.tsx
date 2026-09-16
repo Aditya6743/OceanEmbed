@@ -266,6 +266,8 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
     });
   };
 
+
+
   const handleClick = (e: any) => {
     if (e.delta > 2) return;
     e.stopPropagation();
@@ -281,11 +283,11 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
       useOceanStore.getState().setError("OUT OF BOUNDS", { x: e.clientX, y: e.clientY });
       targetQuaternionRef.current = new THREE.Quaternion().setFromEuler(new THREE.Euler(17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0));
-      setTimeout(() => { targetQuaternionRef.current = null; }, 1500);
+      setTimeout(() => { targetQuaternionRef.current = null; }, 1000);
       return;
     }
 
-    // 3. Exact Pixel Collision Detection for Landmass (Only inside the grid)
+    // 3. Exact Pixel Collision Detection for Landmass
     if (e.uv && landMaskRef.current) {
       const { data, width, height } = landMaskRef.current;
       const x = Math.floor(e.uv.x * width);
@@ -304,8 +306,9 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
       longitude: Number(lon.toFixed(2)),
       date: useOceanStore.getState().selectedDate || '2026-05-01',
       region: "INDIAN OCEAN"
-    });
+    }, { x: e.clientX, y: e.clientY });
   };
+
 
   const markerPosition = useMemo(() => {
     if (!selectedLocation) return null;
@@ -323,7 +326,7 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
       {showStars && <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />}
       
       {/* Main Earth Surface (Clean, No Heatmaps) */}
-      <Sphere 
+            <Sphere 
         args={[2, 128, 128]} 
         onClick={handleClick}
         onPointerEnter={() => document.body.style.cursor = 'crosshair'}

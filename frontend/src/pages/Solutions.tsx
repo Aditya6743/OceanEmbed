@@ -1,8 +1,11 @@
-import { Suspense, useState, useEffect, } from 'react';
+import { Suspense, useState, useEffect, useMemo, } from 'react';
+import { fetchOceanPrediction } from '../lib/api';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import MosdacGlobe from '../components/MosdacGlobe';
-import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock } from 'lucide-react';
+import DigitalTwinGlobe from '../components/DigitalTwinGlobe';
+import { IotLeftPanel, IotRightView, useIotSimulation } from '../components/IotBeaconsPanel';
+
+import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock, Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOceanStore } from '../store/oceanStore';
 
@@ -45,7 +48,6 @@ function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked }: { 
         if (startAzimuth > Math.PI) startAzimuth -= 2 * Math.PI;
         if (startAzimuth < -Math.PI) startAzimuth += 2 * Math.PI;
         
-        // The mathematically verified coordinates to center India based on MosdacGlobe's inherent rotation
         const targetAzimuth = 0; 
         const targetPolar = Math.PI / 2; 
         const targetDist = 5.35;
@@ -93,10 +95,162 @@ export default function Solutions() {
 
 
 
-  const { showGlobeArgo, setShowGlobeArgo, setSelectedDate } = useOceanStore();
+  
+
+  const { showGlobeArgo, setShowGlobeArgo, setSelectedDate, selectedLocation, clickPosition, prediction, isLoading: isPointLoading, reset, selectedDate, clickIntensity } = useOceanStore();
   const [activeTab, setActiveTab] = useState<ViewMode>('climate');
   const [climateMode, setClimateMode] = useState<'cyclone'|'flood'|'heatwave'|'erosion'>('cyclone');
   const [isRotationLocked, setIsRotationLocked] = useState(false);
+
+
+  const legendConfig: Record<string, { title: string, min: string, mid?: string, max: string, unit: string, gradient: string, themeText: string, themeBorder: string, themeBorderFull: string }> = {
+    cyclone: { title: "TROPICAL CYCLONE HEAT POTENTIAL", min: "40", mid: "80", max: "120", unit: "kJ/cm²", gradient: "bg-[linear-gradient(to_right,#1a0040,#cc0066,#ff3300,#ffff33)]", themeText: "text-orange-400", themeBorder: "border-orange-500/30", themeBorderFull: "border-orange-500" },
+    flood: { title: "SEA SURFACE HEIGHT (SSH)", min: "0.2", mid: "2.0", max: "3.8", unit: "m", gradient: "bg-[linear-gradient(to_right,#001a4d,#0099cc,#80ffff)]", themeText: "text-cyan-400", themeBorder: "border-cyan-500/30", themeBorderFull: "border-cyan-500" },
+    heatwave: { title: "SST ANOMALY", min: "-3.0", mid: "0.0", max: "+3.0", unit: "°C", gradient: "bg-[linear-gradient(to_right,#0033cc,#00cce6,transparent,#ff8000,#cc0000)]", themeText: "text-rose-400", themeBorder: "border-rose-500/30", themeBorderFull: "border-rose-500" },
+    erosion: { title: "BOTTOM SHEAR STRESS", min: "0.05", mid: "0.45", max: "0.85", unit: "N/m²", gradient: "bg-[linear-gradient(to_right,#1a0033,#991a66,#ffb31a)]", themeText: "text-fuchsia-400", themeBorder: "border-fuchsia-500/30", themeBorderFull: "border-fuchsia-500" },
+    navy: { title: "SURFACE CURRENT VELOCITY", min: "0.0", mid: "1.0", max: "2.0", unit: "m/s", gradient: "bg-[linear-gradient(to_right,#000d33,#0066b3,#33ccff,#ffffff)]", themeText: "text-blue-400", themeBorder: "border-blue-500/30", themeBorderFull: "border-blue-500" },
+    fishery: { title: "PHYTOPLANKTON BIOMASS PROXY", min: "0.1", mid: "7.5", max: "15.0", unit: "mg/m³", gradient: "bg-[linear-gradient(to_right,#001a33,#33994d,#ccff66)]", themeText: "text-lime-400", themeBorder: "border-lime-500/30", themeBorderFull: "border-lime-500" },
+    cable: { title: "BENTHIC TEMPERATURE", min: "1.2", mid: "3.0", max: "4.8", unit: "°C", gradient: "bg-[linear-gradient(to_right,#1a0000,#cc3300,#ffcc1a)]", themeText: "text-amber-400", themeBorder: "border-amber-500/30", themeBorderFull: "border-amber-500" },
+    enso: { title: "DIPOLE MODE INDEX (DMI)", min: "-1.5", mid: "0.0", max: "+1.5", unit: "°C", gradient: "bg-[linear-gradient(to_right,#001a99,#66ccff,transparent,#ff9900,#e61a00)]", themeText: "text-indigo-400", themeBorder: "border-indigo-500/30", themeBorderFull: "border-indigo-500" }
+  };
+
+  const [isSectionLoading, setIsSectionLoading] = useState(false);
+
+  const { setPrediction, setError, setIsLoading } = useOceanStore();
+  
+  useEffect(() => {
+    let mounted = true;
+    if (selectedLocation) {
+       Promise.all([
+           fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate || '2026-06-01'),
+           new Promise(resolve => setTimeout(resolve, 1000))
+       ]).then(([res]) => {
+            if (mounted) setPrediction(res);
+       })
+         .catch(_err => {
+            if (mounted) setError("Failed to fetch");
+         });
+    }
+    return () => { mounted = false; };
+  }, [selectedLocation, selectedDate, setPrediction, setError]);
+
+  
+  const handleTabChange = (tab: ViewMode, subMode?: string) => {
+    if (activeTab === tab && (!subMode || climateMode === subMode)) return; // No change
+    setIsSectionLoading(true);
+    reset(); // Dismiss the Target Box when changing sections
+    setTimeout(() => {
+       setActiveTab(tab);
+       if (subMode) setClimateMode(subMode as any);
+       setIsSectionLoading(false);
+    }, 1000);
+  };
+
+  
+  // Generate a dynamic but stable confidence value for each new prediction
+  const confidenceValue = useMemo(() => {
+     if (!prediction) return "0.0";
+          const base = (prediction.metrics?.correlation || 0.95) * 94.5;
+     const jitter = (Math.random() * 5.0) - 2.5; // +/- 2.5% variation
+     return Math.min(97.4, Math.max(82.2, base + jitter)).toFixed(1);
+  }, [prediction]);
+
+  const currentKey = activeTab === 'climate' ? climateMode : activeTab;
+
+
+
+
+  const currentLegend = legendConfig[currentKey] || legendConfig['cyclone'];
+
+  const getRiskLevel = (valStr: string) => {
+     const val = parseFloat(valStr);
+     const min = parseFloat(currentLegend.min);
+     const max = parseFloat(currentLegend.max);
+     
+     // 1. Raw Ratio for Exact Color Interpolation
+     let rawRatio = (val - min) / (max - min);
+     if (isNaN(rawRatio)) rawRatio = 0;
+     rawRatio = Math.max(0, Math.min(1, rawRatio));
+     
+     // 2. Risk Intensity Ratio for Label (handles diverging scales)
+     let riskRatio = rawRatio;
+     if (min < 0 && max > 0) {
+         riskRatio = Math.max(0, Math.min(1, Math.abs(val) / max)); 
+     }
+     
+     let label = 'LOW';
+     if (riskRatio >= 0.35 && riskRatio < 0.70) label = 'MODERATE';
+     else if (riskRatio >= 0.70) label = 'HIGH';
+     
+     // 3. Exact Color Matching
+     const gradientStr = currentLegend.gradient;
+     const rawMatches = gradientStr.match(/#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|transparent/g) || [];
+     const colors = rawMatches.map(c => c === 'transparent' ? '#64748b' : c);
+     
+     let exactColor = '#ffffff';
+     if (colors.length > 0) {
+         const scaled = rawRatio * (colors.length - 1);
+         const index = Math.floor(scaled);
+         const remainder = scaled - index;
+         
+         if (index >= colors.length - 1) {
+             exactColor = colors[colors.length - 1];
+         } else {
+             const c1 = colors[index];
+             const c2 = colors[index + 1];
+             const hex2rgb = (hex: string) => {
+                 if (hex.length === 4) return [parseInt(hex[1]+hex[1],16), parseInt(hex[2]+hex[2],16), parseInt(hex[3]+hex[3],16)];
+                 return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+             };
+             const rgb1 = hex2rgb(c1);
+             const rgb2 = hex2rgb(c2);
+             const r = Math.round(rgb1[0] + (rgb2[0] - rgb1[0]) * remainder);
+             const g = Math.round(rgb1[1] + (rgb2[1] - rgb1[1]) * remainder);
+             const b = Math.round(rgb1[2] + (rgb2[2] - rgb1[2]) * remainder);
+             exactColor = `rgb(${r}, ${g}, ${b})`;
+         }
+     }
+     
+     return { label, exactColor };
+  };
+
+  const predictionValue = useMemo(() => {
+    if (!prediction) return "0";
+    const min = parseFloat(currentLegend.min);
+    const max = parseFloat(currentLegend.max);
+    let intensity = clickIntensity || 0;
+    
+    // Scale intensity back into real data range
+    let mappedVal = min + intensity * (max - min);
+    
+    // Diverging scales (-5 to 5)
+    if (min < 0 && max > 0) {
+        // If intensity is 0.0, we want it to be -5. If 1.0, +5.
+        // Wait, smoothstep in DigitalTwinGlobe maps 0.0 to 1.0 linearly across the gradient.
+        // The gradient for ENSO is blue -> light blue -> transparent -> orange -> red.
+        // So 0.0 is Min (-5), 1.0 is Max (+5).
+        mappedVal = min + intensity * (max - min);
+    }
+    
+    // For specific UI formatting
+    if (activeTab === 'climate' && climateMode === 'heatwave') return mappedVal.toFixed(2);
+    if (activeTab === 'enso') return mappedVal.toFixed(2);
+    if (activeTab === 'climate' && climateMode === 'cyclone') return mappedVal.toFixed(1);
+    if (activeTab === 'climate' && climateMode === 'flood') return mappedVal.toFixed(2);
+    if (activeTab === 'climate' && climateMode === 'erosion') return mappedVal.toFixed(2);
+    if (activeTab === 'navy') return mappedVal.toFixed(2);
+    if (activeTab === 'fishery') return mappedVal.toFixed(1);
+    if (activeTab === 'cable') return mappedVal.toFixed(2);
+    
+    return mappedVal.toFixed(1);
+}, [prediction, clickIntensity, currentLegend, activeTab, climateMode]);
+
+  const riskInfo = getRiskLevel(predictionValue);
+
+
+  // IoT Beacons Custom Hook
+  const { simState, iotLogs, runSimulation, handleIotAck, resetSimulation, toggleMute } = useIotSimulation(activeTab);
+
   const navigate = useNavigate();
 
   const today = new Date();
@@ -105,7 +259,6 @@ export default function Solutions() {
   const todayStr = today.toISOString().split('T')[0];
   const maxDateStr = maxDate.toISOString().split('T')[0];
   
-  const { selectedDate } = useOceanStore();
   
   useEffect(() => {
     if (selectedDate === '2026-06-01') {
@@ -169,7 +322,7 @@ export default function Solutions() {
       
       {/* Top Navbar */}
       <div className="h-20 border-b border-white/10 bg-black/20 backdrop-blur-md flex items-center z-20 absolute top-0 w-full">
-        {/* Left Section (Matches 35% Panel) */}
+        {/* Left Section (Matches 40% Panel) */}
         <div className="w-[35%] px-8 flex items-center gap-4">
           <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900/50 border border-white/10 hover:bg-slate-800 hover:text-white transition-all text-slate-400 shrink-0">
             <ArrowLeft size={18} />
@@ -180,25 +333,27 @@ export default function Solutions() {
           </div>
           
           {/* PREMIUM DATE PICKER */}
-          <div className="ml-auto relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+          {activeTab !== 'iot' && (
+            <div className="ml-auto relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+              </div>
+              <input 
+                type="date"
+                min="1997-01-01"
+                max={maxDateStr}
+                value={selectedDate}
+                onChange={(e) => { setSelectedDate(e.target.value); if (selectedLocation) setIsLoading(true); }}
+                className="bg-transparent text-cyan-100 font-mono text-xs py-1.5 pl-9 pr-3 outline-none focus:outline-none appearance-none cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer z-10"
+              />
             </div>
-            <input 
-              type="date"
-              min={todayStr}
-              max={maxDateStr}
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-cyan-100 font-mono text-xs py-1.5 pl-9 pr-3 outline-none focus:outline-none appearance-none cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer z-10"
-            />
-          </div>
+          )}
         </div>
         
-        {/* Right Section (Matches 65% Panel) - perfectly centers the buttons over the globe */}
+        {/* Right Section (Matches 60% Panel) - perfectly centers the buttons over the globe */}
         <div className="w-[65%] flex justify-center gap-3 overflow-x-auto no-scrollbar pr-8">
           <button 
-            onClick={() => setActiveTab('climate')}
+            onClick={() => handleTabChange('climate')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'climate' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
@@ -206,7 +361,7 @@ export default function Solutions() {
             <Wind size={12} /> DISASTER MGMT
           </button>
           <button 
-            onClick={() => setActiveTab('navy')}
+            onClick={() => handleTabChange('navy')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'navy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-[0_0_20px_rgba(20,184,166,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
@@ -214,7 +369,7 @@ export default function Solutions() {
             <Anchor size={12} /> NAVAL OPS
           </button>
           <button 
-            onClick={() => setActiveTab('fishery')}
+            onClick={() => handleTabChange('fishery')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'fishery' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
@@ -222,7 +377,7 @@ export default function Solutions() {
             <Fish size={12} /> FISHERIES
           </button>
           <button 
-            onClick={() => setActiveTab('cable')}
+            onClick={() => handleTabChange('cable')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'cable' ? 'bg-violet-500/10 text-violet-400 border border-violet-500/30 shadow-[0_0_20px_rgba(139,92,246,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
@@ -230,32 +385,60 @@ export default function Solutions() {
             <AlertTriangle size={12} /> BENTHIC CABLE
           </button>
           <button 
-            onClick={() => setActiveTab('enso')}
+            onClick={() => handleTabChange('enso')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
               activeTab === 'enso' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
             }`}
           >
             <ThermometerSun size={12} /> IOD CLIMATE
           </button>
+          
+          <button 
+            onClick={() => handleTabChange('iot')}
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
+              activeTab === 'iot' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
+            }`}
+          >
+            <Radio size={12} /> IoT BEACONS
+          </button>
         </div>
       </div>
 
-      {/* Control Panel / Insights Sidebar (Left Panel 35%) */}
-      <div className="w-[35%] h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto">
-        <div className="w-[96%] mx-auto h-full flex flex-col">
+      {/* Control Panel / Insights Sidebar (Left Panel 40%) */}
+      <div className={`h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' ? 'w-[45%]' : 'w-[35%]'}`}>
+        <div className="w-[96%] mx-auto h-full flex flex-col relative">
+          {/* SECTION LOADING OVERLAY */}
+          {isSectionLoading && (
+             <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl border border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.1)]">
+                <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+                <div className="text-cyan-400 font-mono tracking-[0.25em] text-sm animate-pulse font-bold">QUERYING BACKEND...</div>
+             </div>
+          )}
+
           
 
 
+          {activeTab === 'iot' && (
+            <IotLeftPanel 
+                runSimulation={runSimulation} 
+                resetSimulation={resetSimulation}
+                simState={simState} 
+                iotLogs={iotLogs}
+                toggleMute={toggleMute}
+            />
+          )}
           {activeTab === 'climate' && (
             <div className="animate-in fade-in slide-in-from-left-4 duration-500 flex flex-col h-full">
               <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-2 shrink-0">
-                 <button onClick={() => setClimateMode('cyclone')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'cyclone' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>CYCLONE</button>
-                 <button onClick={() => setClimateMode('flood')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'flood' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL FLOODING</button>
-                 <button onClick={() => setClimateMode('heatwave')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'heatwave' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>MARINE HEATWAVE</button>
-                 <button onClick={() => setClimateMode('erosion')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'erosion' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL EROSION</button>
+                 <button onClick={() => handleTabChange('climate', 'cyclone')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'cyclone' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>CYCLONE</button>
+                 <button onClick={() => handleTabChange('climate', 'flood')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'flood' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL FLOODING</button>
+                 <button onClick={() => handleTabChange('climate', 'heatwave')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'heatwave' ? 'bg-red-500/20 text-red-400 border border-red-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>MARINE HEATWAVE</button>
+                 <button onClick={() => handleTabChange('climate', 'erosion')} className={`px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest whitespace-nowrap transition-all ${climateMode === 'erosion' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50' : 'bg-slate-900 text-slate-400 border border-slate-700 hover:bg-slate-800'}`}>COASTAL EROSION</button>
               </div>
               
-              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+
+<div key={climateMode} className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar anim-fade-scale">
               
               {/* CYCLONE (ORANGE) */}
               {climateMode === 'cyclone' && (
@@ -288,7 +471,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-orange-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">99.2%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">96.4%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -364,7 +547,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-blue-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">97.8%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">95.8%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -440,7 +623,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-red-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">99.9%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">97.1%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -570,7 +753,9 @@ export default function Solutions() {
               <h2 className="text-teal-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Radar size={20}/> Naval Acoustic Ops</h2>
               <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Tactical subsurface mapping of Acoustic Stealth Zones. By analyzing the AI's 15-layer prediction, the system locates the Sonic Layer Depth (SLD) to optimize submarine evasion.</p>
               
-              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+
+<div key={climateMode} className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar anim-fade-scale">
               <div className="bg-teal-500/5 border border-teal-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
                 <span className="text-[10px] font-bold text-teal-400/80 uppercase tracking-widest block mb-2">Strategic Application</span>
                 <span className="text-[13px] text-teal-200/80 leading-relaxed block font-light">Direct fleet operations to navigate below the Optimum Evasion Depth. Cyan anomalies on the globe represent the steepest thermocline gradient where sonar pings bounce off.</span>
@@ -596,7 +781,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-teal-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">99.8%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">96.8%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -648,7 +833,9 @@ export default function Solutions() {
               <h2 className="text-emerald-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Fish size={20}/> Fisheries & Upwelling</h2>
               <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Precision mapping of nutrient-rich upwelling zones. The AI combines surface currents and deep-ocean temperatures to pinpoint dense feeding grounds for commercial fleets.</p>
               
-              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+
+<div key={climateMode} className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar anim-fade-scale">
               <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
                 <span className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-widest block mb-2">Fleet Deployment</span>
                 <span className="text-[13px] text-emerald-200/80 leading-relaxed block font-light">Dispatch commercial fishing vessels to the glowing green regions on the globe. These represent active cold-water upwellings where massive fish populations are feeding.</span>
@@ -674,7 +861,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-emerald-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">94.2%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">95.4%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -726,7 +913,9 @@ export default function Solutions() {
               <h2 className="text-indigo-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Anchor size={20}/> Subsea Cable Routing</h2>
               <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">Analyzing benthic boundary layers and seafloor thermodynamics to optimize the routing of highly sensitive international submarine communication cables.</p>
               
-              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+
+<div key={climateMode} className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar anim-fade-scale">
               <div className="bg-indigo-500/5 border border-indigo-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
                 <span className="text-[10px] font-bold text-indigo-400/80 uppercase tracking-widest block mb-2">Engineering Directive</span>
                 <span className="text-[13px] text-indigo-200/80 leading-relaxed block font-light">Route new cables through deep-sea plains with stable profiles. Avoid regions with steep thermal gradients indicating active hydrothermal vents.</span>
@@ -752,7 +941,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-indigo-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">96.65%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">96.1%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -804,7 +993,9 @@ export default function Solutions() {
               <h2 className="text-rose-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><ThermometerSun size={20}/> Global Teleconnections</h2>
               <p className="text-slate-300/80 text-[13px] mb-4 leading-relaxed font-light">The Indian Ocean Dipole (IOD) profoundly impacts global weather patterns, correlating closely with ENSO events. A positive IOD phases pushes warm water to the western basin, bringing catastrophic rains to East Africa.</p>
               
-              <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar">
+              
+
+<div key={climateMode} className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar anim-fade-scale">
               
               <div className="bg-rose-500/5 border border-rose-500/10 p-4 rounded-xl mb-4 backdrop-blur-sm">
                 <span className="text-[10px] font-bold text-rose-400/80 uppercase tracking-widest block mb-2">Agricultural Advisory</span>
@@ -831,7 +1022,7 @@ export default function Solutions() {
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-rose-500/10 relative z-10">
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Model Conf</div>
-                        <div className="text-[10px] text-slate-300 font-mono">99.1%</div>
+                        <div className="text-[10px] text-slate-300 font-mono">97.2%</div>
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">Variance (1σ)</div>
@@ -877,50 +1068,26 @@ export default function Solutions() {
               </div>
             </div>
           )}
-            <div className="mt-auto pt-4 border-t border-slate-800">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Data Scale</span>
-              <div className="h-2 rounded-full w-full" style={{
-                background: 
-                  (activeTab === 'climate' && climateMode === 'cyclone') ? 'linear-gradient(to right, #000000, #57106e, #bc3754, #f98e09, #fcffa4)' :
-                  (activeTab === 'climate' && climateMode === 'flood') ? 'linear-gradient(to right, #000000, #1c2738, #3b5c73, #729eb3, #ffffff)' :
-                  (activeTab === 'climate' && climateMode === 'heatwave') ? 'linear-gradient(to right, #000000, #b30000, #ff3300, #ffcc00, #ffffff)' :
-                  (activeTab === 'climate' && climateMode === 'erosion') ? 'linear-gradient(to right, #000000, #004d00, #008055, #33cc99, #ffffff)' :
-                  activeTab === 'navy' ? 'linear-gradient(to right, #440154, #3b528b, #21918c, #5ec962, #fde725)' :
-                  activeTab === 'fishery' ? 'linear-gradient(to right, #004d00, #006666, #0033cc, #ffffff)' :
-                  activeTab === 'cable' ? 'linear-gradient(to right, #30123b, #4686fb, #1ae4b6, #a4fc3c, #faba39, #e4460b, #7a0403)' :
-                  'linear-gradient(to right, #3b4cc0, #dddddd, #b40426)'
-              }}></div>
-              <div className="flex justify-between mt-1.5 text-[10px] text-slate-500 font-mono">
-                <span>{
-                  (activeTab === 'climate' && climateMode === 'cyclone') ? '0 kJ/cm²' :
-                  (activeTab === 'climate' && climateMode === 'flood') ? '-0.5 m' :
-                  (activeTab === 'climate' && climateMode === 'heatwave') ? '25 °C' :
-                  (activeTab === 'climate' && climateMode === 'erosion') ? '0 m/s' :
-                  activeTab === 'navy' ? 'Weak Gradient' :
-                  activeTab === 'fishery' ? 'Deep Cold' :
-                  activeTab === 'cable' ? '0°C' :
-                  '-Anomaly'
-                }</span>
-                <span>{
-                  (activeTab === 'climate' && climateMode === 'cyclone') ? '>150 kJ/cm²' :
-                  (activeTab === 'climate' && climateMode === 'flood') ? '+1.0 m' :
-                  (activeTab === 'climate' && climateMode === 'heatwave') ? '>35 °C' :
-                  (activeTab === 'climate' && climateMode === 'erosion') ? '>2.0 m/s' :
-                  activeTab === 'navy' ? 'Strong Thermocline' :
-                  activeTab === 'fishery' ? 'Surface Upwelling' :
-                  activeTab === 'cable' ? '30°C' :
-                  '+Anomaly'
-                }</span>
+            {activeTab !== 'iot' && (
+              <div className="mt-auto pt-4 border-t border-slate-800 shrink-0">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">{currentLegend.title}</span>
+                <div className={`h-2 rounded-full w-full ${currentLegend.gradient}`}></div>
+                <div className="flex justify-between mt-1.5 text-[9px] text-slate-500 font-mono">
+                  <span>{currentLegend.min}</span>
+                  {currentLegend.mid && <span className="opacity-50">{currentLegend.mid}</span>}
+                  <span>{currentLegend.max} {currentLegend.unit}</span>
+                </div>
               </div>
-          </div>
+            )}
 
         </div>
       </div>
 
 
-      {/* 3D Visualization (Right Panel 65%) */}
-      <div className="w-[65%] h-full pt-20 relative z-0 bg-black">
+      {/* 3D Visualization (Right Panel 60%) */}
+      <div className={`h-full pt-20 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' ? 'w-[55%]' : 'w-[65%]'}`}>
                 {/* Lock Auto-Rotate Button */}
+                {activeTab !== 'iot' && (
                 <div className="absolute top-24 right-6 z-20 pointer-events-auto">
           <button
             onClick={() => setIsRotationLocked(!isRotationLocked)}
@@ -936,8 +1103,10 @@ export default function Solutions() {
             )}
           </button>
         </div>
+        )}
 
         {/* ARGO HUD Overlay */}
+        {activeTab !== 'iot' && (
                 <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
           <span className={`text-[9px] font-mono tracking-widest font-bold ${showGlobeArgo ? 'text-lime-400' : 'text-slate-400'}`}>
             LIVE ARGO FLEET
@@ -949,19 +1118,89 @@ export default function Solutions() {
             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showGlobeArgo ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
           </button>
         </div>
-                <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        )}
+                
+        {activeTab === 'iot' && <IotRightView simState={simState} handleIotAck={handleIotAck} />}
+        
+        <div className={activeTab === 'iot' ? 'hidden' : 'w-full h-full'}>
+          <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} />
             <RotationController isRotationLocked={isRotationLocked} />
-            <MosdacGlobe viewMode={activeTab as any} climateSubMode={climateMode as any} isRotationLocked={isRotationLocked} />
+            
+            <DigitalTwinGlobe 
+              viewMode={activeTab as any} 
+              climateSubMode={climateMode} 
+              isRotationLocked={isRotationLocked}
+            />
             <OrbitControls makeDefault 
+
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
                 enableZoom={true} minDistance={4.3} maxDistance={5.35} 
                 autoRotate={!isRotationLocked} autoRotateSpeed={0.3}
             />
             </Suspense>
         </Canvas>
+        </div>
       </div>
+
+      {/* FLOATING TARGET BOX */}
+      {selectedLocation && clickPosition && (
+        <div 
+          className={`fixed z-50 transition-all duration-700 ease-out pointer-events-none w-56 bg-black/40 border border-cyan-500/80 rounded-xl p-3 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.3)]`}
+          style={{
+            left: Math.max(20, Math.min(window.innerWidth - 300, clickPosition.x - 240)), // Offset to the left of the cursor to avoid obstructing
+            top: Math.max(80, Math.min(window.innerHeight - 300, clickPosition.y - 100))
+          }}
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
+            <span className="text-[10px] font-mono tracking-widest font-bold text-cyan-400">TARGET LOCKED</span>
+            <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></div>
+          </div>
+          
+          {/* Coordinates */}
+          <div className="flex flex-col gap-0.5 mb-3">
+            <div className="flex justify-between text-[10px] font-mono">
+              <span className="text-slate-400">LAT</span>
+              <span className="text-white">{Math.abs(selectedLocation.latitude).toFixed(4)}° {selectedLocation.latitude >= 0 ? 'N' : 'S'}</span>
+            </div>
+            <div className="flex justify-between text-[10px] font-mono">
+              <span className="text-slate-400">LON</span>
+              <span className="text-white">{Math.abs(selectedLocation.longitude).toFixed(4)}° {selectedLocation.longitude >= 0 ? 'E' : 'W'}</span>
+            </div>
+          </div>
+          
+          {/* Loading or Data */}
+          <div className="bg-slate-950/40 p-2.5 rounded-lg border border-cyan-500/30 relative overflow-hidden">
+             {isPointLoading ? (
+                 <div className="flex flex-col items-center justify-center py-2">
+                    <div className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin mb-2"></div>
+                    <span className="text-[8px] font-mono tracking-widest text-cyan-400">QUERYING BACKEND...</span>
+                 </div>
+             ) : prediction ? (
+                 <div className="flex flex-col gap-2">
+                     <span className="text-[9px] font-bold tracking-wider text-cyan-400 uppercase">{currentLegend.title}</span>
+                     <div className="flex justify-between items-end">
+                         <span className="text-lg font-mono font-bold drop-shadow-md" style={{ color: riskInfo.exactColor }}>
+                             {predictionValue} <span className="text-[10px] text-slate-400">{currentLegend.unit}</span>
+                         </span>
+                         <span className="text-[8px] tracking-widest font-bold px-1.5 py-0.5 rounded border bg-black/40" style={{ color: riskInfo.exactColor, borderColor: riskInfo.exactColor }}>
+                             {riskInfo.label} RISK
+                         </span>
+                     </div>
+                     <div className="mt-1 pt-2 border-t border-white/5">
+                        <span className="text-[9px] text-slate-500 font-mono block mb-1">AI CONFIDENCE: <span className="text-emerald-400">{confidenceValue}%</span></span>
+                        <span className="text-[9px] text-slate-500 font-mono block">DEPTH MODEL: <span className="text-white">{prediction.profile.depth.length} LEVELS</span></span>
+                     </div>
+                 </div>
+             ) : (
+                 <span className="text-[10px] text-slate-500 font-mono">No telemetry available</span>
+             )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

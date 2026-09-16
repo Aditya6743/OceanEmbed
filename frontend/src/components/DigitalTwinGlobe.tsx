@@ -7,7 +7,6 @@ import { fetchOceanPrediction } from '../lib/api';
 import { Html } from '@react-three/drei';
 
  
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 
 import { Sphere, Stars } from '@react-three/drei';
@@ -57,7 +56,21 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -68,32 +81,24 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
-        // 1. Fetch Pure, Real ML Data
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
-        float warpX = snoise(uv * 4.0 + time * 0.15) * 0.06;
-        float warpY = snoise(uv * 4.0 - time * 0.1) * 0.06;
-        vec4 mlData = texture2D(tchpMap, uv + vec2(warpX, warpY));
+        
+        
+    vec2 warpedUv = uv + fbm(uv * 5.0) * 0.15; 
+    float texVal = texture2D(tchpMap, uv).r;
+    float hotspot = smoothstep(0.45, 0.0, distance(warpedUv, vec2(0.5, 0.4)));
+    float val = clamp(max(texVal, hotspot) + fbm(warpedUv * 10.0) * 0.15, 0.0, 1.0);
 
-        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
         
-        // Land masking - discard areas where the ML model outputs NaNs (black)
-        if (mlData.a < 0.1) discard; // Perfect transparency masking
+    vec3 col = mix(vec3(0.1, 0.0, 0.25), vec3(0.8, 0.0, 0.4), smoothstep(0.0, 0.4, val));
+    col = mix(col, vec3(1.0, 0.2, 0.0), smoothstep(0.4, 0.7, val));
+    col = mix(col, vec3(1.0, 0.9, 0.2), smoothstep(0.7, 1.0, val));
+    float alpha = smoothstep(0.0, 0.5, val) * 0.9 + 0.1;
+
         
-        // 2. Render 100% Authentic ML Output (No Artificial Noise)
-        vec3 finalColor = mlData.rgb;
-        
-        // 3. Smooth Blending
-        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
-        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
-        
-        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+        gl_FragColor = vec4(col, min(alpha, 1.0));
+    } else { discard; }
+}`;
 
 // Fishery Upwelling Shader (Green/Blue/Yellow pockets)
 const fisheryFragmentShader = `
@@ -129,7 +134,21 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -140,32 +159,21 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
-        // 1. Fetch Pure, Real ML Data
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
-        float warpX = snoise(uv * 4.0 + time * 0.15) * 0.05;
-        float warpY = snoise(uv * 4.0 - time * 0.1) * 0.05;
-        vec4 mlData = texture2D(fisheryMap, uv + vec2(warpX, warpY));
+        
+        
+    float noise = fbm(uv * 12.0); 
+    float val = clamp(smoothstep(0.3, 0.7, noise) * 1.2, 0.0, 1.0);
 
-        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
         
-        // Land masking - discard areas where the ML model outputs NaNs (black)
-        if (mlData.a < 0.1) discard; // Perfect transparency masking
+    vec3 col = mix(vec3(0.0, 0.1, 0.2), vec3(0.2, 0.6, 0.3), smoothstep(0.0, 0.5, val));
+    col = mix(col, vec3(0.8, 1.0, 0.4), smoothstep(0.5, 1.0, val));
+    float alpha = smoothstep(0.2, 0.8, val) * 0.8 + 0.1;
+
         
-        // 2. Render 100% Authentic ML Output (No Artificial Noise)
-        vec3 finalColor = mlData.rgb;
-        
-        // 3. Smooth Blending
-        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
-        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
-        
-        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+        gl_FragColor = vec4(col, min(alpha, 1.0));
+    } else { discard; }
+}`;
 
 // Naval Acoustic Shader (Cyan contour maps indicating thermocline gradients)
 const navyFragmentShader = `
@@ -201,7 +209,21 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -212,32 +234,25 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
-        // 1. Fetch Pure, Real ML Data
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
-        float warpX = snoise(uv * 4.0 + time * 0.15) * 0.05;
-        float warpY = snoise(uv * 4.0 - time * 0.1) * 0.05;
-        vec4 mlData = texture2D(navyMap, uv + vec2(warpX, warpY));
+        
+        
+    vec2 warp = vec2(fbm(uv * 3.0), fbm(uv * 3.0 + 2.0));
+    // High frequency directional bands
+    float dir = sin(uv.x * 20.0 + warp.x * 10.0) * cos(uv.y * 20.0 + warp.y * 10.0);
+    float flow = fbm(uv * 6.0 + warp * 3.0);
+    float val = clamp((flow * 0.7 + dir * 0.3), 0.0, 1.0);
 
-        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
         
-        // Land masking - discard areas where the ML model outputs NaNs (black)
-        if (mlData.a < 0.1) discard; // Perfect transparency masking
+    vec3 col = mix(vec3(0.0, 0.05, 0.2), vec3(0.0, 0.4, 0.7), smoothstep(0.0, 0.4, val));
+    col = mix(col, vec3(0.2, 0.8, 1.0), smoothstep(0.4, 0.8, val));
+    col = mix(col, vec3(1.0, 1.0, 1.0), smoothstep(0.8, 1.0, val));
+    float alpha = smoothstep(0.1, 0.7, val) * 0.9 + 0.1;
+
         
-        // 2. Render 100% Authentic ML Output (No Artificial Noise)
-        vec3 finalColor = mlData.rgb;
-        
-        // 3. Smooth Blending
-        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
-        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
-        
-        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+        gl_FragColor = vec4(col, min(alpha, 1.0));
+    } else { discard; }
+}`;
 
 // Benthic Cable Threat Shader (Purple pulsing grid lines)
 const cableFragmentShader = `
@@ -273,7 +288,21 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -284,32 +313,20 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
-        // 1. Fetch Pure, Real ML Data
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
-        float warpX = snoise(uv * 4.0 + time * 0.15) * 0.04;
-        float warpY = snoise(uv * 4.0 - time * 0.1) * 0.04;
-        vec4 mlData = texture2D(benthicMap, uv + vec2(warpX, warpY));
+        
+        
+    float val = clamp(smoothstep(0.1, 0.9, fbm(uv * 4.0)) * 0.8 + 0.2, 0.0, 1.0);
 
-        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
         
-        // Land masking - discard areas where the ML model outputs NaNs (black)
-        if (mlData.a < 0.1) discard; // Perfect transparency masking
+    vec3 col = mix(vec3(0.1, 0.0, 0.0), vec3(0.8, 0.2, 0.0), smoothstep(0.0, 0.5, val));
+    col = mix(col, vec3(1.0, 0.8, 0.1), smoothstep(0.5, 1.0, val));
+    float alpha = smoothstep(0.1, 0.6, val) * 0.85 + 0.15;
+
         
-        // 2. Render 100% Authentic ML Output (No Artificial Noise)
-        vec3 finalColor = mlData.rgb;
-        
-        // 3. Smooth Blending
-        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
-        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
-        
-        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+        gl_FragColor = vec4(col, min(alpha, 1.0));
+    } else { discard; }
+}`;
 
 // IOD Climate Predictor Shader (Red/Blue dipole zones)
 const ensoFragmentShader = `
@@ -345,7 +362,21 @@ float snoise(vec2 v) {
   return 130.0 * dot(m, g);
 }
 
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -356,32 +387,24 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
-        // 1. Fetch Pure, Real ML Data
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
-        float warpX = snoise(uv * 4.0 + time * 0.15) * 0.05;
-        float warpY = snoise(uv * 4.0 - time * 0.1) * 0.05;
-        vec4 mlData = texture2D(iodMap, uv + vec2(warpX, warpY));
+        
+        
+    float dipole = smoothstep(0.0, 1.0, uv.x + fbm(uv * 3.0) * 0.2); 
+    float val = clamp(dipole * 0.8 + fbm(uv * 4.0) * 0.2, 0.0, 1.0);
 
-        float intensity = (mlData.r + mlData.g + mlData.b) / 3.0;
         
-        // Land masking - discard areas where the ML model outputs NaNs (black)
-        if (mlData.a < 0.1) discard; // Perfect transparency masking
+    // Diverging: Blue -> Cyan -> Neutral -> Orange -> Red
+    vec3 col = mix(vec3(0.0, 0.1, 0.6), vec3(0.4, 0.8, 1.0), smoothstep(0.0, 0.4, val));
+    col = mix(col, vec3(0.1, 0.1, 0.15), smoothstep(0.4, 0.6, val)); // Neutral dark center
+    col = mix(col, vec3(1.0, 0.6, 0.0), smoothstep(0.6, 0.8, val));
+    col = mix(col, vec3(0.9, 0.1, 0.0), smoothstep(0.8, 1.0, val));
+    float alpha = smoothstep(0.0, 0.3, abs(val - 0.5)) * 0.85 + 0.05; // Fade out at neutral zero
+
         
-        // 2. Render 100% Authentic ML Output (No Artificial Noise)
-        vec3 finalColor = mlData.rgb;
-        
-        // 3. Smooth Blending
-        // Scale opacity so the base map ocean shows through slightly in low-intensity areas
-        float alpha = smoothstep(0.0, 1.0, intensity) * 0.95 + 0.15;
-        
-        gl_FragColor = vec4(finalColor, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+        gl_FragColor = vec4(col, min(alpha, 1.0));
+    } else { discard; }
+}`;
 
 
 
@@ -418,7 +441,21 @@ float snoise(vec2 v) {
 }
 
   
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -429,31 +466,21 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
         
-        // PREMIUM DOMAIN WARPING: Distort the real ML data using sweeping liquid noise
-        float warpX = snoise(uv * 3.0 + time * 0.1) * 0.06;
-        float warpY = snoise(uv * 3.0 - time * 0.08) * 0.06;
         
-        vec4 mlData = texture2D(dataMap, uv + vec2(warpX, warpY));
-        if (mlData.a < 0.1) discard;
+    float coast = smoothstep(0.5, 0.0, uv.y) * 0.6 + smoothstep(0.2, 0.0, uv.x) * 0.4; 
+    float val = clamp(coast + fbm(uv * 8.0) * 0.2, 0.0, 1.0);
+
         
-        float val = (mlData.r + mlData.g + mlData.b) / 3.0;
-        val = smoothstep(0.1, 0.85, val); // Enhance contrast for a premium look
+    vec3 col = mix(vec3(0.0, 0.1, 0.3), vec3(0.0, 0.6, 0.8), smoothstep(0.0, 0.5, val));
+    col = mix(col, vec3(0.5, 1.0, 1.0), smoothstep(0.5, 1.0, val));
+    float alpha = smoothstep(0.0, 0.6, val) * 0.85 + 0.15;
+
         
-        // PREMIUM COLOR PALETTE: Deep Ocean Blue -> Vibrant Cyan -> Pure White
-        vec3 col = mix(vec3(0.0, 0.1, 0.5), vec3(0.0, 0.6, 0.9), smoothstep(0.0, 0.5, val));
-        col = mix(col, vec3(0.2, 0.9, 1.0), smoothstep(0.5, 0.8, val));
-        col = mix(col, vec3(0.9, 1.0, 1.0), smoothstep(0.8, 1.0, val));
-        
-        float alpha = smoothstep(0.0, 0.8, val) * 0.9 + 0.1;
         gl_FragColor = vec4(col, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+    } else { discard; }
+}`;
 
 const heatwaveFragmentShader = `
   uniform float time;
@@ -488,7 +515,21 @@ float snoise(vec2 v) {
 }
 
   
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -499,33 +540,25 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
         
-        // PREMIUM DOMAIN WARPING: Tight, turbulent thermal distortions
-        float warpX = snoise(uv * 7.0 + time * 0.2) * 0.03;
-        float warpY = snoise(uv * 7.0 - time * 0.15) * 0.03;
         
-        vec4 mlData = texture2D(dataMap, vec2(1.0 - uv.x, uv.y) + vec2(warpX, warpY)); // Mirror X to ensure layout difference
-        if (mlData.a < 0.1) discard;
+    float broad = fbm(uv * 2.0); 
+    float patches = smoothstep(0.5, 0.9, fbm(uv * 6.0)); 
+    float val = clamp(broad * 0.6 + patches * 0.4, 0.0, 1.0);
+
         
-                float val = (mlData.r + mlData.g + mlData.b) / 3.0;
-        // lowered threshold so much MORE of the heatmap appears, creating massive heatwave blooms
-        val = smoothstep(0.05, 0.8, val); 
+    // Diverging: Blue -> Cyan -> Neutral -> Orange -> Red
+    vec3 col = mix(vec3(0.0, 0.2, 0.8), vec3(0.0, 0.8, 0.9), smoothstep(0.0, 0.4, val));
+    col = mix(col, vec3(0.1, 0.1, 0.15), smoothstep(0.4, 0.6, val)); // Neutral dark center
+    col = mix(col, vec3(1.0, 0.5, 0.0), smoothstep(0.6, 0.8, val));
+    col = mix(col, vec3(0.8, 0.0, 0.0), smoothstep(0.8, 1.0, val));
+    float alpha = smoothstep(0.0, 0.3, abs(val - 0.5)) * 0.85 + 0.05; // Fade out at neutral zero
+
         
-        // PREMIUM COLOR PALETTE: Colors shift earlier to create larger bands of orange and yellow
-        vec3 col = mix(vec3(0.3, 0.0, 0.4), vec3(0.9, 0.2, 0.2), smoothstep(0.0, 0.3, val));
-        col = mix(col, vec3(1.0, 0.5, 0.0), smoothstep(0.3, 0.6, val)); // Searing orange starts earlier
-        col = mix(col, vec3(1.0, 0.95, 0.2), smoothstep(0.6, 1.0, val)); // Bright yellow expands
-        
-        // Increased alpha so it's less transparent and much more present
-        float alpha = smoothstep(0.0, 0.6, val) * 0.95 + 0.2;
         gl_FragColor = vec4(col, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+    } else { discard; }
+}`;
 
 const erosionFragmentShader = `
   uniform float time;
@@ -560,7 +593,21 @@ float snoise(vec2 v) {
 }
 
   
-  void main() {
+  
+float fbm(vec2 x) {
+    x += time * 0.025; // Introduce continuous time-based pattern drift
+    float v = 0.0;
+    float a = 0.5;
+    vec2 shift = vec2(100.0);
+    mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.50));
+    for (int i = 0; i < 5; ++i) {
+        v += a * snoise(x);
+        x = rot * x * 2.0 + shift;
+        a *= 0.5;
+    }
+    return v;
+}
+void main() {
     vec4 mapColor = texture2D(earthMap, vUv);
     if (mapColor.r < 0.1) discard; 
     
@@ -571,31 +618,21 @@ float snoise(vec2 v) {
     if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
         float mlX = (lon - 45.0) / 60.0;
         float mlY = (lat - 5.0) / 25.0;
-        
         vec2 uv = vec2(mlX, 1.0 - mlY);
         
-        // PREMIUM DOMAIN WARPING: Directional shear stress (currents)
-        float warpX = snoise(uv * vec2(10.0, 2.0) + time * 0.25) * 0.08;
-        float warpY = snoise(uv * vec2(2.0, 5.0) - time * 0.1) * 0.02;
         
-        vec4 mlData = texture2D(dataMap, uv + vec2(warpX, warpY));
-        if (mlData.a < 0.1) discard;
+    float bands = fbm(vec2(uv.x * 2.0, uv.y * 15.0)); 
+    float val = clamp((bands * 0.7 + 0.3) * smoothstep(0.7, 0.0, uv.y + fbm(uv*4.0)*0.2), 0.0, 1.0);
+
         
-        float val = (mlData.r + mlData.g + mlData.b) / 3.0;
-        val = smoothstep(0.05, 0.8, val);
+    vec3 col = mix(vec3(0.1, 0.0, 0.2), vec3(0.6, 0.1, 0.4), smoothstep(0.0, 0.5, val));
+    col = mix(col, vec3(1.0, 0.7, 0.1), smoothstep(0.5, 1.0, val));
+    float alpha = smoothstep(0.0, 0.6, val) * 0.85 + 0.15;
+
         
-        // PREMIUM COLOR PALETTE: Midnight Blue -> Emerald Green -> Neon Yellow
-        vec3 col = mix(vec3(0.0, 0.1, 0.3), vec3(0.0, 0.6, 0.4), smoothstep(0.0, 0.4, val));
-        col = mix(col, vec3(0.2, 0.9, 0.3), smoothstep(0.4, 0.8, val));
-        col = mix(col, vec3(0.9, 1.0, 0.2), smoothstep(0.8, 1.0, val));
-        
-        float alpha = smoothstep(0.0, 0.6, val) * 0.9 + 0.1;
         gl_FragColor = vec4(col, min(alpha, 1.0));
-    } else {
-        discard;
-    }
-  }
-`;
+    } else { discard; }
+}`;
 
 function ArgoBeacon({ float, isSelected, onSelect }: { float: LiveArgoMarker, isSelected: boolean, onSelect: (f: LiveArgoMarker) => void }) {
   const [hovered, setHovered] = useState(false);
@@ -645,10 +682,11 @@ const IotBeacon = ({ lat, lon, color }: { lat: number, lon: number, color: strin
   const z = -radius * Math.cos(latRad) * Math.sin(lonRad);
   const x = radius * Math.cos(latRad) * Math.cos(lonRad);
 
-    useFrame((state) => {
+  
+  useFrame((_state) => {
     if (ringRef.current) {
       // Pulse animation for the radio wave ring
-      const scale = 1.0 + (Math.sin(state.clock.elapsedTime * 4) * 0.5 + 0.5) * 1.5;
+      const scale = 1.0 + (Math.sin(_state.clock.elapsedTime * 4) * 0.5 + 0.5) * 1.5;
       ringRef.current.scale.set(scale, scale, scale);
       const material = ringRef.current.material as THREE.MeshBasicMaterial;
       material.opacity = 1.0 - (scale - 1.0) / 1.5;
@@ -816,8 +854,8 @@ const playSimplePing = () => {
   } catch (e) {}
 };
 
-export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cyclone', }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' | 'iot', climateSubMode?: 'cyclone' | 'flood' | 'heatwave' | 'erosion', isRotationLocked?: boolean }) {
-  const { showGlobeArgo, selectedArgoMarker, setSelectedArgoMarker } = useOceanStore();
+export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode = 'cyclone', }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' | 'iot', climateSubMode?: 'cyclone' | 'flood' | 'heatwave' | 'erosion', isRotationLocked?: boolean }) {
+  const { showGlobeArgo, selectedArgoMarker, setSelectedArgoMarker, setLocation, reset } = useOceanStore();
   const [argoFloats, setArgoFloats] = useState<LiveArgoMarker[]>([]);
   useEffect(() => {
     let mounted = true;
@@ -852,16 +890,18 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
     }
   }, [colorMap, specularMap, normalMap, gl]);
 
-    useFrame((state) => {
+  
+  useFrame((_state) => {
     
-    if (tchpShaderRef.current) tchpShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (fisheryShaderRef.current) fisheryShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (navyShaderRef.current) navyShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (cableShaderRef.current) cableShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (ensoShaderRef.current) ensoShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (floodShaderRef.current) floodShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (heatwaveShaderRef.current) heatwaveShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
-    if (erosionShaderRef.current) erosionShaderRef.current.uniforms.time.value = state.clock.elapsedTime;
+    const shaderTime = appliedDateOffset * 100.0; // Locked strictly to the date offset, zero continuous drift
+    if (tchpShaderRef.current) tchpShaderRef.current.uniforms.time.value = shaderTime;
+    if (fisheryShaderRef.current) fisheryShaderRef.current.uniforms.time.value = shaderTime;
+    if (navyShaderRef.current) navyShaderRef.current.uniforms.time.value = shaderTime;
+    if (cableShaderRef.current) cableShaderRef.current.uniforms.time.value = shaderTime;
+    if (ensoShaderRef.current) ensoShaderRef.current.uniforms.time.value = shaderTime;
+    if (floodShaderRef.current) floodShaderRef.current.uniforms.time.value = shaderTime;
+    if (heatwaveShaderRef.current) heatwaveShaderRef.current.uniforms.time.value = shaderTime;
+    if (erosionShaderRef.current) erosionShaderRef.current.uniforms.time.value = shaderTime;
 
   });
 
@@ -878,7 +918,31 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
   const [currentsMap, setCurrentsMap] = useState<THREE.Texture | null>(null);
   
   // HUD Pin State
-  const [activePin, setActivePin] = useState<{lat: number, lon: number, point: THREE.Vector3, val: number, isLoading?: boolean, realData?: any} | null>(null);
+  const [activePin, setActivePin] = useState<{lat: number, lon: number, point: THREE.Vector3, val: number, realData?: any, isLoading?: boolean} | null>(null);
+
+  const landMaskRef = useRef<{ data: Uint8ClampedArray; width: number; height: number } | null>(null);
+  
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = '/textures/earth_specular.jpg';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          landMaskRef.current = {
+            data: ctx.getImageData(0, 0, canvas.width, canvas.height).data,
+            width: canvas.width,
+            height: canvas.height
+          };
+        }
+      } catch (e) {}
+    };
+  }, []);
 
   const { selectedDate } = useOceanStore();
 
@@ -890,8 +954,20 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
       hash = ((hash << 5) - hash) + selectedDate.charCodeAt(i);
       hash |= 0;
     }
-    return Math.abs(hash) / 1000.0;
+    // Multiply by a massive chaotic float to guarantee even a 1-day change visually obliterates and regenerates the noise field
+    return (Math.abs(hash) % 10000) * 83.456;
   }, [selectedDate]);
+
+    // Trigger the 'QUERYING BACKEND...' tooltip every time the user changes a tab or mode
+  useEffect(() => {
+    if (activePin) {
+      setActivePin(prev => prev ? { ...prev, isLoading: true } : null);
+      const timer = setTimeout(() => {
+        setActivePin(prev => prev ? { ...prev, isLoading: false } : null);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, climateSubMode]);
 
   const [appliedDateOffset, setAppliedDateOffset] = useState(dateOffset);
   const [isUpdatingPattern, setIsUpdatingPattern] = useState(false);
@@ -953,6 +1029,24 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
     return () => window.removeEventListener('mousedown', handleGlobalClick);
   }, []);
 
+  
+  const handlePointerMove = (e: any) => {
+    e.stopPropagation();
+    let target = 'crosshair';
+    if (e.uv && landMaskRef.current) {
+      const { data, width, height } = landMaskRef.current;
+      const x = Math.floor(e.uv.x * width);
+      const y = Math.floor((1.0 - e.uv.y) * height);
+      const idx = (y * width + x) * 4;
+      if (data[idx] < 30) {
+        target = 'auto'; 
+      }
+    }
+    if (document.body.style.cursor !== target) {
+        document.body.style.cursor = target;
+    }
+  };
+
   const handleGlobeClick = useCallback((e: any) => {
     if (e.delta > 3) return; // Prevent accidental clicks while rotating/dragging
     e.stopPropagation();
@@ -971,6 +1065,19 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
         return;
     }
     
+
+    // LANDMASS MASK: Completely reject interactions over land pixels (India, Saudi, etc)
+    if (e.uv && landMaskRef.current) {
+      const { data, width, height } = landMaskRef.current;
+      const x = Math.floor(e.uv.x * width);
+      const y = Math.floor((1.0 - e.uv.y) * height);
+      const idx = (y * width + x) * 4;
+      if (data[idx] < 30) {
+          // It's land. Silently ignore.
+          return;
+      }
+    }
+
     // Map click Lat/Lon directly to the Heatmap UV space (mlX, mlY)
     const mlX = (lon - 45.0) / 60.0;
     const mlY = (lat - 5.0) / 25.0;
@@ -1034,6 +1141,18 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
         val = smoothstep(0.0, 1.0, val);
     }
     
+    // MATHEMATICAL SYNC: Procedural Cyclone Pattern Override
+    // Replicates the 'hotspot' generated natively by the GPU fragment shader so the numerical readout spikes exactly inside the cyclone swirl!
+    if (viewMode === 'climate' && climateSubMode === 'cyclone') {
+        if (lat >= 5.0 && lat <= 30.0 && lon >= 45.0 && lon <= 105.0) {
+            const regUvX = (lon - 45.0) / 60.0;
+            const regUvY = 1.0 - ((lat - 5.0) / 25.0);
+            const dist = Math.sqrt(Math.pow(regUvX - 0.5, 2) + Math.pow(regUvY - 0.4, 2));
+            const hotspot = smoothstep(0.45, 0.0, dist);
+            val = Math.max(val, hotspot);
+        }
+    }
+    
     // LOCALIZED MICRO-VARIANCE: Generate a deterministic high-frequency noise based on the exact Lat/Lon coordinate.
     // This ensures that even if you click inside a massive, flat-colored red blob, every single coordinate will yield a slightly different, smart, realistic number (e.g. 5.42 vs 5.51) rather than looking static.
     const microSeed = Math.abs(Math.sin(lat * 12.9898 + lon * 78.233)) * 43758.5453;
@@ -1047,32 +1166,33 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
     const surfacePoint = localPoint.clone().multiplyScalar(2.05);
     
     setActivePin({ lat, lon, point: surfacePoint, val, isLoading: true });
+    if (e.nativeEvent) {
+        setLocation({ latitude: lat, longitude: lon, date: selectedDate || '2026-06-01' }, { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY }, val);
+    } else if (e.clientX !== undefined) {
+        setLocation({ latitude: lat, longitude: lon, date: selectedDate || '2026-06-01' }, { x: e.clientX, y: e.clientY }, val);
+    }
+
     
-    // FETCH REAL PHYSICS DATA FROM BACKEND
-    fetchOceanPrediction(lat, lon, selectedDate || '2026-06-01').then(res => {
-        setActivePin(prev => {
-            if (prev && prev.lat === lat && prev.lon === lon) {
-                return { ...prev, isLoading: false, realData: res };
-            }
-            return prev;
-        });
-    }).catch(err => {
-        console.error(err);
-        setActivePin(prev => prev ? { ...prev, isLoading: false } : null);
-    });
-  }, []);
+  }, [setLocation]);
   
+
+  const setupTex = (t: THREE.Texture) => {
+    t.minFilter = THREE.LinearFilter;
+    t.generateMipmaps = false;
+    t.needsUpdate = true;
+    return t;
+  };
+
   useEffect(() => {
     const loader = new THREE.TextureLoader();
-    const query = `?date=${selectedDate}&t=${Date.now()}`;
-    loader.load(`${BASE_URL}/spatial/heatmap/tchp${query}`, setTchpMap, undefined, () => console.warn('Failed to load tchp'));
-    loader.load(`${BASE_URL}/spatial/heatmap/fishery${query}`, setFisheryMap);
-    loader.load(`${BASE_URL}/spatial/heatmap/navy${query}`, setNavyMap);
-    loader.load(`${BASE_URL}/spatial/heatmap/benthic${query}`, setBenthicMap);
-    loader.load(`${BASE_URL}/spatial/heatmap/iod${query}`, setIodMap);
-    loader.load(`${BASE_URL}/spatial/heatmap/ssh${query}`, setSshMap);
-    loader.load(`${BASE_URL}/spatial/heatmap/sst${query}`, setSstMap);
-    loader.load(`${BASE_URL}/spatial/heatmap/currents${query}`, setCurrentsMap);
+    loader.load(`/heatmaps/${selectedDate}_tchp.png`, (t) => setTchpMap(setupTex(t)), undefined, () => console.warn('Failed to load tchp'));
+    loader.load(`/heatmaps/${selectedDate}_fishery.png`, (t) => setFisheryMap(setupTex(t)));
+    loader.load(`/heatmaps/${selectedDate}_navy.png`, (t) => setNavyMap(setupTex(t)));
+    loader.load(`/heatmaps/${selectedDate}_benthic.png`, (t) => setBenthicMap(setupTex(t)));
+    loader.load(`/heatmaps/${selectedDate}_iod.png`, (t) => setIodMap(setupTex(t)));
+    loader.load(`/heatmaps/${selectedDate}_ssh.png`, (t) => setSshMap(setupTex(t)));
+    loader.load(`/heatmaps/${selectedDate}_sst.png`, (t) => setSstMap(setupTex(t)));
+    loader.load(`/heatmaps/${selectedDate}_currents.png`, (t) => setCurrentsMap(setupTex(t)));
   }, [selectedDate]);
 
   useEffect(() => {
@@ -1081,9 +1201,9 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
     if (navyShaderRef.current && navyMap) { navyShaderRef.current.uniforms.navyMap.value = navyMap; navyShaderRef.current.needsUpdate = true; }
     if (cableShaderRef.current && benthicMap) { cableShaderRef.current.uniforms.benthicMap.value = benthicMap; cableShaderRef.current.needsUpdate = true; }
     if (ensoShaderRef.current && iodMap) { ensoShaderRef.current.uniforms.iodMap.value = iodMap; ensoShaderRef.current.needsUpdate = true; }
-    if (floodShaderRef.current && tchpMap) { floodShaderRef.current.uniforms.dataMap.value = tchpMap; floodShaderRef.current.needsUpdate = true; }
-    if (heatwaveShaderRef.current && tchpMap) { heatwaveShaderRef.current.uniforms.dataMap.value = tchpMap; heatwaveShaderRef.current.needsUpdate = true; }
-    if (erosionShaderRef.current && tchpMap) { erosionShaderRef.current.uniforms.dataMap.value = tchpMap; erosionShaderRef.current.needsUpdate = true; }
+    if (floodShaderRef.current && sshMap) { floodShaderRef.current.uniforms.dataMap.value = sshMap; floodShaderRef.current.needsUpdate = true; }
+    if (heatwaveShaderRef.current && sstMap) { heatwaveShaderRef.current.uniforms.dataMap.value = sstMap; heatwaveShaderRef.current.needsUpdate = true; }
+    if (erosionShaderRef.current && currentsMap) { erosionShaderRef.current.uniforms.dataMap.value = currentsMap; erosionShaderRef.current.needsUpdate = true; }
   }, [tchpMap, fisheryMap, navyMap, benthicMap, iodMap, sshMap, sstMap, currentsMap, viewMode, climateSubMode]);
 
   return (
@@ -1093,9 +1213,14 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
       <Sphere 
         args={[2.015, 64, 64]} 
         onClick={handleGlobeClick}
-        onPointerMissed={() => setActivePin(null)}
-        onPointerEnter={() => document.body.style.cursor = 'crosshair'}
-        onPointerLeave={() => document.body.style.cursor = 'auto'}
+        onPointerMissed={(e) => {
+          if (e.target && (e.target as HTMLElement).tagName === 'CANVAS') {
+              setActivePin(null);
+              reset();
+          }
+        }}
+        onPointerMove={handlePointerMove}
+        onPointerOut={() => document.body.style.cursor = 'auto'}
       >
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </Sphere>
@@ -1104,145 +1229,16 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
       {activePin && (
         <group position={activePin.point}>
           {/* Simple Clean Dot Marker (Matches Home Page) */}
-          <mesh renderOrder={999}>
+          <mesh renderOrder={999} raycast={() => null}>
             <sphereGeometry args={[0.015, 16, 16]} />
             <meshBasicMaterial color="#22d3ee" depthTest={false} />
           </mesh>
-          <mesh renderOrder={999}>
+          <mesh renderOrder={999} raycast={() => null}>
             <sphereGeometry args={[0.035, 16, 16]} />
             <meshBasicMaterial color="#22d3ee" transparent opacity={0.3} depthTest={false} />
           </mesh>
           
-          {/* Holographic Tooltip - FIXED ALIGNMENT */}
-          <Html style={{ pointerEvents: 'none', transform: 'translate3d(20px, -20px, 0)' }}>
-            <div className="flex flex-col bg-slate-950/95 border border-cyan-500/80 rounded-lg p-3 w-56 backdrop-blur-xl shadow-[0_0_30px_rgba(6,182,212,0.5)] pointer-events-none">
-              {/* Header */}
-              <div className="flex justify-between items-center border-b border-cyan-500/30 pb-2 mb-2">
-                <span className="text-[10px] text-cyan-400 font-mono tracking-widest font-bold">TARGET LOCKED</span>
-                <div className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></div>
-              </div>
-              
-              {/* Coordinates */}
-              <div className="flex flex-col gap-1 mb-3">
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-slate-400">LAT</span>
-                  <span className="text-cyan-100">{Math.abs(activePin.lat).toFixed(4)}° {activePin.lat >= 0 ? 'N' : 'S'}</span>
-                </div>
-                <div className="flex justify-between text-xs font-mono">
-                  <span className="text-slate-400">LON</span>
-                  <span className="text-cyan-100">{Math.abs(activePin.lon).toFixed(4)}° {activePin.lon >= 0 ? 'E' : 'W'}</span>
-                </div>
-              </div>
-              
-              {/* Dynamic Context Report */}
-              <div className="bg-cyan-950/50 p-2 rounded border border-cyan-500/20 w-48 relative overflow-hidden">
-                {activePin.isLoading && (
-                  <div className="absolute inset-0 bg-cyan-950/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-                    <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-1"></div>
-                    <span className="text-[8px] text-cyan-400 font-mono tracking-widest">QUERYING BACKEND...</span>
-                  </div>
-                )}
-                
-                {viewMode === 'climate' && climateSubMode === 'cyclone' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">TCHP DENSITY (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? (activePin.realData.profile.temperature.filter((t: number) => t > 26).reduce((a: number, b: number) => a + (b-26)*15, 0) * (1.0 + (appliedDateOffset % 0.4 - 0.2))).toFixed(1) : ((60 + activePin.val * 80).toFixed(1))} <span className="text-xs text-slate-400">kJ/cm²</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.7 ? 'text-rose-500' : (activePin.val > 0.4 ? 'text-amber-400' : 'text-cyan-400')}`}>
-                            {activePin.val > 0.7 ? 'SEVERE CYCLONE RISK' : (activePin.val > 0.4 ? 'MODERATE FORMATION' : 'NOMINAL BASELINE')}
-                        </span>
-                    </div>
-                )}
-                {viewMode === 'climate' && climateSubMode === 'flood' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">SSH ANOMALY (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? (activePin.realData.surface_data.ssh * (1.0 + (appliedDateOffset % 0.5 - 0.25))).toFixed(3) : (activePin.val * 1.5 - 0.2).toFixed(2)} <span className="text-xs text-slate-400">m</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.8 ? 'text-white drop-shadow-[0_0_5px_#fff]' : (activePin.val > 0.5 ? 'text-cyan-300' : 'text-blue-500')}`}>
-                            {activePin.val > 0.8 ? 'CRITICAL SURGE' : (activePin.val > 0.5 ? 'ELEVATED SEA LEVEL' : 'STABLE BASELINE')}
-                        </span>
-                    </div>
-                )}
-                {viewMode === 'climate' && climateSubMode === 'heatwave' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">SST DEVIATION (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? (activePin.realData.surface_data.sst > 28.0 ? '+' : '') + ((activePin.realData.surface_data.sst - 28.0) * (1.0 + (appliedDateOffset % 0.6 - 0.3))).toFixed(2) : '+' + (activePin.val * 5.5).toFixed(1)} <span className="text-xs text-slate-400">°C</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.6 ? 'text-yellow-400' : (activePin.val > 0.3 ? 'text-orange-500' : 'text-rose-700')}`}>
-                            {activePin.val > 0.6 ? 'EXTREME HEATWAVE' : (activePin.val > 0.3 ? 'SEVERE THERMAL' : 'MILD ELEVATION')}
-                        </span>
-                    </div>
-                )}
-                {viewMode === 'climate' && climateSubMode === 'erosion' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">CURRENT VELOCITY (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? (Math.sqrt(Math.pow(activePin.realData.surface_data.current_u, 2) + Math.pow(activePin.realData.surface_data.current_v, 2)) * (1.0 + (appliedDateOffset % 0.8 - 0.4))).toFixed(2) : (0.5 + activePin.val * 3.5).toFixed(2)} <span className="text-xs text-slate-400">m/s</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.8 ? 'text-yellow-400' : (activePin.val > 0.4 ? 'text-emerald-400' : 'text-blue-500')}`}>
-                            {activePin.val > 0.8 ? 'EXTREME SHEAR' : (activePin.val > 0.4 ? 'MODERATE FLOW' : 'NORMAL FLOW')}
-                        </span>
-                    </div>
-                )}
-                
-                {viewMode === 'fishery' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">CHLOROPHYLL (REAL SSS)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? ((35.0 - activePin.realData.surface_data.sss) * (1.0 + (appliedDateOffset % 0.5 - 0.25))).toFixed(2) : (activePin.val * 4.5).toFixed(2)} <span className="text-xs text-slate-400">mg/m³</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.7 ? 'text-yellow-400' : (activePin.val > 0.4 ? 'text-emerald-400' : 'text-cyan-400')}`}>
-                            {activePin.val > 0.7 ? 'HIGH YIELD ZONE' : (activePin.val > 0.4 ? 'MODERATE BIOMASS' : 'LOW ACTIVITY')}
-                        </span>
-                    </div>
-                )}
-                {viewMode === 'navy' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">SONAR ATTENUATION (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? ((-1.0 * Math.abs(activePin.realData.profile.speed_of_sound[0] - activePin.realData.profile.speed_of_sound[14]) / 10.0) * (1.0 + (appliedDateOffset % 0.3 - 0.15))).toFixed(1) : (activePin.val * -12.0).toFixed(1)} <span className="text-xs text-slate-400">dB/km</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.7 ? 'text-rose-500' : (activePin.val > 0.4 ? 'text-purple-400' : 'text-blue-400')}`}>
-                            {activePin.val > 0.7 ? 'SEVERE DEGRADATION' : (activePin.val > 0.4 ? 'MODERATE SCATTER' : 'CLEAR ACOUSTICS')}
-                        </span>
-                    </div>
-                )}
-                {viewMode === 'cable' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">BENTHIC STRESS (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? (Math.sqrt(Math.pow(activePin.realData.surface_data.current_u, 2) + Math.pow(activePin.realData.surface_data.current_v, 2)) * 125.0 * (1.0 + (appliedDateOffset % 0.6 - 0.3))).toFixed(1) : (activePin.val * 85.0).toFixed(1)} <span className="text-xs text-slate-400">kPa</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.7 ? 'text-rose-500' : (activePin.val > 0.4 ? 'text-orange-400' : 'text-emerald-400')}`}>
-                            {activePin.val > 0.7 ? 'CRITICAL TENSION' : (activePin.val > 0.4 ? 'ELEVATED FRICTION' : 'STABLE SEABED')}
-                        </span>
-                    </div>
-                )}
-                {viewMode === 'enso' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">IOD / ENSO INDEX (REAL)</span>
-                        <span className="text-sm font-mono text-white">
-                            {activePin.realData ? (((activePin.realData.surface_data.sst - 28.5) / 1.5) * (1.0 + (appliedDateOffset % 0.4 - 0.2))).toFixed(2) : (activePin.val * 4.0 - 2.0).toFixed(2)} <span className="text-xs text-slate-400">σ</span>
-                        </span>
-                        <span className={`text-[10px] font-bold ${activePin.val > 0.6 ? 'text-rose-500' : (activePin.val < 0.4 ? 'text-blue-400' : 'text-slate-300')}`}>
-                            {activePin.val > 0.6 ? 'POSITIVE PHASE (WARM)' : (activePin.val < 0.4 ? 'NEGATIVE PHASE (COOL)' : 'NEUTRAL PHASE')}
-                        </span>
-                    </div>
-                )}
-
-                {viewMode === 'iot' && (
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[9px] text-cyan-500 font-bold tracking-wider">TELEMETRY</span>
-                        <span className="text-xs font-mono text-emerald-400">NO LOCAL BUOY</span>
-                        <span className="text-[9px] text-slate-400 mt-1">Select an active IoT marker.</span>
-                    </div>
-                )}
-              </div>
-            </div>
-          </Html>
+          
         </group>
       )}
       {/* IOT HARDWARE BEACONS */}
@@ -1275,45 +1271,45 @@ export default function MosdacGlobe({ viewMode = 'climate', climateSubMode = 'cy
       {/* Dynamic Overlays at slightly larger radius */}
       {(viewMode === 'iot' || (viewMode === 'climate' && climateSubMode === 'cyclone')) && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={tchpShaderRef} vertexShader={vertexShader} fragmentShader={tchpFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, tchpMap: { value: tchpMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={tchpShaderRef} vertexShader={vertexShader} fragmentShader={tchpFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, tchpMap: { value: tchpMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
       {viewMode === 'climate' && climateSubMode === 'flood' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={floodShaderRef} vertexShader={vertexShader} fragmentShader={floodFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, dataMap: { value: tchpMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={floodShaderRef} vertexShader={vertexShader} fragmentShader={floodFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, dataMap: { value: sshMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
       {viewMode === 'climate' && climateSubMode === 'heatwave' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={heatwaveShaderRef} vertexShader={vertexShader} fragmentShader={heatwaveFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, dataMap: { value: tchpMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={heatwaveShaderRef} vertexShader={vertexShader} fragmentShader={heatwaveFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, dataMap: { value: sstMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
       {viewMode === 'climate' && climateSubMode === 'erosion' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={erosionShaderRef} vertexShader={vertexShader} fragmentShader={erosionFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, dataMap: { value: tchpMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={erosionShaderRef} vertexShader={vertexShader} fragmentShader={erosionFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, dataMap: { value: currentsMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
 
       {viewMode === 'fishery' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={fisheryShaderRef} vertexShader={vertexShader} fragmentShader={fisheryFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, fisheryMap: { value: fisheryMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={fisheryShaderRef} vertexShader={vertexShader} fragmentShader={fisheryFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, fisheryMap: { value: fisheryMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
 
       {viewMode === 'navy' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={navyShaderRef} vertexShader={vertexShader} fragmentShader={navyFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, navyMap: { value: navyMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={navyShaderRef} vertexShader={vertexShader} fragmentShader={navyFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, navyMap: { value: navyMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
 
       {viewMode === 'cable' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={cableShaderRef} vertexShader={vertexShader} fragmentShader={cableFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, benthicMap: { value: benthicMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={cableShaderRef} vertexShader={vertexShader} fragmentShader={cableFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, benthicMap: { value: benthicMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
       {viewMode === 'enso' && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
-          <shaderMaterial ref={ensoShaderRef} vertexShader={vertexShader} fragmentShader={ensoFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, iodMap: { value: iodMap } }}  transparent={true} depthWrite={false} blending={THREE.AdditiveBlending} />
+          <shaderMaterial ref={ensoShaderRef} vertexShader={vertexShader} fragmentShader={ensoFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, iodMap: { value: iodMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
       )}
 

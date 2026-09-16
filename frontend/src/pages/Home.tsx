@@ -115,13 +115,13 @@ export default function Home() {
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               {/* Heading with extreme tightness and OCEAN. as cyan accent */}
-              <h1 className="text-6xl md:text-7xl lg:text-[80px] font-black tracking-tighter text-white mb-7 leading-[0.85] drop-shadow-2xl flex flex-col">
+              <h1 className="text-6xl md:text-7xl lg:text-[80px] font-black tracking-tighter text-white mb-7 leading-[0.85] drop-shadow-2xl flex flex-col stagger-1">
                 <span>RECONSTRUCTING</span>
                 <span>THE HIDDEN</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">OCEAN.</span>
               </h1>
               
-              <p className="text-lg md:text-xl text-white/80 font-light mb-10 leading-relaxed drop-shadow-lg">
+              <p className="text-lg md:text-xl text-white/80 font-light mb-10 leading-relaxed drop-shadow-lg stagger-2">
                 OceanEmbed uses Deep Learning to reconstruct the 3D thermodynamic volume of the North Indian Ocean directly from <span className="text-white font-medium">surface satellite telemetry.</span>
               </p>
             </motion.div>
@@ -131,7 +131,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-              className="flex items-center gap-4 mb-14 pointer-events-auto"
+              className="flex items-center gap-4 mb-14 pointer-events-auto stagger-3"
             >
               <button 
                 onClick={handleExplore}
@@ -149,7 +149,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-              className="w-full bg-black/40 border border-white/10 rounded-sm p-6 backdrop-blur-md shadow-2xl relative overflow-hidden pointer-events-auto"
+              className="w-full bg-black/40 border border-white/10 rounded-sm p-6 backdrop-blur-md shadow-2xl relative overflow-hidden pointer-events-auto stagger-4"
             >
               {/* Subtle edge highlight */}
               <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/50"></div>

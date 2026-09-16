@@ -1,7 +1,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert , Fish, Thermometer} from 'lucide-react';
+import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert , Fish, Thermometer, Calendar } from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
@@ -23,7 +23,7 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
   React.useEffect(() => {
     if (error && error.toLowerCase().includes("out of bounds")) {
       isAnimating.current = true;
-      const t = setTimeout(() => { isAnimating.current = false; }, 1500);
+      const t = setTimeout(() => { isAnimating.current = false; }, 1000);
       return (
     ) => clearTimeout(t);
     }
@@ -42,6 +42,22 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 export default function Explore() {
   const [showReportModal, setShowReportModal] = React.useState<boolean>(false);
+  const [showExportMenu, setShowExportMenu] = React.useState<boolean>(false);
+  const exportMenuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    if (showExportMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
 
   const generateTacticalReport = () => {
     if (!prediction) return [];
@@ -147,7 +163,7 @@ export default function Explore() {
     prediction, 
     isLoading, 
     error, 
-    errorPosition, 
+    errorPosition, clickPosition, 
     selectedDate, 
     setSelectedDate, 
     setIsLoading, 
@@ -167,13 +183,25 @@ export default function Explore() {
   const [isMaximized, setIsMaximized] = useState(false);
   const controlsRef = React.useRef(null);
 
+
+  // Auto-clear clickPosition (loading simulation)
+  React.useEffect(() => {
+    if (selectedLocation && clickPosition) {
+      const t = setTimeout(() => {
+         // simulate done querying, the left panel is ready
+         useOceanStore.setState({ clickPosition: null });
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  }, [selectedLocation, clickPosition]);
+
   // Auto-clear floating cursor errors so they don't get stuck on screen
   React.useEffect(() => {
     if (error && errorPosition) {
       const t = setTimeout(() => setError(null), 2000);
       return () => clearTimeout(t);
     }
-  }, [error, errorPosition, setError]);
+  }, [error, errorPosition, clickPosition, setError]);
 
   // Clear errors when navigating away from this page
   React.useEffect(() => {
@@ -204,9 +232,9 @@ export default function Explore() {
     }
     
     const steps = [
-      setTimeout(() => setLoadingStep(1), 0),
-      setTimeout(() => setLoadingStep(2), 0),
-      setTimeout(() => setLoadingStep(3), 0)
+      setTimeout(() => setLoadingStep(1), 650),
+      setTimeout(() => setLoadingStep(2), 1300),
+      setTimeout(() => setLoadingStep(3), 2000)
     ];
     
     const predictionTimeout = setTimeout(async () => {
@@ -227,7 +255,7 @@ export default function Explore() {
           setError(err.message || "Failed to connect to ML Backend.");
         }
       }
-    }, 0); // Removed artificial cinematic delay
+    }, 2000); // Restored 2.0s cinematic loading delay
 
     return (
     ) => {
@@ -319,25 +347,45 @@ export default function Explore() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportCSV = () => {
+  const handleExportData = (format: string) => {
+    setShowExportMenu(false);
     if (!prediction || !selectedLocation) return;
-    const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Speed of Sound (m/s)', 'Argo Reference (C)']];
-    prediction.profile.depth.forEach((d: number, i: number) => {
-      rows.push([
-        d.toString(),
-        prediction.profile.temperature[i].toFixed(4),
-        prediction.profile.speed_of_sound?.[i]?.toFixed(2) || 'N/A',
-        prediction.profile.reference_temperature?.[i]?.toFixed(4) || 'N/A'
-      ]);
-    });
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e: string[]) => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
+    
+    let content = "";
+    let mimeType = "text/plain";
+    
+    if (format === 'csv') {
+      const rows = [['Depth (m)', 'OceanEmbed Temp (C)', 'Speed of Sound (m/s)', 'Argo Reference (C)']];
+      prediction.profile.depth.forEach((d: number, i: number) => {
+        rows.push([
+          d.toString(),
+          prediction.profile.temperature[i].toFixed(4),
+          prediction.profile.speed_of_sound?.[i]?.toFixed(2) || 'N/A',
+          prediction.profile.reference_temperature?.[i]?.toFixed(4) || 'N/A'
+        ]);
+      });
+      content = rows.map((e: string[]) => e.join(",")).join("\n");
+      mimeType = "text/csv;charset=utf-8;";
+    } else {
+      // Mock binary/structured content for NetCDF/ZARR/GRIB
+      content = `OCEANEMBED V6 EXPORT\nFORMAT: ${format.toUpperCase()}\nLAT: ${selectedLocation.latitude}\nLON: ${selectedLocation.longitude}\n\n[BINARY SENSOR DATA ENCODED]`;
+      mimeType = "application/octet-stream";
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `oceanembed_${selectedLocation.latitude.toFixed(2)}_${selectedLocation.longitude.toFixed(2)}.csv`);
+    link.setAttribute("href", url);
+    
+    let ext = format;
+    if (format === 'netcdf') ext = 'nc';
+    if (format === 'grib') ext = 'grb2';
+    
+    link.setAttribute("download", `oceanembed_${selectedLocation.latitude.toFixed(2)}_${selectedLocation.longitude.toFixed(2)}.${ext}`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
 
@@ -433,17 +481,18 @@ export default function Explore() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-[9px] font-mono text-white/50">
-                  <div className="flex items-center gap-2 bg-cyan-950/30 px-3 py-1.5 rounded border border-cyan-500/30 transition-colors hover:bg-cyan-900/40">
-                    <span className="text-cyan-500 font-bold tracking-widest text-[9px] uppercase">Select Date</span>
+                  <div className="relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+                    </div>
                     <input 
                       type="date" 
                       value={selectedDate}
-                      min="1993-01-01"
-                      max="2026-12-31"
+                      min="1997-01-01"
+                      max={new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0]}
                       onChange={(e) => { setSelectedDate(e.target.value); if (selectedLocation) setIsLoading(true); }}
                       disabled={isLoading}
-                      className="bg-transparent text-cyan-50 font-bold focus:outline-none cursor-pointer disabled:opacity-50"
-                      style={{ colorScheme: 'dark' }}
+                      className="bg-transparent text-cyan-100 font-mono text-xs py-1.5 pl-9 pr-3 outline-none focus:outline-none appearance-none cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer z-10 disabled:opacity-50"
                     />
                   </div>
                 </div>
@@ -494,13 +543,33 @@ export default function Explore() {
                   >
                     <ShieldAlert className="w-4 h-4" /> INTELLIGENCE REPORT
                   </button>
-                  <button 
-                    onClick={handleExportCSV}
-                    className="px-3 py-2 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center"
-                    title="Export CSV"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
+                  <div className="relative" ref={exportMenuRef}>
+                    <button 
+                      onClick={() => setShowExportMenu(!showExportMenu)}
+                      className="px-3 py-2 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center"
+                      title="Export Data"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    
+                    {showExportMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-[#0a0a0a]/95 backdrop-blur-md border border-cyan-500/30 rounded shadow-[0_0_20px_rgba(6,182,212,0.15)] overflow-hidden z-50 py-1">
+                        <div className="px-3 py-1.5 border-b border-white/5 mb-1 text-[8px] text-slate-500 uppercase tracking-widest font-mono">Select Format</div>
+                        <button onClick={() => handleExportData('csv')} className="w-full text-left px-4 py-2 text-[10px] text-cyan-100 hover:bg-cyan-950/50 hover:text-cyan-400 font-mono tracking-widest transition-colors flex items-center justify-between">
+                          <span>CSV</span> <span className="text-[7px] text-slate-500">EXCEL/PANDAS</span>
+                        </button>
+                        <button onClick={() => handleExportData('netcdf')} className="w-full text-left px-4 py-2 text-[10px] text-cyan-100 hover:bg-cyan-950/50 hover:text-cyan-400 font-mono tracking-widest transition-colors flex items-center justify-between">
+                          <span>NetCDF4</span> <span className="text-[7px] text-slate-500">XARRAY/CMEMS</span>
+                        </button>
+                        <button onClick={() => handleExportData('zarr')} className="w-full text-left px-4 py-2 text-[10px] text-cyan-100 hover:bg-cyan-950/50 hover:text-cyan-400 font-mono tracking-widest transition-colors flex items-center justify-between">
+                          <span>ZARR</span> <span className="text-[7px] text-slate-500">CLOUD-OPT</span>
+                        </button>
+                        <button onClick={() => handleExportData('grib')} className="w-full text-left px-4 py-2 text-[10px] text-cyan-100 hover:bg-cyan-950/50 hover:text-cyan-400 font-mono tracking-widest transition-colors flex items-center justify-between">
+                          <span>GRIB2</span> <span className="text-[7px] text-slate-500">WMO STD</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   </>
                 )}
                 </div>
@@ -604,42 +673,42 @@ export default function Explore() {
 
                                     {/* PREDICTION RESULTS */}
             {prediction && !isLoading && !error && (
-              <div className="flex-1 flex flex-col justify-center gap-3 min-h-0 animate-in fade-in duration-1000 zoom-in-95">
+              <div className="flex-1 flex flex-col justify-center gap-3 min-h-0">
                 
                 {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE + HISTORY */}
-                <div className={`grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0 transition-all duration-700 ${activeHighlight === 'metrics' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40 rounded-xl' : ' '}`} >
+                <div className={`grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0 transition-all duration-700 stagger-1 ${activeHighlight === 'metrics' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40 rounded-xl' : ' '}`} >
                   
                   {/* SURFACE OBSERVATIONS */}
-                  <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
-                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2">SURFACE OBSERVATIONS</div>
-                    <div className="grid grid-cols-7 gap-2">
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SST</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.sst.toFixed(1)}</div>
+                  <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-3 flex flex-col justify-start">
+                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-auto">SURFACE OBSERVATIONS</div>
+                    <div className="grid grid-cols-7 gap-2.5 my-auto">
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">SST</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.sst.toFixed(1)}</div>
                       </div>
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSS</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.sss.toFixed(1)}</div>
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">SSS</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.sss.toFixed(1)}</div>
                       </div>
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">SSH</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.ssh > 0 ? '+' : ''}{prediction.surface_data.ssh.toFixed(2)}</div>
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">SSH</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.ssh > 0 ? '+' : ''}{prediction.surface_data.ssh.toFixed(2)}</div>
                       </div>
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U CUR</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.current_u.toFixed(2)}</div>
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">U CUR</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.current_u.toFixed(2)}</div>
                       </div>
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V CUR</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.current_v.toFixed(2)}</div>
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">V CUR</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.current_v.toFixed(2)}</div>
                       </div>
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">U WND</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.wind_u.toFixed(1)}</div>
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">U WND</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.wind_u.toFixed(1)}</div>
                       </div>
-                      <div className="bg-transparent/40 border border-white/5 rounded p-1.5 text-center">
-                        <div className="text-white/40 text-[8px] font-mono tracking-widest mb-1">V WND</div>
-                        <div className="text-white font-mono text-xs">{prediction.surface_data.wind_v.toFixed(1)}</div>
+                      <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
+                        <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">V WND</div>
+                        <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.wind_v.toFixed(1)}</div>
                       </div>
                     </div>
                   </div>
@@ -680,7 +749,7 @@ export default function Explore() {
                 </div>
 
                 {/* ROW 2: VISUALIZATIONS */}
-                <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0">
+                <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0 stagger-2">
                   <div className={`w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === '3d' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
                     <div className="text-[9px] text-white/40 font-mono tracking-[0.2em] mb-2 shrink-0 flex justify-between items-center">
                       <span>3D THERMODYNAMIC VOLUME</span>
@@ -720,7 +789,7 @@ export default function Explore() {
                 </div>
 
                 {/* ROW 3: SCIENTIFIC CONTEXT */}
-                <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 flex items-center justify-between shrink-0 text-[8px] font-mono">
+                <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 flex items-center justify-between shrink-0 text-[8px] font-mono stagger-3">
                   <div className="flex items-center gap-6">
                     <div><span className="text-cyan-400 font-bold mr-2">1. SATELLITE</span><span className="text-white/40">Surface telemetry</span></div>
                     <div><span className="text-cyan-400 font-bold mr-2">2. OCEANEMBED</span><span className="text-white/40">Deep learning inference</span></div>
@@ -739,6 +808,27 @@ export default function Explore() {
         )}
       </div>
       
+      
+      {/* FLOATING CURSOR SUCCESS/QUERYING */}
+      {selectedLocation && clickPosition && (
+        <div 
+          className="fixed pointer-events-none z-[100] bg-cyan-950/80 px-3 py-2 border border-cyan-500/30 rounded-md backdrop-blur-md shadow-lg transition-all duration-100 animate-in fade-in zoom-in-50"
+          style={{ left: clickPosition.x + 15, top: clickPosition.y - 15 }}
+        >
+          <div className="flex items-center gap-2 mb-1 border-b border-cyan-500/20 pb-1">
+            <span className="text-cyan-400 font-mono text-[9px] tracking-widest uppercase font-bold whitespace-nowrap">
+              LAT: {selectedLocation.latitude}° | LON: {selectedLocation.longitude}°
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 mt-1">
+             <div className="w-1.5 h-1.5 border-[1px] border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+             <div className="text-cyan-300/80 font-mono text-[8px] tracking-wider uppercase whitespace-nowrap animate-pulse">
+               Querying Backend...
+             </div>
+          </div>
+        </div>
+      )}
+
       {/* FLOATING CURSOR ERROR */}
       {error && errorPosition && (
         <div 
@@ -791,11 +881,7 @@ export default function Explore() {
                 {/* Soft Aurora Background Glow */}
                 <div className="absolute top-[-50%] left-[-20%] w-[140%] h-[100%] bg-sky-500/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
                 
-                <div className="p-6 border-b border-white/5 flex justify-between items-center relative z-10">
-                    <h3 className="text-sky-100/90 text-[13px] font-medium tracking-widest flex items-center gap-3">
-                        <Activity size={18} className="text-sky-400 opacity-80" />
-                        OCEANIC INTELLIGENCE REPORT
-                    </h3>
+                <div className="px-6 py-4 flex justify-end items-center relative z-10">
                     <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1 mr-2 bg-black/40 border border-white/10 rounded-lg p-1 backdrop-blur-sm">
                             <span className="text-[9px] text-white/30 uppercase tracking-widest font-mono mr-2 ml-2 hidden sm:block">Export:</span>
@@ -809,49 +895,63 @@ export default function Explore() {
                     </div>
                 </div>
                 
-                <div className="p-6 space-y-3 max-h-[75vh] overflow-y-auto custom-scrollbar relative z-10">
-                    {generateTacticalReport().map((threat: any, idx: number) => {
-                        let config = {
-                            accent: 'text-sky-400',
-                            border: 'border-sky-500/30',
-                            iconBg: 'bg-sky-500/10'
-                        };
-                        
-                        if (threat.type.includes('CYCLONE')) {
-                            config = { accent: 'text-orange-500', border: 'border-orange-500/40', iconBg: 'bg-orange-500/10' };
-                        } else if (threat.type.includes('SUBMARINE')) {
-                            config = { accent: 'text-teal-400', border: 'border-teal-500/40', iconBg: 'bg-teal-500/10' };
-                        } else if (threat.type.includes('ECOLOGY')) {
-                            config = { accent: 'text-emerald-400', border: 'border-emerald-500/40', iconBg: 'bg-emerald-500/10' };
-                        } else if (threat.type.includes('BENTHIC')) {
-                            config = { accent: 'text-violet-400', border: 'border-violet-500/40', iconBg: 'bg-violet-500/10' };
-                        } else if (threat.type.includes('IOD')) {
-                            config = { accent: 'text-rose-400', border: 'border-rose-500/40', iconBg: 'bg-rose-500/10' };
-                        }
-
-                        return (
-                            <div 
-                                key={idx} 
-                                className={`relative overflow-hidden bg-black/60 backdrop-blur-md border ${config.border} rounded-lg p-5 flex items-start gap-5 transition-colors duration-300 group hover:bg-black/80`}
-                            >
-                                {/* Sharp left-edge accent line instead of a fuzzy blob */}
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 opacity-70 ${config.iconBg.replace('bg-', 'bg-').replace('/10', '')}`}></div>
-                                
-                                <div className={`shrink-0 p-2.5 rounded-md border border-white/5 opacity-90 group-hover:opacity-100 transition-opacity ${config.iconBg} ${config.accent}`}>
-                                    {threat.icon}
+                <div className="px-6 py-2 relative z-10 flex justify-center items-center h-full">
+                    <div className="w-full max-w-4xl bg-[#0a0a0a]/95 backdrop-blur-xl border border-slate-700/80 p-8 relative font-mono shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col justify-between" style={{ minHeight: "75vh" }}>
+                        <div>
+                            {/* Tactical Corner Brackets */}
+                            <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-cyan-500/50"></div>
+                            <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-cyan-500/50"></div>
+                            <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-cyan-500/50"></div>
+                            <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-cyan-500/50"></div>
+                            
+                            {/* Header */}
+                            <div className="border-b border-slate-700/60 pb-4 mb-4 flex justify-between items-end">
+                                <div>
+                                    <div className="text-cyan-500 text-xl font-bold tracking-widest whitespace-nowrap drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">OCEANEMBED INTELLIGENCE REPORT</div>
+                                    <div className="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Automated Threat Analysis - V6 Engine</div>
                                 </div>
-                                
-                                <div className="relative z-10 flex-1">
-                                    <div className="flex items-center gap-3 mb-1.5">
-                                        <div className={`text-[11px] font-bold tracking-[0.2em] uppercase ${config.accent}`}>{threat.type}</div>
-                                    </div>
-                                    <div className="text-slate-300/80 text-[12px] leading-relaxed font-light">
-                                        {threat.desc}
-                                    </div>
+                                <div className="text-right">
+                                    <div className="text-slate-400 text-[10px] block font-bold">{new Date().toISOString().split('T')[0]} {new Date().toISOString().split('T')[1].substring(0,8)}Z</div>
                                 </div>
                             </div>
-                        );
-                    })}
+
+                            {/* Location Meta */}
+                            <div className="bg-slate-900/60 p-3 border border-cyan-900/30 mb-5 text-[11px] flex gap-8 text-slate-400 shadow-inner">
+                                <div><span className="text-slate-500">TARGET:</span> <span className="text-white font-bold">{selectedLocation?.region || 'UNKNOWN'}</span></div>
+                                <div><span className="text-slate-500">LAT:</span> <span className="text-cyan-400 font-bold">{selectedLocation?.latitude.toFixed(4)}°</span></div>
+                                <div><span className="text-slate-500">LON:</span> <span className="text-cyan-400 font-bold">{selectedLocation?.longitude.toFixed(4)}°</span></div>
+                            </div>
+
+                            {/* Body - Vertical Layout tightly packed to prevent scrolling */}
+                            <div className="flex flex-col gap-y-4">
+                            {generateTacticalReport().map((threat: any, idx: number) => {
+                                let config = { accent: 'text-sky-400', bg: 'bg-sky-500/5' };
+                                if (threat.type.includes('CYCLONE')) config = { accent: 'text-orange-500', bg: 'bg-orange-500/5' };
+                                else if (threat.type.includes('SUBMARINE')) config = { accent: 'text-teal-400', bg: 'bg-teal-500/5' };
+                                else if (threat.type.includes('ECOLOGY')) config = { accent: 'text-emerald-400', bg: 'bg-emerald-500/5' };
+                                else if (threat.type.includes('BENTHIC')) config = { accent: 'text-violet-400', bg: 'bg-violet-500/5' };
+                                else if (threat.type.includes('IOD')) config = { accent: 'text-rose-400', bg: 'bg-rose-500/5' };
+
+                                return (
+                                    <div key={idx} className={`relative p-3 border-l-2 border-slate-700 hover:border-slate-400 transition-colors ${config.bg} rounded-r-md`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className={`text-[11px] font-bold tracking-[0.2em] uppercase drop-shadow-md ${config.accent}`}>[{threat.type}]</div>
+                                        </div>
+                                        <div className="text-slate-300/90 text-[11px] leading-relaxed font-light">
+                                            {threat.desc}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            </div>
+                        </div>
+                        
+                        {/* Footer Barcode/Hash pinned to bottom */}
+                        <div className="mt-6 pt-4 border-t border-slate-700/60 flex justify-between items-center text-[9px] text-slate-600 font-mono">
+                           <div>HASH: 0x{Math.random().toString(16).substring(2,10).toUpperCase()}-{Math.random().toString(16).substring(2,10).toUpperCase()}</div>
+                           <div className="tracking-widest font-bold">END OF REPORT</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

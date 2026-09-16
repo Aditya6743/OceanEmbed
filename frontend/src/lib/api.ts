@@ -1,5 +1,4 @@
 import type { PredictionResponse } from '../types/ocean';
-import { getMockPrediction } from '../data/mockOceanData';
 
 export interface HistoryDataPoint {
   date: string;
@@ -20,14 +19,14 @@ export async function fetchOceanPrediction(lat: number, lon: number, date: strin
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || "Coordinate out of bounds. Please click inside the ocean.");
       }
-      console.warn("Backend unavailable, using mock data for demo.");
-      return getMockPrediction({ latitude: lat, longitude: lon, date, region: "INDIAN OCEAN" });
+      throw new Error("Backend connection failed. Please ensure the Python API is running on port 8000.");
+      // Mock fallback disabled for strict V6 evaluation
     }
 
     return await res.json();
   } catch (err) {
-    console.warn("Backend unavailable, using mock data for demo.");
-    return getMockPrediction({ latitude: lat, longitude: lon, date, region: "INDIAN OCEAN" });
+    throw new Error("Backend connection failed. Please ensure the Python API is running on port 8000.");
+    // Mock fallback disabled for strict V6 evaluation
   }
 }
 

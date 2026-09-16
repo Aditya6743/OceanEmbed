@@ -187,7 +187,7 @@ def fetch_nearby_argo_floats(
 
 
 @lru_cache(maxsize=8)
-def fetch_active_argo_fleet(days: int = 30) -> List[dict]:
+def fetch_active_argo_fleet(days: int = 7) -> List[dict]:
     """
     Fetch all active ARGO floats in the North Indian Ocean basin with their
     latest coordinates and measurement timestamps.

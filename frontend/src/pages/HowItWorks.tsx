@@ -52,14 +52,14 @@ export default function HowItWorks() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/10 via-transparent to-black/40 pointer-events-none z-0"></div>
       
       <div className="container mx-auto px-6 max-w-6xl relative z-10">
-        <div className="text-center mb-24">
+        <div className="text-center mb-24 anim-fade-scale">
           <h1 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tighter">Project Vision.</h1>
           <p className="text-white/50 text-lg max-w-2xl mx-auto font-light leading-relaxed">
             From the core problem to our machine learning prototype, here is the complete breakdown of OceanEmbed.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 stagger-2">
           
           {cards.map((card, i) => {
             const isActive = activeCard === i;

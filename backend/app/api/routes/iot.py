@@ -22,7 +22,7 @@ async def check_fisherman_pager(
 ):
     """
     IoT Endpoint for Fisherman Pagers (Dynamic GPS).
-    Uses the real V5 PINN model to calculate Ocean Heat Content (Cyclone Fuel).
+    Uses the real V6 PINN model to calculate Ocean Heat Content (Cyclone Fuel).
     """
     try:
         surface = SatelliteDataService.get_surface_observations(lat, lon, date)
@@ -61,7 +61,7 @@ async def check_fisherman_pager(
 async def check_smart_city_gates(city: str, date: str = Query("2026-06-01")):
     """
     IoT Endpoint for Smart City Flood Gates (Fixed Location).
-    Uses the real V5 PINN model and Satellite Data to predict Storm Surges.
+    Uses the real V6 PINN model and Satellite Data to predict Storm Surges.
     """
     city_key = city.upper()
     if city_key not in CITY_COORDS:

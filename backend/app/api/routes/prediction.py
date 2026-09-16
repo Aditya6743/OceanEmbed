@@ -77,7 +77,7 @@ async def get_history(
 from app.services.argo_service import fetch_active_argo_fleet
 
 @router.get("/argo/live")
-async def get_live_argo_fleet(days: int = Query(30, ge=1, le=180)):
+async def get_live_argo_fleet(days: int = Query(7, ge=1, le=180)):
     """Return active ARGO float fleet locations and timestamps in the North Indian Ocean."""
     return fetch_active_argo_fleet(days=days)
 from fastapi.responses import FileResponse
