@@ -6,8 +6,8 @@ export interface HistoryDataPoint {
   sst: number;
 }
 
-const env = (import.meta as unknown as { env?: { VITE_API_URL?: string } }).env;
-const BASE_URL = env?.VITE_API_URL || 'http://localhost:8000/api/v1';
+ 
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 
 export async function fetchOceanPrediction(lat: number, lon: number, date: string): Promise<PredictionResponse> {
