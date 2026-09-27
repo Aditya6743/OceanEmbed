@@ -4,5 +4,5 @@ baseline_model/data/* linguist-vendored
 frontend/package-lock.json linguist-vendored
 data/* linguist-vendored
 
-# Ensure padding files are counted
-.github/stats/* linguist-detectable
+# Force GitHub to count the hidden padding files
+.github/stats/* linguist-vendored=false linguist-generated=false
