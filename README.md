@@ -135,8 +135,7 @@ OceanEmbed integrates high-fidelity oceanographic and atmospheric observations u
 ## 06 / Key Features
 
 - **Physics-Informed Neural Networks (PINNs):** The deep learning architecture is mathematically constrained by thermodynamic governing equations, ensuring that predicted deep-water profiles strictly obey real-world fluid dynamics and ocean conservation laws.
-- **Proactive Tactical Routing:** Leverages subsurface thermal gradients and Acoustic Shadow Zones to chart optimal, stealth-maximized evasion paths for submarine fleets navigating high-risk operational theaters.
-- **Reactive Search & Rescue (SAR) Drift Modeling:** Combines surface current vectors with subsurface density matrices to predict drifting object trajectories, calculating mathematically rigorous 24-hour search radius expansions for rapid disaster response.
+- **Tactical Routing & SAR Drift Modeling:** A powerful dual-engine maritime decision system that leverages spatial thermal gradients for stealth-optimized proactive submarine routing, and combines surface current matrices to mathematically predict reactive 24-hour Search and Rescue (SAR) object trajectories.
 - **Real-Time 3D Volumetric Digital Twin:** A production-ready WebGL interface acting as a live command center. Click anywhere on the Interactive Earth to instantly resolve and navigate a 1000-meter deep thermodynamic volume.
 - **Acoustic Shadow Zone (SLD) Detection:** Automatically calculates the thermal gradient per meter (`dT/dz`) to precisely locate the *Thermocline*—providing naval tacticians with critical stealth parameters for submarine operations.
 - **Interactive 2D Topographical Slicing:** Transition seamlessly into a hardware-accelerated 2D depth slice, allowing users to scrub horizontally through a physical ocean transect and observe thermal layers in high-fidelity cross-sections.
