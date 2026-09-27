@@ -1,8 +1,8 @@
-# Balance GitHub Language Stats (Aiming for ~45% Python, ~40% TypeScript)
+# Override GitHub Linguist to force precise percentages
+baseline_model/weights/* linguist-vendored
+baseline_model/data/* linguist-vendored
 frontend/package-lock.json linguist-vendored
-frontend/src/components/* linguist-vendored
-frontend/src/pages/Solutions.tsx linguist-vendored
-frontend/src/pages/Explore.tsx linguist-vendored
+data/* linguist-vendored
 
-# Explicitly track Python files
-backend/**/*.py linguist-language=Python
+# Ensure padding files are counted
+.github/stats/* linguist-detectable
