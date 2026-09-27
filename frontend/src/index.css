@@ -226,3 +226,25 @@ html, body {
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
 }
+
+/* Force transparency on Leaflet popups and tooltips to allow dark-mode Tailwind inner divs to shine through */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.leaflet-tooltip.bg-transparent {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.leaflet-popup-content-wrapper {
+    padding: 0 !important;
+}
+.leaflet-popup-content {
+    margin: 0 !important;
+}
+.leaflet-popup-tip-container {
+    display: none !important;
+}

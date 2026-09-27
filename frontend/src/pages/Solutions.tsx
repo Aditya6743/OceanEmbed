@@ -1,22 +1,22 @@
-import { Suspense, useState, useEffect, useMemo, } from 'react';
+import { Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import { fetchOceanPrediction } from '../lib/api';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import DigitalTwinGlobe from '../components/DigitalTwinGlobe';
-import { IotLeftPanel, IotRightView, useIotSimulation } from '../components/IotBeaconsPanel';
+import { IotLeftPanel, IotRightView, IotOverlays, useIotSimulation } from '../components/IotBeaconsPanel';
 
-import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock, Radio, Navigation } from 'lucide-react';
+import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock, Radio, Navigation, Scan } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOceanStore } from '../store/oceanStore';
 import RoutingSarLeftPanel from '../components/RoutingSarLeftPanel';
 import RoutingSar3DOverlay from '../components/RoutingSar3DOverlay';
+import RoutingSar2DMap from '../components/RoutingSar2DMap';
 
 type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso' | 'iot' | 'sar';
 
-import { useThree } from '@react-three/fiber';
 
 
-import { useFrame } from '@react-three/fiber';
 
 function RotationController({ isRotationLocked }: { isRotationLocked: boolean }) {
     const { controls } = useThree();
@@ -27,71 +27,6 @@ function RotationController({ isRotationLocked }: { isRotationLocked: boolean })
     });
     return null;
 }
-
-function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked, recenterTrigger }: { activeTab: string, climateMode: string, isRotationLocked: boolean, recenterTrigger?: number }) {
-    const { camera, controls } = useThree();
-    
-    useEffect(() => {
-        if (!controls) return;
-        
-        // 1. Completely lock out user and physics engine to prevent ANY glitches or fighting
-        (controls as any).enabled = false;
-        (controls as any).autoRotate = false;
-        
-        let animId: number;
-        let progress = 0;
-        
-        let startAzimuth = (controls as any).getAzimuthalAngle();
-        let startPolar = (controls as any).getPolarAngle();
-        let startDist = (controls as any).getDistance();
-        
-        // Normalize azimuth for shortest path
-        startAzimuth = startAzimuth % (2 * Math.PI);
-        if (startAzimuth > Math.PI) startAzimuth -= 2 * Math.PI;
-        if (startAzimuth < -Math.PI) startAzimuth += 2 * Math.PI;
-        
-        const targetAzimuth = 0; 
-        const targetPolar = Math.PI / 2; 
-        const targetDist = 5.35;
-        
-        const animate = () => {
-            progress += 0.04; // Animation speed
-            if (progress <= 1) {
-                const ease = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
-                
-                const currentAzimuth = startAzimuth + (targetAzimuth - startAzimuth) * ease;
-                const currentPolar = startPolar + (targetPolar - startPolar) * ease;
-                const currentDist = startDist + (targetDist - startDist) * ease;
-                
-                // Directly control the camera using pure spherical math
-                camera.position.setFromSphericalCoords(currentDist, currentPolar, currentAzimuth);
-                camera.lookAt(0, 0, 0);
-                (controls as any).target.set(0,0,0);
-                
-                // Call update to sync OrbitControls with the new camera position
-                (controls as any).update();
-                
-                animId = requestAnimationFrame(animate);
-            } else {
-                // 2. Animation complete! Hand control perfectly back to the user
-                (controls as any).enabled = true;
-                (controls as any).autoRotate = !isRotationLocked; 
-            }
-        };
-        
-        animate();
-        
-        return () => {
-            cancelAnimationFrame(animId);
-            if (controls) {
-                (controls as any).enabled = true;
-            }
-        };
-    }, [activeTab, _c, controls, recenterTrigger]);
-    
-    return null;
-}
-
 
 export default function Solutions() {
 
@@ -104,6 +39,12 @@ export default function Solutions() {
   const [climateMode, setClimateMode] = useState<'cyclone'|'flood'|'heatwave'|'erosion'>('cyclone');
   const [isRotationLocked, setIsRotationLocked] = useState(false);
   const [recenterTrigger, setRecenterTrigger] = useState(0);
+
+  const handleRunSimulation = () => {
+      setIsRotationLocked(true);
+      setRecenterTrigger(prev => prev + 1);
+      runSimulation();
+  };
 
 
   const legendConfig: Record<string, { title: string, min: string, mid?: string, max: string, unit: string, gradient: string, themeText: string, themeBorder: string, themeBorderFull: string }> = {
@@ -127,7 +68,7 @@ export default function Solutions() {
     setIsSectionLoading(true);
     const timer = setTimeout(() => setIsSectionLoading(false), 400);
     return () => clearTimeout(timer);
-  }, [selectedDate]);
+  }, [selectedDate, activeTab]);
 
   useEffect(() => {
     let mounted = true;
@@ -149,6 +90,7 @@ export default function Solutions() {
   const handleTabChange = (tab: ViewMode, subMode?: string) => {
     if (activeTab === tab && (!subMode || climateMode === subMode)) return; // No change
     reset(); // Dismiss the Target Box when changing sections
+    setIs2DMode(false);
     
     
     setIsSectionLoading(true);
@@ -266,7 +208,8 @@ export default function Solutions() {
 
   const [sarSimState, setSarSimState] = useState<'idle' | 'running' | 'complete'>('idle');
   const [sarActiveMode, setSarActiveMode] = useState<'routing' | 'sar'>('routing');
-  const [sarTimeHour, setSarTimeHour] = useState(1);
+  const [sarTimeHour, setSarTimeHour] = useState(6);
+  const [is2DMode, setIs2DMode] = useState(false);
   const [showCurrents, setShowCurrents] = useState(false);
   const [showThermalRisk, setShowThermalRisk] = useState(false);
   const navigate = useNavigate();
@@ -282,7 +225,7 @@ export default function Solutions() {
     if (selectedDate === '2026-06-01') {
       setSelectedDate(todayStr);
     }
-  }, []);
+  }, [selectedDate, setSelectedDate, todayStr]);
   const [liveData, setLiveData] = useState({ tchp: 85.4, depth: 75.2, gradient: -0.15, lat: 15.3, lon: 65.2 });
 
   useEffect(() => {
@@ -433,7 +376,7 @@ export default function Solutions() {
       </div>
 
       {/* Control Panel / Insights Sidebar (Left Panel 40%) */}
-      <div className={`h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' ? 'w-full md:w-[45%]' : activeTab === 'sar' ? 'w-full md:w-[40%]' : 'w-full md:w-[35%]'}`}>
+      <div className={`h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' || activeTab === 'sar' ? 'w-full md:w-[40%]' : 'w-full md:w-[35%]'}`}>
         <div className="w-[96%] mx-auto h-full flex flex-col relative">
           {/* SECTION LOADING OVERLAY */}
           {isSectionLoading && (
@@ -448,7 +391,7 @@ export default function Solutions() {
 
           {activeTab === 'iot' && (
             <IotLeftPanel 
-                runSimulation={runSimulation}
+                runSimulation={handleRunSimulation}
                 resetSimulation={resetSimulation}
                 simState={simState} 
                 iotLogs={iotLogs}
@@ -1128,10 +1071,10 @@ export default function Solutions() {
 
 
       {/* 3D Visualization (Right Panel 60%) */}
-      <div className={`h-full pt-20 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' ? 'w-full md:w-[55%]' : activeTab === 'sar' ? 'w-full md:w-[60%]' : 'w-full md:w-[65%]'}`}>
+      <div className={`h-full pt-20 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' || activeTab === 'sar' ? 'w-full md:w-[60%]' : 'w-full md:w-[65%]'}`}>
                 {/* Lock Auto-Rotate Button */}
-        {activeTab !== 'iot' && (
-                <div className="absolute top-24 right-6 z-20 pointer-events-auto">
+        
+        <div className="absolute top-24 right-6 z-20 pointer-events-auto flex flex-col gap-2 items-center">
           <button
             onClick={() => setIsRotationLocked(!isRotationLocked)}
             className={`flex items-center gap-2 bg-black/60 border px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all ${isRotationLocked ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-sky-500/20'}`}
@@ -1145,12 +1088,25 @@ export default function Solutions() {
               <Unlock size={12} className="text-sky-300" />
             )}
           </button>
+          
+          {(activeTab === 'iot' || activeTab === 'sar') && (
+            <button
+              onClick={() => setIs2DMode(true)}
+              className="flex items-center gap-2 bg-black/60 hover:bg-black/80 border border-white/10 hover:border-indigo-500/50 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all"
+            >
+              <span className="text-[9px] font-mono tracking-widest font-bold text-indigo-300">
+                2D TACTICAL
+              </span>
+              <Scan size={12} className="text-indigo-200" />
+            </button>
+          )}
         </div>
-        )}
+
 
         {/* ARGO HUD Overlay */}
-        {activeTab !== 'iot' && (
-                <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
+        
+        {/* ARGO HUD Overlay - Visible on all tabs now */}
+        <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
           <span className={`text-[9px] font-mono tracking-widest font-bold ${showGlobeArgo ? 'text-lime-400' : 'text-slate-400'}`}>
             LIVE ARGO FLEET
           </span>
@@ -1161,22 +1117,32 @@ export default function Solutions() {
             <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${showGlobeArgo ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
           </button>
         </div>
-        )}
+
                 
-        {activeTab === 'iot' && <IotRightView simState={simState} handleIotAck={handleIotAck} />}
         
-        <div className={activeTab === 'iot' ? 'hidden' : 'w-full h-full'}>
+        
+        <div className="w-full h-full relative">
+          {is2DMode && activeTab === 'iot' && (
+             <IotRightView simState={simState} handleIotAck={handleIotAck} onClose={() => setIs2DMode(false)} />
+          )}
+          {is2DMode && activeTab === 'sar' && (
+             <RoutingSar2DMap 
+               activeMode={sarActiveMode}
+               simState={sarSimState}
+               sarTimeHour={sarTimeHour}
+               showThermalRisk={showThermalRisk}
+               showCurrents={showCurrents}
+               onClose={() => setIs2DMode(false)}
+             />
+          )}
+          {!is2DMode && activeTab === 'iot' && <IotOverlays simState={simState} handleIotAck={handleIotAck} />}
           <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} recenterTrigger={recenterTrigger} />
             <RotationController isRotationLocked={isRotationLocked} />
             
-            <DigitalTwinGlobe 
-              viewMode={activeTab as any} 
-              climateSubMode={climateMode} 
-              isRotationLocked={isRotationLocked}
-            />
-            {activeTab === 'sar' && <RoutingSar3DOverlay simState={sarSimState} activeMode={sarActiveMode} sarTimeHour={sarTimeHour} showCurrents={showCurrents} showThermalRisk={showThermalRisk} />}
+            <DigitalTwinGlobe viewMode={activeTab as any} climateSubMode={climateMode} isRotationLocked={isRotationLocked} onInteract={() => setIsRotationLocked(true)} onRequest2D={() => setIs2DMode(true)} is2DMode={is2DMode} iotSimState={simState} />
+            {activeTab === 'sar' && <RoutingSar3DOverlay simState={sarSimState} activeMode={sarActiveMode} sarTimeHour={sarTimeHour} showCurrents={showCurrents} showThermalRisk={showThermalRisk} onRequest2D={() => setIs2DMode(true)} is2DMode={is2DMode} onInteract={() => setIsRotationLocked(true)} />}
             <OrbitControls makeDefault 
 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
@@ -1189,7 +1155,7 @@ export default function Solutions() {
       </div>
 
       {/* FLOATING TARGET BOX */}
-      {selectedLocation && clickPosition && (
+      {selectedLocation && clickPosition && !is2DMode && activeTab !== 'iot' && activeTab !== 'sar' && (
         <div 
           className={`fixed z-50 transition-all duration-700 ease-out pointer-events-none w-56 bg-black/40 border border-cyan-500/80 rounded-xl p-3 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.3)]`}
           style={{
@@ -1248,3 +1214,69 @@ export default function Solutions() {
     </div>
   );
 }
+
+function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked, recenterTrigger }: { activeTab: string, climateMode: string, isRotationLocked: boolean, recenterTrigger?: number }) {
+    const { camera, controls } = useThree();
+    const [isAnimating, setIsAnimating] = useState(false);
+    const animRef = useRef({ startAzimuth: 0, targetAzimuth: 0, startPolar: 0, targetPolar: 0, startDist: 5.35, targetDist: 5.35, progress: 0 });
+    
+    useEffect(() => {
+        if (!controls) return;
+        
+        let startAzimuth = (controls as any).getAzimuthalAngle();
+        startAzimuth = startAzimuth % (2 * Math.PI);
+        if (startAzimuth > Math.PI) startAzimuth -= 2 * Math.PI;
+        if (startAzimuth < -Math.PI) startAzimuth += 2 * Math.PI;
+        
+        let startPolar = (controls as any).getPolarAngle();
+        let startDist = (controls as any).getDistance();
+        
+        let targetAzimuth = 0; 
+        let targetPolar = Math.PI / 2; 
+        let targetDist = 5.35; 
+
+        while (targetAzimuth - startAzimuth > Math.PI) targetAzimuth -= 2 * Math.PI;
+        while (targetAzimuth - startAzimuth < -Math.PI) targetAzimuth += 2 * Math.PI;
+        
+        animRef.current = {
+            startAzimuth, targetAzimuth,
+            startPolar, targetPolar,
+            startDist, targetDist,
+            progress: 0
+        };
+
+        (controls as any).enabled = false;
+        (controls as any).autoRotate = false;
+        (controls as any).enableDamping = false; 
+        
+        setIsAnimating(true);
+        
+    }, [activeTab, _c, controls, recenterTrigger]);
+    
+    useFrame((_state, delta) => {
+        if (!isAnimating || !controls) return;
+        
+        animRef.current.progress += delta * 1.5;
+        
+        if (animRef.current.progress <= 1) {
+            const ease = 1 - Math.pow(1 - animRef.current.progress, 3);
+            
+            const currentAzimuth = animRef.current.startAzimuth + (animRef.current.targetAzimuth - animRef.current.startAzimuth) * ease;
+            const currentPolar = animRef.current.startPolar + (animRef.current.targetPolar - animRef.current.startPolar) * ease;
+            const currentDist = animRef.current.startDist + (animRef.current.targetDist - animRef.current.startDist) * ease;
+            
+            camera.position.setFromSphericalCoords(currentDist, currentPolar, currentAzimuth);
+            camera.lookAt(0, 0, 0);
+            (controls as any).target.set(0,0,0);
+            (controls as any).update();
+        } else {
+            setIsAnimating(false);
+            (controls as any).enabled = true;
+            (controls as any).enableDamping = true;
+            (controls as any).autoRotate = !isRotationLocked; 
+        }
+    });
+
+    return null;
+}
+

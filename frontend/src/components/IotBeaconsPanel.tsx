@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, ShieldAlert, CheckCircle2, Bell, RadioReceiver, Activity, Wifi } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
+import { AlertTriangle, ShieldAlert, CheckCircle2, Bell, RadioReceiver, Activity, Wifi, ArrowLeft, Radio } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, Tooltip } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -143,7 +143,7 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
     return (
         <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500">
             <div className="mb-4 shrink-0">
-                <h2 className="text-xl font-black tracking-widest uppercase text-white">IoT Beacons</h2>
+                <h2 className="text-cyan-400 font-bold uppercase tracking-widest mb-3 text-lg flex items-center gap-2"><Radio size={20}/> IOT BEACONS</h2>
                 <p className="text-slate-400 text-[10px] mt-1 leading-relaxed uppercase">Edge alert infrastructure connecting OceanEmbed intelligence to marine and coastal warning systems.</p>
             </div>
 
@@ -320,15 +320,12 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                 <button 
                     onClick={() => runSimulation(false)}
                     disabled={simState.isRunning}
-                    className={`w-full py-2.5 rounded text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 relative overflow-hidden ${simState.isRunning ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]'}`}
+                    className={`w-full py-2.5 rounded text-[10px] font-black tracking-widest uppercase transition-all flex items-center justify-center gap-2 relative overflow-hidden ${simState.isRunning ? 'bg-slate-800 text-slate-500 cursor-not-allowed' : 'bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 hover:border-rose-400/60 text-rose-300 shadow-[0_0_15px_rgba(225,29,72,0.15)]'}`}
                 >
                     {!simState.isRunning && <span className="absolute top-0 right-0 bg-black/40 text-[7px] px-1 py-0.5 rounded-bl">SIMULATION MODE</span>}
                     {simState.isRunning ? <span className="animate-pulse">SIMULATING...</span> : <><AlertTriangle size={12}/> RUN ALERT SIMULATION</>}
                 </button>
-                <div className="flex gap-2 mb-2">
-                    <button onClick={() => runSimulation(true, simState.isMuted)} disabled={simState.isRunning} className="flex-1 py-1.5 rounded text-[9px] font-bold bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700 disabled:opacity-50">TEST BEACON FAILURE</button>
-                    <button onClick={resetSimulation} className="flex-1 py-1.5 rounded text-[9px] font-bold bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700">RESET</button>
-                </div>
+                <button onClick={resetSimulation} className="w-full mb-2 py-1.5 rounded text-[9px] font-bold bg-slate-800/50 border border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white transition-all">RESET SIMULATION</button>
                 <button onClick={() => toggleMute()} className="w-full py-1.5 rounded text-[9px] font-bold tracking-widest text-slate-400 hover:text-white border border-transparent hover:border-slate-800">
                     {simState.isMuted ? 'UNMUTE ALARM' : 'MUTE ALARM'}
                 </button>
@@ -337,7 +334,109 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
     );
 };
 
-export const IotRightView = ({ simState, handleIotAck }: any) => {
+export const IotOverlays = ({ simState, handleIotAck }: any) => {
+    const isAlert = simState.step >= 7 && simState.phase !== 'ACKNOWLEDGED';
+    const isAck = simState.phase === 'ACKNOWLEDGED';
+    const isFail = simState.phase === 'DELIVERY FAILED';
+    
+    return (
+        <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+            {/* Top Right: Alert Packet */}
+            <div className="absolute top-12 left-1/2 -translate-x-1/2 pointer-events-auto">
+                {simState.step >= 4 && (
+                    <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-4 w-64 shadow-2xl animate-in slide-in-from-top-4">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">ALERT PACKET</div>
+                        <div className="font-mono text-[10px] flex flex-col gap-1.5">
+                            <div className="flex justify-between"><span className="text-slate-500">ID</span><span className="text-slate-200">OCN-26066-042</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">TYPE</span><span className="text-orange-400">CYCLONE</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">SEVERITY</span><span className="text-red-400">HIGH</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500">SOURCE</span><span className="text-indigo-400">OCEANEMBED V6</span></div>
+                            <div className="flex justify-between mt-2 pt-2 border-t border-white/5"><span className="text-slate-500">STATUS</span><span className="text-cyan-400 animate-pulse">{simState.step >= 6 ? 'DELIVERED' : 'BROADCASTING'}</span></div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Bottom Row Flex Container: Anchored to map section bounds */}
+            <div className="absolute bottom-10 left-8 right-12 flex justify-between items-end pointer-events-none">
+                
+                {/* Left side of the globe section: Fisherman */}
+                <div className="pointer-events-auto">
+                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 shadow-2xl ${isFail ? 'bg-black/80 border-slate-700 opacity-90' : isAlert ? 'bg-black/80 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.15)]' : 'bg-black/80 border-slate-700/50'}`}>
+                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${isFail ? 'bg-white/5 border-slate-700/50 text-slate-500' : isAlert ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' : 'bg-white/5 border-white/5 text-slate-400'}`}>
+                            <div className="flex items-center gap-1.5"><RadioReceiver size={14} /> MARINE PAGER <span className="text-[7px] border border-current opacity-70 px-1 rounded tracking-normal ml-0.5">LORA / NO-WIFI</span></div>
+                            {isFail ? <span>OFFLINE</span> : isAlert ? <span className="animate-pulse">⚠ ALERT</span> : <span>CONNECTED</span>}
+                        </div>
+                        <div className="p-4 flex flex-col flex-1 justify-center gap-3 font-mono">
+                            {isFail ? (
+                                <div className="text-red-400 text-center text-xs py-8">CONNECTION LOST</div>
+                            ) : isAlert ? (
+                                <>
+                                    <div className="text-orange-400 font-bold text-sm text-center mb-1 animate-pulse">TROPICAL CYCLONE DETECTED</div>
+                                    <div className="bg-black/50 rounded p-2 text-xs border border-orange-500/20">
+                                        <div className="flex justify-between text-slate-300"><span>SEVERITY</span><span className="text-orange-400">HIGH</span></div>
+                                        <div className="flex justify-between text-slate-300"><span>DISTANCE</span><span>42 NM</span></div>
+                                        <div className="flex justify-between text-slate-300"><span>DIRECTION</span><span>NNE</span></div>
+                                    </div>
+                                    <div className="text-[11px] text-center text-white bg-red-600/80 rounded py-1.5 font-sans font-bold tracking-wider border border-red-500/50">ACTION: RETURN TO SAFE ZONE</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">OCEAN STATUS</span><span className="text-emerald-400">NORMAL</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIGNAL</span><span className="text-slate-300">{simState.step >= 6 ? "██░░░░░░░░" : "████████░░"}</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">BATTERY</span><span className="text-slate-300">{(87 - simState.step)}%</span></div>
+                                </>
+                            )}
+                            
+                            {isAlert && !isAck && (
+                                <button onClick={handleIotAck} className="mt-2 py-2 w-full rounded border border-orange-400 text-orange-400 text-[10px] font-bold hover:bg-orange-400 hover:text-black transition-colors pointer-events-auto">
+                                    ACKNOWLEDGE ALERT
+                                </button>
+                            )}
+                            {isAck && (
+                                <div className="mt-2 py-2 text-center text-emerald-400 text-[10px] font-bold border border-emerald-500/30 bg-emerald-500/10 rounded flex items-center justify-center gap-1">
+                                    <CheckCircle2 size={12}/> ACKNOWLEDGED
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right side of the globe section: Coastal Warning Station */}
+                <div className="pointer-events-auto">
+                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 shadow-2xl ${simState.step >= 8 && !isAck ? 'bg-black/80 border-red-500/50 shadow-[0_0_20px_rgba(220,38,38,0.15)]' : 'bg-black/80 border-slate-700/50'}`}>
+                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${simState.step >= 8 && !isAck ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/5 border-white/5 text-slate-400'}`}>
+                            <div className="flex items-center gap-2"><ShieldAlert size={14} /> COASTAL WARNING STATION</div>
+                        </div>
+                        <div className="p-4 flex flex-col flex-1 justify-center gap-3 font-mono">
+                            {simState.step >= 8 && !isAck ? (
+                                <>
+                                    <div className="flex items-center justify-center gap-2 text-red-500 font-bold text-sm mb-1 animate-pulse">
+                                        <Bell size={16} /> WARNING ACTIVE
+                                    </div>
+                                    <div className="bg-black/50 rounded p-2 text-xs border border-red-500/20">
+                                        <div className="text-red-400 mb-1">HAZARD: TROPICAL CYCLONE</div>
+                                        <div className="flex justify-between text-slate-300"><span>SEVERITY</span><span className="text-red-400">CRITICAL</span></div>
+                                        <div className="flex justify-between text-slate-300"><span>BEACONS</span><span>02 NOTIFIED</span></div>
+                                    </div>
+                                    <div className="text-[11px] text-center text-red-400 border border-red-500/30 bg-red-500/10 rounded py-1.5 font-sans font-bold tracking-wider animate-pulse">SIREN: ACTIVE</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">LOCATION</span><span className="text-slate-300">MUMBAI COAST</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">STATUS</span><span className="text-slate-300">STANDBY</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIREN</span><span className="text-slate-600">INACTIVE</span></div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
     
     const [isLoadingMap, setIsLoadingMap] = useState(true);
     
@@ -348,8 +447,8 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
 
     // Beacon Coordinates
     const gateway = [18.92, 72.82]; // Mumbai
-    const b1 = [17.5, 70.0];
-    const b2 = [15.0, 71.5];
+    const b1 = [16.0, 68.0];
+    const b2 = [12.0, 72.0];
     
     const isAlert = simState.step >= 7 && simState.phase !== 'ACKNOWLEDGED';
     const isAck = simState.phase === 'ACKNOWLEDGED';
@@ -359,7 +458,20 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
     const b2Icon = isAck ? iconOnline : isAlert ? iconAlert : iconOnline;
 
     return (
-        <div className="w-full h-full relative bg-slate-900 overflow-hidden animate-in fade-in duration-500">
+    <div className="absolute inset-0 z-20 bg-slate-900 rounded-l-3xl overflow-hidden border-l border-white/10 shadow-2xl animate-in slide-in-from-right duration-500">
+      <div className="absolute top-6 right-6 z-[1000] flex gap-3 pointer-events-none">
+        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 flex items-center gap-2 pointer-events-auto">
+           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+           <span className="text-emerald-400 font-mono text-xs font-bold tracking-widest">TACTICAL 2D LINK ACTIVE</span>
+        </div>
+        <button 
+          onClick={onClose}
+          className="bg-black/60 hover:bg-black/80 border border-white/10 hover:border-indigo-500/50 text-indigo-300 px-4 py-2 rounded-lg font-bold text-xs tracking-widest flex items-center gap-2 transition-all shadow-lg pointer-events-auto"
+        >
+          <ArrowLeft size={14} /> BACK TO 3D GLOBE
+        </button>
+      </div>
+      <div className="w-full h-full relative bg-slate-900 overflow-hidden animate-in fade-in duration-500">
             {/* Cinematic Loading Overlay */}
             {isLoadingMap && (
                 <div className="absolute inset-0 z-50 bg-[#060a12] flex flex-col items-center justify-center pointer-events-none transition-all duration-700">
@@ -386,7 +498,7 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
                     
                     {/* Hazard Region Circle (Appears when anomaly detected) */}
                     {simState.step >= 2 && (
-                        <Circle center={[16.0, 70.5] as any} radius={400000} pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.1, weight: 1, dashArray: '5, 10' }}>
+                        <Circle center={[14.5, 69.5] as any} radius={800000} pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.1, weight: 1, dashArray: '5, 10' }}>
                             <Popup>Hazard Detection Zone</Popup>
                         </Circle>
                     )}
@@ -401,39 +513,35 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
 
                     {/* Gateway */}
                     <Marker position={gateway as any} icon={iconOnline}>
-                        <Popup className="custom-popup">
-                            <div className="text-[10px] font-mono bg-black text-white p-2 rounded border border-white/10 shadow-xl">
-                                <div className="text-cyan-400 font-bold mb-1">GATEWAY #01</div>
-                                <div>MUMBAI HUB</div>
-                                <div className="text-[8px] text-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded my-1 w-fit border border-emerald-500/30">LoRaWAN (No WiFi Req)</div>
-                                <div>STATUS: <span className={isAck ? 'text-cyan-400' : simState.step >= 6 ? 'text-orange-400 animate-pulse' : 'text-emerald-400'}>{isAck ? 'ACKNOWLEDGED' : simState.step >= 6 ? 'TRANSMITTING' : 'ONLINE'}</span></div>
+                        <Tooltip permanent direction="right" className="bg-transparent border-0 shadow-none !p-0">
+                            <div className="pointer-events-none ml-2 flex flex-col animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                                <span className="text-cyan-300 font-black text-[12px] tracking-wider mb-0.5 drop-shadow-md">GATEWAY #01</span>
+                                <span className="text-white/80">MUMBAI HUB</span>
+                                <span className="text-emerald-400 font-bold tracking-widest my-0.5">LoRaWAN LINK</span>
+                                <span className="text-white/80">STATUS: <span className={isAck ? 'text-cyan-400' : simState.step >= 6 ? 'text-orange-400 animate-pulse' : 'text-emerald-400'}>{isAck ? 'ACKNOWLEDGED' : simState.step >= 6 ? 'TRANSMITTING' : 'ONLINE'}</span></span>
                             </div>
-                        </Popup>
+                        </Tooltip>
                     </Marker>
                     
                     {/* Beacons */}
                     <Marker position={b1 as any} icon={b1Icon}>
-                        <Popup className="custom-popup">
-                            <div className="text-[10px] font-mono bg-black text-white p-2 rounded border border-white/10 shadow-xl">
-                                <div className="text-orange-400 font-bold mb-1">FISHERMAN VESSEL #402</div>
-                                <div>STATUS: <span className={isFail ? 'text-slate-500' : isAlert ? 'text-red-400' : 'text-emerald-400'}>{isFail ? 'OFFLINE' : isAlert ? 'EVACUATE' : 'ONLINE'}</span></div>
-                                <div>LAT: 17.5000</div>
-                                <div>LON: 70.0000</div>
-                                <div>SIGNAL: {isFail ? '--' : '-67 dBm'}</div>
-                                <div>BATTERY: 87%</div>
+                        <Popup className="custom-popup bg-transparent border-0 shadow-none !p-0">
+                            <div className="flex flex-col animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                                <span className="text-orange-400 font-black text-[12px] tracking-wider mb-0.5 drop-shadow-md">FISHERMAN #402</span>
+                                <span className="text-white/80">STATUS: <span className={isFail ? 'text-slate-400' : isAlert ? 'text-red-400 font-bold' : 'text-emerald-400'}>{isFail ? 'OFFLINE' : isAlert ? 'EVACUATE' : 'ONLINE'}</span></span>
+                                <span className="text-white/80">LAT: 16.0000 | LON: 68.0000</span>
+                                <span className="text-white/80">SIG: {isFail ? '--' : '-67 dBm'} | BAT: 87%</span>
                             </div>
                         </Popup>
                     </Marker>
                     
                     <Marker position={b2 as any} icon={b2Icon}>
-                        <Popup className="custom-popup">
-                            <div className="text-[10px] font-mono bg-black text-white p-2 rounded border border-white/10 shadow-xl">
-                                <div className="text-sky-400 font-bold mb-1">TOURIST BOAT #77</div>
-                                <div>STATUS: <span className={isAlert ? 'text-red-400' : 'text-emerald-400'}>{isAlert ? 'EVACUATE' : 'ONLINE'}</span></div>
-                                <div>LAT: 15.0000</div>
-                                <div>LON: 71.5000</div>
-                                <div>SIGNAL: -72 dBm</div>
-                                <div>BATTERY: 92%</div>
+                        <Popup className="custom-popup bg-transparent border-0 shadow-none !p-0">
+                            <div className="flex flex-col animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                                <span className="text-sky-400 font-black text-[12px] tracking-wider mb-0.5">TOURIST BOAT #77</span>
+                                <span className="text-white/80">STATUS: <span className={isAlert ? 'text-red-400 font-bold' : 'text-emerald-400'}>{isAlert ? 'EVACUATE' : 'ONLINE'}</span></span>
+                                <span className="text-white/80">LAT: 12.0000 | LON: 72.0000</span>
+                                <span className="text-white/80">SIG: -42 dBm | BAT: 92%</span>
                             </div>
                         </Popup>
                     </Marker>
@@ -442,98 +550,8 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
                 </MapContainer>
             </div>
 
-            {/* Overlays */}
-            <div className="absolute inset-0 z-10 pointer-events-none p-6 flex flex-col justify-between">
-                
-                {/* Top Right: Alert Packet */}
-                <div className="self-end pointer-events-auto">
-                    {simState.step >= 4 && (
-                        <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-4 w-64 shadow-2xl animate-in slide-in-from-top-4">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">ALERT PACKET</div>
-                            <div className="font-mono text-[10px] flex flex-col gap-1.5">
-                                <div className="flex justify-between"><span className="text-slate-500">ID</span><span className="text-slate-200">OCN-26066-042</span></div>
-                                <div className="flex justify-between"><span className="text-slate-500">TYPE</span><span className="text-orange-400">CYCLONE</span></div>
-                                <div className="flex justify-between"><span className="text-slate-500">SEVERITY</span><span className="text-red-400">HIGH</span></div>
-                                <div className="flex justify-between"><span className="text-slate-500">SOURCE</span><span className="text-indigo-400">OCEANEMBED V6</span></div>
-                                <div className="flex justify-between mt-2 pt-2 border-t border-white/5"><span className="text-slate-500">STATUS</span><span className="text-cyan-400 animate-pulse">{simState.step >= 6 ? 'DELIVERED' : 'BROADCASTING'}</span></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
+            <IotOverlays simState={simState} handleIotAck={handleIotAck} />
 
-                {/* Bottom Row: Devices */}
-                <div className="flex justify-between items-stretch gap-6 pointer-events-none">
-                    
-                    {/* Fisherman Device */}
-                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 pointer-events-auto shadow-2xl ${isFail ? 'bg-slate-900/90 border-slate-700 opacity-80' : isAlert ? 'bg-orange-950/90 border-orange-500 shadow-[0_0_40px_rgba(249,115,22,0.4)]' : 'bg-slate-950/90 border-slate-700'}`}>
-                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${isFail ? 'bg-slate-800 border-slate-700 text-slate-500' : isAlert ? 'bg-orange-500/20 border-orange-500/30 text-orange-400' : 'bg-white/5 border-white/5 text-slate-400'}`}>
-                            <div className="flex items-center gap-1.5"><RadioReceiver size={14} /> MARINE PAGER <span className="text-[7px] border border-current opacity-70 px-1 rounded tracking-normal ml-0.5">LORA / NO-WIFI</span></div>
-                            {isFail ? <span>OFFLINE</span> : isAlert ? <span className="animate-pulse">⚠ ALERT</span> : <span>CONNECTED</span>}
-                        </div>
-                        <div className="p-4 flex flex-col flex-1 justify-center gap-3 font-mono">
-                            {isFail ? (
-                                <div className="text-red-400 text-center text-xs py-8">CONNECTION LOST</div>
-                            ) : isAlert ? (
-                                <>
-                                    <div className="text-orange-400 font-bold text-sm text-center mb-1 animate-pulse">TROPICAL CYCLONE DETECTED</div>
-                                    <div className="bg-black/50 rounded p-2 text-xs border border-orange-500/20">
-                                        <div className="flex justify-between text-slate-300"><span>SEVERITY</span><span className="text-orange-400">HIGH</span></div>
-                                        <div className="flex justify-between text-slate-300"><span>DISTANCE</span><span>42 NM</span></div>
-                                        <div className="flex justify-between text-slate-300"><span>DIRECTION</span><span>NNE</span></div>
-                                    </div>
-                                    <div className="text-[11px] text-center text-white bg-red-600/80 rounded py-1.5 font-sans font-bold tracking-wider border border-red-500">ACTION: RETURN TO SAFE ZONE</div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">OCEAN STATUS</span><span className="text-emerald-400">NORMAL</span></div>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIGNAL</span><span className="text-slate-300">{simState.step >= 6 ? "██░░░░░░░░" : "████████░░"}</span></div>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">BATTERY</span><span className="text-slate-300">{(87 - simState.step)}%</span></div>
-                                </>
-                            )}
-                            
-                            {isAlert && !isAck && (
-                                <button onClick={handleIotAck} className="mt-2 py-2 w-full rounded border border-orange-400 text-orange-400 text-[10px] font-bold hover:bg-orange-400 hover:text-black transition-colors">
-                                    ACKNOWLEDGE ALERT
-                                </button>
-                            )}
-                            {isAck && (
-                                <div className="mt-2 py-2 text-center text-emerald-400 text-[10px] font-bold border border-emerald-500/30 bg-emerald-500/10 rounded flex items-center justify-center gap-1">
-                                    <CheckCircle2 size={12}/> ACKNOWLEDGED
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Coastal Warning Station */}
-                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 pointer-events-auto shadow-2xl ${simState.step >= 8 && !isAck ? 'bg-red-950/90 border-red-500 shadow-[0_0_40px_rgba(220,38,38,0.4)]' : 'bg-slate-950/90 border-slate-700'}`}>
-                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${simState.step >= 8 && !isAck ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-white/5 border-white/5 text-slate-400'}`}>
-                            <div className="flex items-center gap-2"><ShieldAlert size={14} /> COASTAL WARNING STATION</div>
-                        </div>
-                        <div className="p-4 flex flex-col flex-1 justify-center gap-3 font-mono">
-                            {simState.step >= 8 && !isAck ? (
-                                <>
-                                    <div className="flex items-center justify-center gap-2 text-red-500 font-bold text-sm mb-1 animate-pulse">
-                                        <Bell size={16} /> WARNING ACTIVE
-                                    </div>
-                                    <div className="bg-black/50 rounded p-2 text-xs border border-red-500/20">
-                                        <div className="text-red-400 mb-1">HAZARD: TROPICAL CYCLONE</div>
-                                        <div className="flex justify-between text-slate-300"><span>SEVERITY</span><span className="text-red-400">CRITICAL</span></div>
-                                        <div className="flex justify-between text-slate-300"><span>BEACONS</span><span>02 NOTIFIED</span></div>
-                                    </div>
-                                    <div className="text-[11px] text-center text-red-400 border border-red-500/30 bg-red-500/10 rounded py-1.5 font-sans font-bold tracking-wider animate-pulse">SIREN: ACTIVE</div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">LOCATION</span><span className="text-slate-300">MUMBAI COAST</span></div>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">STATUS</span><span className="text-slate-300">STANDBY</span></div>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIREN</span><span className="text-slate-600">INACTIVE</span></div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                </div>
-            </div>
             {/* Global Keyframes for dashed line animation */}
             <style dangerouslySetInnerHTML={{__html: `
                 @keyframes dash {
@@ -541,5 +559,6 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
                 }
             `}} />
         </div>
+    </div>
     );
 };

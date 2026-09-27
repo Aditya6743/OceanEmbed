@@ -245,7 +245,7 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
     });
 
   const thermoclineDepth = prediction.estimated_thermocline || 150;
-  const nearestThermocline100 = Math.round(thermoclineDepth / 100) * 100;
+  
 
   return (
     <group ref={groupRef} rotation={[0.15, 0, 0]}>
@@ -299,7 +299,7 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
           layer={layer} 
           isHovered={hoveredDepth === layer.depth} 
           isDimmed={hoveredDepth !== null && hoveredDepth !== layer.depth} 
-          isThermocline={layer.depth === nearestThermocline100}
+          isThermocline={layer.depth === thermoclineDepth}
           hoveredDepth={hoveredDepth}
         />
       ))}

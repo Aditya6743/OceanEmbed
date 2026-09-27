@@ -51,8 +51,8 @@ export default function Navbar() {
         <div className="flex items-center gap-12 w-full md:w-auto justify-between">
           
           <Link to="/" onClick={(e) => handleNavClick(e, 'top', '/')} className="flex items-center gap-0 opacity-90 cursor-pointer hover:opacity-100 transition-opacity">
-            <img src="/logo_cropped.png" alt="OceanEmbed Logo" className="-mt-1.5 ml-2 h-8 w-auto object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]" />
-            <span className="-ml-[11.5px] font-semibold text-[15px] tracking-[0.15em] uppercase">
+            <img src="/logo_cropped.png" alt="OceanEmbed Logo" className="-mt-1.5 ml-2 h-[26px] w-auto object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]" />
+            <span className="-ml-[8px] font-semibold text-[15px] tracking-[0.15em] uppercase">
               <span className="text-white">OCEAN</span><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">EMBED</span>
             </span>
           </Link>

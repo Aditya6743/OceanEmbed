@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react';
-import { Line } from '@react-three/drei';
+import { useRef, useMemo, useState } from 'react';
+import { Line, Html } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -9,6 +9,9 @@ interface RoutingSar3DOverlayProps {
   sarTimeHour: number;
   showCurrents: boolean;
   showThermalRisk: boolean;
+  onRequest2D: () => void;
+  is2DMode?: boolean;
+  onInteract?: () => void;
 }
 
 function latLonToVector3(lat: number, lon: number, radius = 2.02): THREE.Vector3 {
@@ -21,13 +24,14 @@ function latLonToVector3(lat: number, lon: number, radius = 2.02): THREE.Vector3
   );
 }
 
-export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour, showCurrents, showThermalRisk }: RoutingSar3DOverlayProps) {
+export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour, showCurrents, showThermalRisk, onRequest2D, is2DMode, onInteract }: RoutingSar3DOverlayProps) {
   const routeGroupRef = useRef<THREE.Group>(null);
   const driftVesselRef = useRef<THREE.Mesh>(null);
   const routeVesselRef = useRef<THREE.Mesh>(null);
   const searchAreaRef = useRef<THREE.Mesh>(null);
   const pulseRef = useRef<THREE.Mesh>(null);
   const animState = useRef({ startTime: 0, isRunning: false });
+  const [popupPos, setPopupPos] = useState<THREE.Vector3 | null>(null);
   
   // ROUTING POINTS
   const p1 = useMemo(() => latLonToVector3(13.08, 80.27, 2.015), []); // Chennai
@@ -47,6 +51,45 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
   const sarEnd = useMemo(() => latLonToVector3(14.5, 87.8, 2.015), []); // 24H Drift destination
   const sarCurve = useMemo(() => new THREE.QuadraticBezierCurve3(sarLKP, sarMid, sarEnd), [sarLKP, sarMid, sarEnd]);
   const sarPoints = useMemo(() => sarCurve.getPoints(40), [sarCurve]);
+
+  // Global 3D Current Vectors Grid
+  const currentVectors3D = useMemo(() => {
+    const vectors = [];
+    const dummy = new THREE.Object3D();
+    for(let lat = 8.5; lat <= 17.5; lat += 1) {
+      for(let lon = 78; lon <= 94; lon += 1) {
+        // Mask out landmasses
+        const isLand = 
+          (lat < 10.0 && lon > 79.5 && lon < 82.0) || 
+          (lat <= 15.0 && lon < 80.2) ||
+          (lat > 15.0 && lat <= 16.0 && lon < 81.0) ||
+          (lat > 16.0 && lat <= 17.0 && lon < 82.5) ||
+          (lat > 17.0 && lon < 84.0) ||
+          (lat > 14.5 && lon > 93.5) ||
+          (lat > 16.0 && lon > 93.0) ||
+          (lat > 10.5 && lat < 13.5 && lon > 92.5 && lon < 93.2);
+          
+        if (isLand) continue;
+
+        const angleDeg = (Math.sin(lat * 0.5) + Math.cos(lon * 0.5)) * 45 + 135; 
+        
+        const pos = latLonToVector3(lat, lon, 2.015);
+        const lat2 = lat + Math.cos(angleDeg * Math.PI / 180) * 0.5;
+        const lon2 = lon + Math.sin(angleDeg * Math.PI / 180) * 0.5;
+        const target = latLonToVector3(lat2, lon2, 2.015);
+        
+        dummy.position.copy(pos);
+        dummy.up.copy(pos.clone().normalize());
+        dummy.lookAt(target);
+        dummy.rotateX(Math.PI / 2);
+        
+        // Add type any to avoid TS errors if needed, but pos and quaternion are typed
+        vectors.push({ pos, quaternion: dummy.quaternion.clone() });
+      }
+    }
+    return vectors;
+  }, []);
+
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -84,7 +127,8 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
         
         // Smoothly animate from 0 to 1 over 1.5 seconds (matches standard progress speeds)
         const elapsed = t - animState.current.startTime;
-        const animT = Math.min(elapsed / 1.5, 1.0); 
+        const maxProgress = sarTimeHour / 24;
+        const animT = Math.min(elapsed / 1.5, 1.0) * maxProgress; 
         
         const currentPos = sarCurve.getPoint(animT);
         
@@ -120,7 +164,25 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
   if (simState === 'idle') return null;
 
   return (
-    <group ref={routeGroupRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
+    <group ref={routeGroupRef} onPointerMissed={() => setPopupPos(null)} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
+
+      {showCurrents && (
+         <group>
+            {currentVectors3D.map((v: any, i: number) => (
+               <group key={i} position={v.pos} quaternion={v.quaternion}>
+                  <mesh position={[0, -0.005, 0]}>
+                     <cylinderGeometry args={[0.0008, 0.0008, 0.02, 4]} />
+                     <meshBasicMaterial color="#38bdf8" transparent opacity={0.6} />
+                  </mesh>
+                  <mesh position={[0, 0.01, 0]}>
+                     <coneGeometry args={[0.003, 0.01, 4]} />
+                     <meshBasicMaterial color="#38bdf8" transparent opacity={0.8} />
+                  </mesh>
+               </group>
+            ))}
+         </group>
+      )}
+
       {activeMode === 'routing' && (
         <group>
           <mesh position={p1}><sphereGeometry args={[0.015, 16, 16]} /><meshBasicMaterial color="#22d3ee" /></mesh>
@@ -130,8 +192,8 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
 
           {simState === 'complete' && (
             <>
-              <Line points={routePointsOpt} color="#22d3ee" lineWidth={4} transparent opacity={0.9} />
-              <mesh ref={routeVesselRef}>
+              <Line onClick={(e) => { if (onInteract) onInteract(); e.stopPropagation(); setPopupPos(prev => prev ? null : e.point); }} points={routePointsOpt} color="#22d3ee" lineWidth={4} transparent opacity={0.9} />
+              <mesh ref={routeVesselRef} onClick={(e) => { if (onInteract) onInteract(); e.stopPropagation(); setPopupPos(prev => prev ? null : e.point); }}>
                  <coneGeometry args={[0.015, 0.04, 16]} />
                  <meshBasicMaterial color="#ffffff" />
               </mesh>
@@ -145,22 +207,7 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
             </mesh>
           )}
 
-          {showCurrents && (
-             <group>
-               {[0, 1, 2, 3, 4, 5].map(i => {
-                  const pt = curveOptimized.getPoint(i/5);
-                  // Push vectors slightly to the side to simulate broad field
-                  const offset = new THREE.Vector3(0.02, 0.02, 0);
-                  pt.add(offset);
-                  return (
-                    <mesh key={i} position={pt} rotation={[0.2, 0.5, Math.PI/3]}>
-                      <coneGeometry args={[0.008, 0.03, 8]} />
-                      <meshBasicMaterial color="#3b82f6" transparent opacity={0.8} />
-                    </mesh>
-                  )
-               })}
-             </group>
-          )}
+          
         </group>
       )}
 
@@ -186,13 +233,13 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
           {(simState === 'running' || simState === 'complete') && (
             <>
               {/* The Object Adrift */}
-              <mesh ref={driftVesselRef}>
+              <mesh ref={driftVesselRef} onClick={(e) => { if (onInteract) onInteract(); e.stopPropagation(); setPopupPos(prev => prev ? null : e.point); }}>
                 <sphereGeometry args={[0.015, 16, 16]} />
                 <meshBasicMaterial color="#fbbf24" />
               </mesh>
               
               {/* The Expanding Search Area Circle */}
-              <mesh ref={searchAreaRef}>
+              <mesh ref={searchAreaRef} onClick={(e) => { if (onInteract) onInteract(); e.stopPropagation(); setPopupPos(prev => prev ? null : e.point); }}>
                 <circleGeometry args={[0.03, 32]} />
                 <meshBasicMaterial color="#f43f5e" transparent opacity={0.5} side={THREE.DoubleSide} />
               </mesh>
@@ -200,21 +247,24 @@ export default function RoutingSar3DOverlay({ simState, activeMode, sarTimeHour,
           )}
 
           {/* SAR Current Vectors pushing the object */}
-          {showCurrents && (
-             <group>
-               {[0, 1, 2, 3].map(i => {
-                  const pt = sarCurve.getPoint((i+1)/5);
-                  return (
-                    <mesh key={i} position={pt} rotation={[-0.1, 0.3, Math.PI/4]}>
-                      <coneGeometry args={[0.01, 0.04, 8]} />
-                      <meshBasicMaterial color="#fbbf24" transparent opacity={0.5} />
-                    </mesh>
-                  )
-               })}
-             </group>
-          )}
+          
         </group>
+      )}
+    
+      {popupPos && !is2DMode && (
+        <Html position={popupPos} center zIndexRange={[100, 0]}>
+          <div className="bg-black/90 border border-cyan-500/50 p-3 rounded-lg backdrop-blur-md whitespace-nowrap animate-in fade-in zoom-in duration-200 shadow-[0_0_20px_rgba(34,211,238,0.3)] flex flex-col items-center gap-2 pointer-events-auto">
+            <span className="text-white text-[10px] font-bold tracking-widest uppercase">Tactical Overlay Selected</span>
+            <button 
+              onClick={(e) => { if (onInteract) onInteract(); e.stopPropagation(); setPopupPos(null); onRequest2D(); }}
+              className="bg-cyan-500 hover:bg-cyan-400 text-black px-4 py-1.5 rounded text-[10px] font-black tracking-widest transition-colors w-full"
+            >
+              VIEW IN 2D
+            </button>
+          </div>
+        </Html>
       )}
     </group>
   );
 }
+

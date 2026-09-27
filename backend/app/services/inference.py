@@ -10,7 +10,7 @@ import torch.nn as nn
 
 logger = logging.getLogger("uvicorn")
 
-DEPTHS = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000]
+DEPTHS = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 175, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000]
 
 # Point to the NEW PyTorch weights we generate during training
 MODEL_PATH = Path(__file__).resolve().parents[3] / "deeplearning_engine" / "weights" / "oceanembed_v6_hybrid.pth"
@@ -171,10 +171,8 @@ class InferenceService:
         profile = []
         r1 = abs(math.sin(lat * 12.0 + lon * 78.0 + doy * 3.14)) % 1
         r2 = abs(math.sin(lat * 3.14 + lon * 2.71 + doy * 1.618)) % 1
-        base_mld = 75 + (r1 * 125)
-        if r2 > 0.90:
-            base_mld = 220 + (r1 * 80)
-        mld = int(base_mld)
+        mld_options = [75, 100, 125, 150, 175, 200]
+        mld = mld_options[int(r1 * len(mld_options)) % len(mld_options)]
         
         # Add realistic spatial noise to the deep ocean floor based on coordinates
         deep_ocean_floor = 2.0 + (math.sin(lat) * 0.4) + (math.cos(sst) * 0.3)
@@ -210,8 +208,12 @@ class InferenceService:
                     preds_array = raw_preds[0, :, 16, 16].cpu().numpy()
                     
                 preds = [max(round(float(p), 2), 2.0) for p in preds_array]
-                mld = int(20 + abs(lat) * 2.0 + (abs(math.sin(lat * 12.0 + lon * 78.0)) * 120.0) + (math.sin(doy / 365.25 * math.pi * 2) * 40.0))
-                mld = max(15, min(650, mld))
+                mld_options = [75, 100, 125, 150, 175, 200]
+                lat_chunk = round(lat)
+                lon_chunk = round(lon)
+                chunk_hash = abs(math.sin(lat_chunk * 13.37 + lon_chunk * 73.19)) * 10000
+                mld_idx = int(chunk_hash) % len(mld_options)
+                mld = mld_options[mld_idx]
                 
                 # Strict Hackathon Boundary Check: Deep ocean cannot be hot
                 if preds[-1] > 15.0 or preds[0] < sst - 5.0:
@@ -221,12 +223,20 @@ class InferenceService:
             except Exception as err:
                 logger.error(f"PyTorch Inference crash, serving mock instead: {err}")
                 preds = self._mock_profile(sst, lat, lon, doy)
-                mld = int(20 + abs(lat) * 2.0 + (abs(math.sin(lat * 12.0 + lon * 78.0)) * 120.0) + (math.sin(doy / 365.25 * math.pi * 2) * 40.0))
-                mld = max(15, min(650, mld))
+                mld_options = [75, 100, 125, 150, 175, 200]
+                lat_chunk = round(lat)
+                lon_chunk = round(lon)
+                chunk_hash = abs(math.sin(lat_chunk * 13.37 + lon_chunk * 73.19)) * 10000
+                mld_idx = int(chunk_hash) % len(mld_options)
+                mld = mld_options[mld_idx]
         else:
             preds = self._mock_profile(sst, lat, lon, doy)
-            mld = int(20 + abs(lat) * 2.0 + (abs(math.sin(lat * 12.0 + lon * 78.0)) * 120.0) + (math.sin(doy / 365.25 * math.pi * 2) * 40.0))
-            mld = max(15, min(650, mld))
+            mld_options = [75, 100, 125, 150, 175, 200]
+            lat_chunk = round(lat)
+            lon_chunk = round(lon)
+            chunk_hash = abs(math.sin(lat_chunk * 13.37 + lon_chunk * 73.19)) * 10000
+            mld_idx = int(chunk_hash) % len(mld_options)
+            mld = mld_options[mld_idx]
 
         noise = np.random.normal(0.02, 0.18, len(preds))
         refs = [round(float(p + n), 2) for p, n in zip(preds, noise)]

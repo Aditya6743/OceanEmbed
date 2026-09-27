@@ -4,7 +4,7 @@ import type { LiveArgoMarker } from '../types/ocean';
 import { fetchLiveArgoFleet, getRelativeArgoTime } from '../data/liveArgoFleet';
 import { useOceanStore } from '../store/oceanStore';
 import { fetchOceanPrediction } from '../lib/api';
-import { Html } from '@react-three/drei';
+import { Html, Line } from '@react-three/drei';
 
  
 
@@ -639,7 +639,7 @@ function ArgoBeacon({ float, isSelected, onSelect }: { float: LiveArgoMarker, is
   const pos = useMemo(() => {
     const phi = (90 - float.lat) * (Math.PI / 180);
     const theta = (float.lon + 180) * (Math.PI / 180);
-    const radius = 2.016;
+    const radius = 2.066;
     return new THREE.Vector3(
       -(radius * Math.sin(phi) * Math.cos(theta)),
       radius * Math.cos(phi),
@@ -650,10 +650,10 @@ function ArgoBeacon({ float, isSelected, onSelect }: { float: LiveArgoMarker, is
   return (
     <group position={pos}>
       <mesh onClick={(e) => { e.stopPropagation(); onSelect(float); }} onPointerEnter={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }} onPointerLeave={(e) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }} visible={false}><sphereGeometry args={[0.035, 8, 8]} /><meshBasicMaterial /></mesh>
-      <mesh raycast={() => null}><sphereGeometry args={[isSelected ? 0.009 : 0.005, 12, 12]} /><meshBasicMaterial color={isSelected ? "#a3e635" : "#4ade80"} /></mesh>
-      <mesh raycast={() => null}><sphereGeometry args={[isSelected ? 0.016 : (hovered ? 0.013 : 0.008), 12, 12]} /><meshBasicMaterial color="#a3e635" transparent opacity={isSelected ? 0.6 : (hovered ? 0.45 : 0.25)} /></mesh>
+      <mesh><sphereGeometry args={[isSelected ? 0.009 : 0.005, 12, 12]} /><meshBasicMaterial color={isSelected ? "#a3e635" : "#4ade80"} /></mesh>
+      <mesh><sphereGeometry args={[isSelected ? 0.016 : (hovered ? 0.013 : 0.008), 12, 12]} /><meshBasicMaterial color="#a3e635" transparent opacity={isSelected ? 0.6 : (hovered ? 0.45 : 0.25)} /></mesh>
       {(hovered || isSelected) && (
-        <Html position={[0, 0.05, 0]} center zIndexRange={[100, 0]} style={{ pointerEvents: 'none' }}>
+        <Html position={[0, 0.05, 0]} center zIndexRange={[100, 0]} style={{ pointerEvents: "none" }}>
           <div className="bg-black/90 border border-lime-500/50 p-2 rounded backdrop-blur-md whitespace-nowrap animate-in fade-in zoom-in duration-200">
             <div className="text-lime-400 text-[10px] font-bold tracking-wider mb-1">ARGO FLOAT #{float.id}</div>
             <div className="text-white/70 text-[9px] font-mono mb-1">{float.lat.toFixed(3)}°N, {float.lon.toFixed(3)}°E</div>
@@ -669,41 +669,69 @@ function ArgoBeacon({ float, isSelected, onSelect }: { float: LiveArgoMarker, is
 // ----------------------------------------------------
 // IOT BEACON COMPONENT (Simulates physical hardware on globe)
 // ----------------------------------------------------
-const IotBeacon = ({ lat, lon, color }: { lat: number, lon: number, color: string }) => {
-
+const IotBeacon = ({ lat, lon, color, onClick, onPointerEnter, onPointerLeave }: { lat: number, lon: number, color: string, onClick?: (e: any) => void, onPointerEnter?: (e: any) => void, onPointerLeave?: () => void }) => {
   const ringRef = useRef<THREE.Mesh>(null);
   
-  // Convert Lat/Lon to 3D Cartesian coordinates (matches the shader's inverse projection)
-  const radius = 2.02; // Slightly above the surface
-  const latRad = lat * (Math.PI / 180);
-  const lonRad = lon * (Math.PI / 180);
-  
-  const y = radius * Math.sin(latRad);
-  const z = -radius * Math.cos(latRad) * Math.sin(lonRad);
-  const x = radius * Math.cos(latRad) * Math.cos(lonRad);
+  const radius = 2.08;
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lon + 180) * (Math.PI / 180);
 
-  
-  useFrame((_state) => {
+  const x = -(radius * Math.sin(phi) * Math.cos(theta));
+  const z = (radius * Math.sin(phi) * Math.sin(theta));
+  const y = (radius * Math.cos(phi));
+
+  useFrame((state) => {
     if (ringRef.current) {
-      // Pulse animation for the radio wave ring
-      const scale = 1.0 + (Math.sin(_state.clock.elapsedTime * 4) * 0.5 + 0.5) * 1.5;
-      ringRef.current.scale.set(scale, scale, scale);
-      const material = ringRef.current.material as THREE.MeshBasicMaterial;
-      material.opacity = 1.0 - (scale - 1.0) / 1.5;
+      ringRef.current.scale.x = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.4;
+      ringRef.current.scale.y = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.4;
+      (ringRef.current.material as THREE.MeshBasicMaterial).opacity = 0.5 - (Math.sin(state.clock.elapsedTime * 3) * 0.5);
     }
   });
 
+  // Calculate orientation looking directly away from the center of the globe
+  const pos = new THREE.Vector3(x, y, z);
+  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), pos.clone().normalize());
+
   return (
-    <group position={[x, y, z]} lookAt={() => new THREE.Vector3(0, 0, 0)}>
-      {/* Center Hardware Node */}
+    <group 
+        position={pos} 
+        quaternion={quat}
+        onClick={(e) => {
+            e.stopPropagation();
+            if (onClick) onClick(e);
+        }}
+        onPointerEnter={(e) => {
+            e.stopPropagation();
+            document.body.style.cursor = 'pointer';
+            if (onPointerEnter) onPointerEnter(e);
+        }}
+        onPointerLeave={() => {
+            document.body.style.cursor = 'auto';
+            if (onPointerLeave) onPointerLeave();
+        }}
+    >
+      {/* Invisible Large Hitbox for incredibly easy clicking */}
       <mesh>
-        <sphereGeometry args={[0.015, 16, 16]} />
-        <meshBasicMaterial color={color} />
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshBasicMaterial opacity={0} transparent={true} depthWrite={false} />
       </mesh>
-      {/* Pulsing Radio Wave Ring */}
-      <mesh ref={ringRef} rotation={[Math.PI/2, 0, 0]}>
-        <ringGeometry args={[0.02, 0.025, 32]} />
-        <meshBasicMaterial color={color} transparent={true} opacity={0.8} side={THREE.DoubleSide} />
+      
+      {/* Outer White Border */}
+      <mesh position={[0, 0, 0]}>
+        <circleGeometry args={[0.022, 32]} />
+        <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} />
+      </mesh>
+      
+      {/* Inner Colored Dot */}
+      <mesh position={[0, 0, 0.001]}>
+        <circleGeometry args={[0.016, 32]} />
+        <meshBasicMaterial color={color} side={THREE.DoubleSide} />
+      </mesh>
+      
+      {/* Pulse Ring */}
+      <mesh ref={ringRef} position={[0, 0, 0]} scale={[1, 1, 1]}>
+        <ringGeometry args={[0.025, 0.035, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.5} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -854,7 +882,57 @@ const playSimplePing = () => {
   } catch (e) {}
 };
 
-export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode = 'cyclone', }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' | 'iot', climateSubMode?: 'cyclone' | 'flood' | 'heatwave' | 'erosion', isRotationLocked?: boolean }) {
+
+const latLonToVector3 = (lat: number, lon: number, radius: number) => {
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lon + 180) * (Math.PI / 180);
+    const x = -(radius * Math.sin(phi) * Math.cos(theta));
+    const z = (radius * Math.sin(phi) * Math.sin(theta));
+    const y = (radius * Math.cos(phi));
+    return new THREE.Vector3(x, y, z);
+};
+
+const IotBroadcastLine = ({ lat1, lon1, lat2, lon2, color, dashed }: { lat1: number, lon1: number, lat2: number, lon2: number, color: string, dashed?: boolean }) => {
+  const lineRef = useRef<any>(null);
+  
+  const points = useMemo(() => {
+    const p1 = latLonToVector3(lat1, lon1, 2.06);
+    const p2 = latLonToVector3(lat2, lon2, 2.06);
+    const pts = [];
+    const segments = 30;
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const p = new THREE.Vector3().copy(p1).lerp(p2, t);
+      p.normalize().multiplyScalar(2.06 + Math.sin(t * Math.PI) * 0.07); // dynamic arc height
+      pts.push(p);
+    }
+    return pts;
+  }, [lat1, lon1, lat2, lon2]);
+
+  useFrame((_state, delta) => {
+      if (dashed && lineRef.current?.material) {
+          lineRef.current.material.dashOffset -= delta * 0.2;
+      }
+  });
+
+  return (
+    <Line raycast={() => null} 
+      ref={lineRef}
+      points={points}
+      color={color}
+      lineWidth={dashed ? 2 : 2}
+      dashed={dashed}
+      dashSize={0.08}
+      gapSize={0.08}
+      transparent
+      opacity={0.8}
+    />
+  );
+};
+
+export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode = 'cyclone', onInteract, onRequest2D, is2DMode, iotSimState }: { viewMode?: 'navy' | 'fishery' | 'climate' | 'cable' | 'enso' | 'iot' | 'sar', climateSubMode?: 'cyclone' | 'flood' | 'heatwave' | 'erosion', isRotationLocked?: boolean, onInteract?: () => void, onRequest2D?: () => void, is2DMode?: boolean, iotSimState?: any }) {
+  // @ts-ignore
+  const _dummy = onRequest2D;
   const { showGlobeArgo, selectedArgoMarker, setSelectedArgoMarker, setLocation, reset } = useOceanStore();
   const [argoFloats, setArgoFloats] = useState<LiveArgoMarker[]>([]);
   useEffect(() => {
@@ -918,6 +996,7 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
   const [currentsMap, setCurrentsMap] = useState<THREE.Texture | null>(null);
   
   // HUD Pin State
+  const [iotPopupPos, setIotPopupPos] = useState<{point: THREE.Vector3, id: string} | null>(null);
   const [activePin, setActivePin] = useState<{lat: number, lon: number, point: THREE.Vector3, val: number, realData?: any, isLoading?: boolean} | null>(null);
 
   const landMaskRef = useRef<{ data: Uint8ClampedArray; width: number; height: number } | null>(null);
@@ -1049,9 +1128,11 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
   };
 
   const handleGlobeClick = useCallback((e: any) => {
+    if (onInteract) onInteract();
     if (e.delta > 3) return; // Prevent accidental clicks while rotating/dragging
     e.stopPropagation();
     playSimplePing();
+    setIotPopupPos(null);
     
     if (!e.uv) return;
     const lat = (e.uv.y - 0.5) * 180;
@@ -1223,18 +1304,18 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
   }, [tchpMap, fisheryMap, navyMap, benthicMap, iodMap, sshMap, sstMap, currentsMap, viewMode, climateSubMode]);
 
   return (
-    <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
-      <ambientLight intensity={1.2} color="#ffffff" />
-      {/* INVISIBLE CLICK CATCHER */}
-      <Sphere 
-        args={[2.015, 64, 64]} 
-        onClick={handleGlobeClick}
-        onPointerMissed={(e) => {
+    <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]} onPointerMissed={(e) => {
           if (e.target && (e.target as HTMLElement).tagName === 'CANVAS') {
               setActivePin(null);
               reset();
+              setIotPopupPos(null);
           }
-        }}
+        }}>
+      <ambientLight intensity={1.2} color="#ffffff" />
+      {/* INVISIBLE CLICK CATCHER */}
+      <Sphere 
+        args={[2.065, 64, 64]} 
+        onClick={handleGlobeClick}
         onPointerMove={handlePointerMove}
         onPointerOut={() => document.body.style.cursor = 'auto'}
       >
@@ -1242,7 +1323,7 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
       </Sphere>
       
       {/* HUD MARKER OVERLAY */}
-      {activePin && (
+      {activePin && !is2DMode && viewMode !== 'iot' && viewMode !== 'sar' && (
         <group position={activePin.point}>
           {/* Simple Clean Dot Marker (Matches Home Page) */}
           <mesh renderOrder={999} raycast={() => null}>
@@ -1260,15 +1341,100 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
       {/* IOT HARDWARE BEACONS */}
       {viewMode === 'iot' && (
         <group>
-          {/* Mumbai Siren */}
-          <IotBeacon lat={18.922} lon={72.8347} color="#f43f5e"  />
-          {/* Offline Fisherman at Sea */}
-          <IotBeacon lat={15.5} lon={68.0} color="#f43f5e"  />
-          {/* Coast Guard Terminal (Chennai) */}
-          <IotBeacon lat={13.0827} lon={80.2707} color="#38bdf8"  />
-          {/* Additional Coastal Sensors */}
-          <IotBeacon lat={22.309} lon={70.802} color="#10b981"  />
-          <IotBeacon lat={8.524} lon={76.936} color="#10b981"  />
+          {/* Hazard Region Circle */}
+          {iotSimState && iotSimState.step >= 2 && (() => {
+            const hazardPos = latLonToVector3(14.5, 69.5, 2.06);
+            const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1), hazardPos.clone().normalize());
+            
+            // Create dashed circle points
+            const circlePts = [];
+            for(let i=0; i<=64; i++){
+               const a = (i/64) * Math.PI * 2;
+               circlePts.push(new THREE.Vector3(Math.cos(a)*0.22, Math.sin(a)*0.22, 0));
+            }
+            
+            return (
+              <group position={hazardPos} quaternion={quat}>
+                <mesh raycast={() => null}>
+                  <circleGeometry args={[0.22, 64]} />
+                  <meshBasicMaterial color="#ef4444" transparent opacity={0.1} depthWrite={false} side={THREE.DoubleSide} />
+                </mesh>
+                <Line raycast={() => null} 
+                    points={circlePts} 
+                    color="#ef4444" 
+                    lineWidth={1.5} 
+                    dashed 
+                    dashSize={0.02} 
+                    gapSize={0.02} 
+                    transparent 
+                    opacity={0.8} 
+                />
+              </group>
+            );
+          })()}
+
+          {/* Broadcast Lines */}
+          {iotSimState && iotSimState.step >= 5 && (
+            <>
+              {/* Gateway to Fisherman */}
+              <IotBroadcastLine lat1={18.92} lon1={72.82} lat2={16.0} lon2={68.0} color={iotSimState.phase === 'DELIVERY FAILED' ? '#64748b' : '#38bdf8'} dashed />
+              {/* Gateway to Tourist */}
+              <IotBroadcastLine lat1={18.92} lon1={72.82} lat2={12.0} lon2={72.0} color="#38bdf8" dashed />
+            </>
+          )}
+
+          <IotBeacon lat={18.92} lon={72.82} color="#10b981" />
+          <IotBeacon lat={16.0} lon={68.0} color={iotSimState && iotSimState.phase === 'DELIVERY FAILED' ? "#64748b" : (iotSimState && iotSimState.step >= 7 && iotSimState.phase !== 'ACKNOWLEDGED' ? "#ef4444" : "#10b981")} onClick={(e) => { if (onInteract) onInteract(); setIotPopupPos(prev => prev?.id === 'b1' ? null : { point: e.point, id: 'b1' }); }} />
+          <IotBeacon lat={12.0} lon={72.0} color={iotSimState && iotSimState.step >= 7 && iotSimState.phase !== 'ACKNOWLEDGED' ? "#ef4444" : "#10b981"} onClick={(e) => { if (onInteract) onInteract(); setIotPopupPos(prev => prev?.id === 'b2' ? null : { point: e.point, id: 'b2' }); }} />
+        
+        
+        {/* PERMANENT GATEWAY TOOLTIP */}
+        {!is2DMode && iotSimState && (() => {
+            const isAck = iotSimState.phase === 'ACKNOWLEDGED';
+            return (
+                <Html position={latLonToVector3(18.92, 72.82, 2.08)} zIndexRange={[100, 0]} style={{ pointerEvents: "none" }}>
+                    <div className="pointer-events-none flex flex-col ml-2 -translate-y-1/2 animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                        <span className="text-cyan-300 font-black text-[12px] tracking-wider mb-0.5">GATEWAY #01</span>
+                        <span className="text-white/80">MUMBAI HUB</span>
+                        <span className="text-emerald-400 font-bold tracking-widest my-0.5">LoRaWAN LINK</span>
+                        <span className="text-white/80">STATUS: <span className={isAck ? 'text-cyan-400' : iotSimState.step >= 6 ? 'text-orange-400 animate-pulse' : 'text-emerald-400'}>{isAck ? 'ACKNOWLEDGED' : iotSimState.step >= 6 ? 'TRANSMITTING' : 'ONLINE'}</span></span>
+                    </div>
+                </Html>
+            );
+        })()}
+
+        {iotPopupPos && !is2DMode && iotSimState && (() => {
+            const isAlert = iotSimState.step >= 7 && iotSimState.phase !== 'ACKNOWLEDGED';
+            
+            const isFail = iotSimState.phase === 'DELIVERY FAILED';
+
+            if (iotPopupPos.id === 'b1') {
+                return (
+                    <Html position={latLonToVector3(16.0, 68.0, 2.08)} zIndexRange={[100, 0]} style={{ pointerEvents: "none" }}>
+                        <div className="pointer-events-none flex flex-col -ml-2 -translate-x-full -translate-y-1/2 animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                            <span className="text-orange-400 font-black text-[12px] tracking-wider mb-0.5">FISHERMAN #402</span>
+                            <span className="text-white/80">STATUS: <span className={isFail ? 'text-slate-400' : isAlert ? 'text-red-400 font-bold' : 'text-emerald-400'}>{isFail ? 'OFFLINE' : isAlert ? 'EVACUATE' : 'ONLINE'}</span></span>
+                            <span className="text-white/80">LAT: 16.0000 | LON: 68.0000</span>
+                            <span className="text-white/80">SIG: {isFail ? '--' : '-67 dBm'} | BAT: 87%</span>
+                        </div>
+                    </Html>
+                );
+            }
+            if (iotPopupPos.id === 'b2') {
+                return (
+                    <Html position={latLonToVector3(12.0, 72.0, 2.08)} zIndexRange={[100, 0]} style={{ pointerEvents: "none" }}>
+                        <div className="pointer-events-none flex flex-col mt-2 -translate-x-1/2 animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
+                            <span className="text-sky-400 font-black text-[12px] tracking-wider mb-0.5">TOURIST BOAT #77</span>
+                            <span className="text-white/80">STATUS: <span className={isAlert ? 'text-red-400 font-bold' : 'text-emerald-400'}>{isAlert ? 'EVACUATE' : 'ONLINE'}</span></span>
+                            <span className="text-white/80">LAT: 12.0000 | LON: 72.0000</span>
+                            <span className="text-white/80">SIG: -42 dBm | BAT: 92%</span>
+                        </div>
+                    </Html>
+                );
+            }
+            return null;
+        })()}
+
         </group>
       )}
 
@@ -1285,7 +1451,7 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
       </Sphere>
       
       {/* Dynamic Overlays at slightly larger radius */}
-      {(viewMode === 'iot' || (viewMode === 'climate' && climateSubMode === 'cyclone')) && (
+      {(viewMode === 'climate' && climateSubMode === 'cyclone') && (
         <Sphere args={[2.008, 128, 128]} raycast={() => null}>
           <shaderMaterial ref={tchpShaderRef} vertexShader={vertexShader} fragmentShader={tchpFragmentShader} uniforms={{ time: { value: dateOffset }, earthMap: { value: specularMap }, tchpMap: { value: tchpMap } }}  transparent={true} depthWrite={false} blending={THREE.NormalBlending} />
         </Sphere>
@@ -1332,7 +1498,7 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
       
       {/* GLOBAL UPDATING OVERLAY */}
       {isUpdatingPattern && (
-        <Html center style={{ pointerEvents: 'none' }} zIndexRange={[100, 0]}>
+        <Html center style={{ pointerEvents: "none" }} zIndexRange={[100, 0]}>
           <div className="flex flex-col items-center justify-center p-6 bg-black/80 border border-cyan-500/50 rounded-xl backdrop-blur-md shadow-[0_0_30px_rgba(6,182,212,0.4)] animate-in fade-in zoom-in duration-200">
              <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-3"></div>
              <div className="text-cyan-400 font-black tracking-[0.2em] text-sm animate-pulse">GENERATING PREDICTION</div>
