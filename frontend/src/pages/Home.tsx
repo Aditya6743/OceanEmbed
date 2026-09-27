@@ -9,9 +9,8 @@ import { useOceanStore } from '../store/oceanStore';
 import React from 'react';
 
 
-import HowItWorksSection from '../components/landing/HowItWorksSection';
 import DataSection from '../components/landing/DataSection';
-import ModelSection from '../components/landing/ModelSection';
+import ArchitectureSection from '../components/landing/ArchitectureSection';
 import ResultsSection from '../components/landing/ResultsSection';
 import AboutSection from '../components/landing/AboutSection';
 import Footer from '../components/landing/Footer';
@@ -85,16 +84,17 @@ export default function Home() {
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
-        <div className="absolute top-0 bottom-0 left-0 w-[100vw] md:w-[125vw] z-0 pointer-events-auto">
+        <div className="absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
           <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
-              <EarthGlobe />
+              
+              <EarthGlobe showSatellite />
               <OrbitControls ref={controlsRef} 
                 enablePan={false} 
                 enableDamping={true} 
                 dampingFactor={0.03} 
                 rotateSpeed={0.4}
-                enableZoom={true} minDistance={4.8} maxDistance={5.5} 
+                enableZoom={false} minDistance={5.5} maxDistance={5.5} 
                 autoRotate={!selectedLocation}
                 autoRotateSpeed={0.2}
               />
@@ -105,7 +105,7 @@ export default function Home() {
         </div>
 
         {/* FOREGROUND CONTENT */}
-        <div className="relative z-10 w-full pl-12 md:pl-24 xl:pl-32 pr-8 pointer-events-none flex flex-col justify-center h-full">
+        <div className="relative z-10 w-full pl-8 md:pl-16 xl:pl-24 pr-8 pointer-events-none flex flex-col justify-center h-full">
           
           {/* STRICTLY LEFT ALIGNED, CONTROLLED WIDTH BLOCK */}
           <div className="w-full max-w-[520px] flex flex-col pointer-events-auto">
@@ -183,31 +183,25 @@ export default function Home() {
           </div>
 
           {/* Floating Earth Annotations Anchored to the Globe */}
-          <div className="hidden md:flex absolute right-8 lg:right-16 top-1/2 -translate-y-1/2 flex-col gap-16 pointer-events-none">
-            <div className="flex items-center gap-4 justify-end group opacity-70 hover:opacity-100 transition-opacity">
-              <div className="w-32 lg:w-48 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-cyan-500/80 relative">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-              </div>
+          <div className="hidden md:flex absolute right-4 lg:right-6 top-1/2 -translate-y-1/2 flex-col gap-16 pointer-events-none">
+            <div className="flex items-center gap-2 lg:gap-4 justify-end group opacity-70 hover:opacity-100 transition-opacity">
+              <div className="w-12 lg:w-20 h-px bg-gradient-to-r from-cyan-400/80 to-transparent relative"></div>
               <div className="text-right w-32">
                 <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em]">SURFACE DATA</div>
-                <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">SST / SSH / SSS</div>
+                <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">SST / SSS / SSH / U / V</div>
               </div>
             </div>
             
-            <div className="flex items-center gap-4 justify-end group opacity-70 hover:opacity-100 transition-opacity">
-              <div className="w-40 lg:w-64 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-cyan-500/80 relative">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-              </div>
+            <div className="flex items-center gap-2 lg:gap-4 justify-end group opacity-70 hover:opacity-100 transition-opacity">
+              <div className="w-12 lg:w-20 h-px bg-gradient-to-r from-cyan-400/80 to-transparent relative"></div>
               <div className="text-right w-32">
                 <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em]">PREDICTION</div>
                 <div className="text-[11px] text-white/60 font-mono mt-1 tracking-widest">0m — 1000m</div>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 justify-end group opacity-70 hover:opacity-100 transition-opacity">
-              <div className="w-24 lg:w-32 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-cyan-500/80 relative">
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-              </div>
+            <div className="flex items-center gap-2 lg:gap-4 justify-end group opacity-70 hover:opacity-100 transition-opacity">
+              <div className="w-12 lg:w-20 h-px bg-gradient-to-r from-cyan-400/80 to-transparent relative"></div>
               <div className="text-right w-32">
                 <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.2em]">STATUS</div>
                 <div className="text-[11px] text-cyan-500 font-mono mt-1 tracking-widest flex items-center gap-1.5 justify-end">
@@ -226,9 +220,8 @@ export default function Home() {
       <div className="relative w-full bg-transparent -mt-[15vh] z-20">
 
         
-                <HowItWorksSection />
+        <ArchitectureSection />
         <DataSection />
-        <ModelSection />
         <ResultsSection />
         <AboutSection />
         <Footer />

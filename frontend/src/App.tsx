@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import HowItWorks from './pages/HowItWorks';
 import Explore from './pages/Explore';
 import Solutions from './pages/Solutions';
+import Architecture from './pages/Architecture';
 import Preloader from './components/Preloader';
 import CustomCursor from './components/CustomCursor';
 import GradientWaves from './components/GradientWaves';
@@ -34,9 +35,10 @@ function App() {
                 brightness={0.8}
                 opacity={1.0}
                 mouseInteraction={false}
+                detail="low"
             />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-transparent opacity-80"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-transparent opacity-20"></div>
           
         </div>
         <div className="relative z-10 flex flex-col min-h-screen">
@@ -46,6 +48,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/explore" element={<Explore />} />
+              <Route path="/architecture" element={<Architecture />} />
               <Route path="/solutions" element={<Solutions />} />
             </Routes>
           </main>

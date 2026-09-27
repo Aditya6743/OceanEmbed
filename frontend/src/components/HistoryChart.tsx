@@ -27,7 +27,19 @@ export default function HistoryChart({ data }: HistoryChartProps) {
           dataKey="date" 
           stroke="#888" 
           tick={{ fill: '#888', fontSize: 8 }}
-          tickFormatter={(val) => val.substring(5)} // Show MM-DD
+          tickFormatter={(val) => {
+            if (!val) return '';
+            if (val.includes('-')) {
+                // If it's YYYY-MM-DD, parse month
+                const parts = val.split('-');
+                if (parts.length >= 2) {
+                    const monthIdx = parseInt(parts[1]) - 1;
+                    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                    return months[monthIdx] || val;
+                }
+            }
+            return val;
+          }}
           axisLine={{ stroke: '#ffffff', opacity: 0.2 }}
           tickLine={false}
           minTickGap={20}

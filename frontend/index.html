@@ -1,19 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
   <head>
+  <script>
+  window.addEventListener('error', function(e) {
+    const errDiv = document.createElement('div');
+    errDiv.style = 'position:fixed;top:0;left:0;z-index:9999;background:red;color:white;padding:20px;font-family:monospace;width:100%;';
+    errDiv.innerText = 'JS ERROR: ' + e.message + '\n' + (e.error ? e.error.stack : '');
+    document.body.appendChild(errDiv);
+  });
+</script>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>OceanEmbed</title>
+    <meta name="theme-color" content="#030712" />
+    <meta name="color-scheme" content="dark" />
     <meta name="description" content="AI-driven subsurface ocean intelligence" />
     <style>
-      body {
-        background-color: #020617; /* Slate 950 */
+      html, body {
+        background-color: #030712 !important; /* Extremely dark slate */
+        color: #ffffff;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
       }
     </style>
   </head>
   <body class="select-none">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-  </body>
+  
+    </body>
 </html>

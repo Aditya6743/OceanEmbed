@@ -1,127 +1,125 @@
 <div align="center">
   <h1 align="center">
-    <img src="frontend/public/favicon.svg" width="45" valign="middle" alt="OceanEmbed Logo" /> OceanEmbed
+    <img src="frontend/public/logo.png" width="350" alt="OceanEmbed Logo" />
   </h1>
-  <strong>AI-Driven 3D Ocean Thermodynamic Reconstruction</strong>
+  <strong>Satellite-Based 3D Ocean Subsurface Temperature Reconstruction</strong>
   <br/>
-  <em>Presented by Team CodeStormers for Smart India Hackathon (SIH26066)</em>
+  <em>Presented by Team CodeStormers 20 for Smart India Hackathon (SIH26066)</em>
   <br/><br/>
   <p align="center">
-    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" />
-    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" />
-    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" />
-    <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white" />
-    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-    <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-    <img src="https://img.shields.io/badge/scikit_learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white" />
-    <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" />
-    <img src="https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" />
-    <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
+    <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch" />
+    <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+    <img src="https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+    <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white" alt="Three.js" />
+    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+    <img src="https://img.shields.io/badge/Zustand-443E38?style=for-the-badge&logo=react&logoColor=white" alt="Zustand" />
   </p>
 </div>
 
 ---
 
-## 01 / Core Architecture
+## 01 / The Problem
 
-OceanEmbed operates on a highly optimized, decoupled architecture separating the heavy machine-learning inference from the high-performance WebGL frontend.
+The subsurface ocean is completely opaque to electromagnetic satellite sensors. Traditionally, mapping deep-ocean temperature requires deploying physical **Argo Floats** or autonomous underwater vehicles (AUVs)—a process that is extraordinarily expensive, geographically sparse, and completely unscalable for real-time, high-resolution global monitoring. Without this data, naval submarines operate blind to acoustic shadow zones, and climatologists cannot accurately predict the explosive intensification of tropical cyclones driven by deep ocean heat.
+
+---
+
+## 02 / The Solution
+
+**OceanEmbed** completely bypasses the need for physical subsurface sensors. By mathematically proving that deep-water thermal stratifications leave complex, non-linear signatures on the ocean surface, we built a proprietary **V6 Hybrid Deep Learning Engine** that looks purely at surface telemetry (SST, SSH, winds, currents) and instantly infers a continuous, high-resolution 3D temperature profile from **0 to 1000m deep**.
+
+---
+
+## 03 / Core Architecture
 
 ```mermaid
-graph TD
-    subgraph Surface Telemetry [Copernicus Marine Service]
-        SST[Sea Surface Temp]
-        SSS[Sea Surface Salinity]
-        SSH[Sea Surface Height / SLA]
-        WIND[Surface Winds U & V]
+flowchart TD
+    A["🛰️ Satellite Telemetry (12 Channels)\nSST, SSS, SSH, U_curr, V_curr, U_wind,\nV_wind, Lat, Lon, Sin(doy), Cos(doy), Bathy"] --> B
+
+    B["Data Normalization\nStandard scaling via dynamic stats pipeline"] --> C
+
+    C["Input Tensor\nB x 12 x 32 x 32"] --> D
+
+    subgraph ENCODER ["OceanEmbed V6 Hybrid Encoder (CNN + ViT + PINN)"]
+        D["CNN Stem\n12 ch → 32 ch → 64 ch"]
+        E["Spatial Attention Module\nLearns where to focus (e.g., eddy borders)"]
+        F["Vision Transformer (ViT) Blocks\nCaptures global basin dependencies"]
+        D --> E --> F
     end
 
-    subgraph OceanEmbed Engine [FastAPI / Python Backend]
-        RF[Random Forest Regressor]
-        INF[Real-Time Inference API]
-        RF <--> INF
+    subgraph DECODER ["Subsurface Reconstruction Head"]
+        G["CNN Decoder\n64 ch → 32 ch"]
+        H["Output Head\n15 Depth Channels (0m to 1000m)"]
+        G --> H
     end
 
-    subgraph Interactive Dashboard [React / Three.js Frontend]
-        VOL[3D Ocean Volume 0-1000m]
-        GRAD[dT/dz Thermal Gradients]
-        CONF[±95% Confidence Intervals]
-    end
+    F --> G
 
-    SST --> RF
-    SSS --> RF
-    SSH --> RF
-    WIND --> RF
-    
-    INF ==>|JSON Depth Profile| VOL
-    INF ==>|JSON Depth Profile| GRAD
-    INF ==>|JSON Depth Profile| CONF
+    H --> I["🌊 3D Thermodynamic Profile\n0, 5, 10, 20, 30, 50, 75, 100,\n125, 150, 200, 300, 500, 700, 1000m"]
+
+    style ENCODER fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
+    style DECODER fill:#1e293b,stroke:#4ade80,stroke-width:2px,color:#f8fafc
+    style E fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
 ```
-
----
-
-## 02 / The Problem: The Hidden Ocean
-
-Satellites provide massive amounts of real-time data about the ocean's surface, but they cannot penetrate the water. The deep ocean—which drives global climate, creates cyclones, and hides submarines—remains entirely hidden from space. 
-
-While physical sensors (like Argo floats) provide incredibly accurate deep-water readings, they are sparse and drift passively, leaving massive geographical blind spots. To fully understand ocean thermodynamics, we need a way to look *beneath* the surface without relying solely on expensive, localized physical probes.
-
----
-
-## 03 / The Solution: AI Subsurface Reconstruction
-
-**OceanEmbed** bridges the gap between surface telemetry and deep-ocean reality. 
-
-By utilizing advanced Machine Learning (a highly tuned Random Forest Regressor), our model has learned the complex, non-linear thermodynamic relationships between surface signatures and deep-water stratifications in the North Indian Ocean. 
-
-Instead of deploying physical sensors, OceanEmbed allows researchers to click any coordinate in the ocean and instantly generate a 3D thermodynamic volume down to **1000 meters**, using only surface satellite data.
 
 ---
 
 ## 04 / Tech Stack
 
-| Layer | Stack | Purpose in OceanEmbed |
+| Domain | Stack | Purpose in OceanEmbed |
 | :--- | :--- | :--- |
-| **Frontend** | React 18 · TypeScript · Vite · Tailwind CSS · Framer Motion | Component-based UI, typed development, responsive styling and interactive dashboard behavior |
-| **3D & Data Visualization** | React Three Fiber · OGL · Recharts | WebGL-based 3D ocean rendering and visualization of temperature profiles, gradients and prediction outputs |
-| **Data Processing** | Python 3.10 · Pandas · NumPy | Data ingestion, preprocessing, spatial transformation and numerical computation |
-| **Machine Learning** | Scikit-Learn · Joblib | Random Forest regression, subsurface temperature inference and trained-model serialization |
-| **API & Model Serving** | FastAPI · Uvicorn | REST API layer for real-time inference and communication between frontend and ML pipeline |
-| **DevOps** | Git · GitHub · Docker | Source-code management, collaborative development and reproducible runtime environments |
-| **Deployment** | Vercel · Render | Production hosting for the frontend and FastAPI inference service |
+| **Frontend UI** | React 18 · TypeScript · Vite · Tailwind CSS · Zustand | Lightning-fast component UI, strict type safety, and highly resilient global state management. |
+| **3D & Spatial** | React Three Fiber · THREE.js · Leaflet | Hardware-accelerated WebGL ocean rendering, Earth mapping, and immersive digital twin environments. |
+| **Data Visualization**| Recharts · HTML5 Canvas | Rigorous scientific charting, statistical bounds visualization, and dynamic 2D topography mapping. |
+| **Deep Learning & AI** | PyTorch · TorchVision | Deep learning architecture utilizing V6 Hybrid CNN+ViT+PINN, spatial attention masks, and massive neural tensor processing. |
+| **API & Serving** | FastAPI · Uvicorn · Python 3.10 | High-concurrency REST API layer delivering sub-100ms real-time 3D volume reconstruction. |
+| **DevOps** | Git · Docker · Render · Vercel | Source-code management, containerized microservices, and continuous edge deployment. |
 
 ---
 
-## 05 / Key Features
+## 05 / Data Sources
 
-- **Interactive 3D Dashboard:** A high-performance WebGL interface built with React Three Fiber, allowing users to rotate, pan, and explore physical ocean layers in real-time.
-- **Live Inference Engine:** A FastAPI backend that hosts our Random Forest model, resolving live 3D coordinates into full thermodynamic profiles in under 100ms.
-- **Acoustic Shadow Zone Detection (dT/dz):** Automatically calculates the thermal gradient per meter to locate the *Thermocline*—a critical tactical feature for naval submarine stealth operations.
-- **Statistical Confidence Bounds:** Every prediction is accompanied by a ±95% scientific confidence interval, ensuring military and scientific reliability.
-- **Automated Anomaly Heatmaps:** Generates visual heatmaps comparing live predictions against a 20-year historical climatology baseline to instantly detect marine heatwaves.
+OceanEmbed integrates high-fidelity oceanographic and atmospheric observations used for model training, inference, and validation:
+
+- **CMEMS / Copernicus Marine Data:** Satellite surface telemetry for SST, SSS, SSH, and wind/current vectors.
+- **INCOIS Argo In-Situ Observations:** Deep-water ground-truth validation profiles deployed across the Indian Ocean.
+- **ARMOR3D L4 Analysis:** Global 3D temperature and salinity multi-observation fields.
+
+--- 
+
+## 06 / Key Features
+
+- **Physics-Informed Neural Networks (PINNs):** The deep learning architecture is mathematically constrained by thermodynamic governing equations, ensuring that predicted deep-water profiles strictly obey real-world fluid dynamics and ocean conservation laws.
+- **Real-Time 3D Volumetric Digital Twin:** A production-ready WebGL interface acting as a live command center. Click anywhere on the Interactive Earth to instantly resolve and navigate a 1000-meter deep thermodynamic volume.
+- **Acoustic Shadow Zone (SLD) Detection:** Automatically calculates the thermal gradient per meter (`dT/dz`) to precisely locate the *Thermocline*—providing naval tacticians with critical stealth parameters for submarine operations.
+- **Interactive 2D Topographical Slicing:** Transition seamlessly into a hardware-accelerated 2D depth slice, allowing users to scrub horizontally through a physical ocean transect and observe thermal layers in high-fidelity cross-sections.
+- **Marine Heatwave & Anomaly Tracking:** Integrates live predicted profiles against massive 20-year historical climatology baselines to instantly generate dynamic anomaly heatmaps, detecting deeply trapped oceanic heat before it breaks the surface.
+- **Zero-Latency Cinematic Auto-Pilot:** Jumpstart operations with a highly engineered, cinematic presentation sequence that scripts the user interface through global coordinates, 3D explorations, and 2D slicing, powered by an unbreakable background execution loop.
 
 ---
 
-## 06 / Machine Learning Pipeline
+## 07 / Deep Learning Pipeline
 
-1. **Data Acquisition:** Surface telemetry (SST, SSS, SSH, Winds) is ingested directly from the Copernicus Marine Environment Monitoring Service (CMEMS).
-2. **Ground Truth Validation:** Deep-water temperature profiles are cross-referenced with independent Argo Float sensor data to ensure training accuracy.
-3. **Model Training:** We employ a highly tuned Random Forest Regressor, chosen specifically for its robust ability to capture non-linear oceanographic stratifications without overfitting on noisy data.
-4. **Inference:** The model accepts real-time surface telemetry and outputs a continuous 1D array representing temperatures at standard depths (0m to 1000m).
+1. **Dual-Resolution Training:** Trained on a massive cached dataset of the North Indian Ocean using 30 Years of Monthly Climatology (for long-term baseline stability) and 5 Years of Daily High-Res Data (for mesoscale turbulence and eddy detection).
+2. **12-Channel Input Tensor:** Feeds 12 rigorously engineered surface layers into the network: SST, SSS, SSH, U-Current, V-Current, U-Wind, V-Wind, Normalized Lat/Lon, Bathymetry, and Sin/Cos of the Day-of-Year.
+3. **CNN + ViT + Self Attention + PINN:** CNNs are exceptional at extracting localized physical anomalies (like upwelling fronts), Vision Transformers and self-attention mechanisms capture global basin teleconnections (e.g., how Arabian Sea winds affect the Bay of Bengal's stratification), and Physics-Informed Neural Networks (PINN) enforce strict thermodynamic conservation laws.
+4. **Hold-Out Validation & Evaluation:** OceanEmbed uses a strict temporal hold-out strategy. The model is trained using historical data from 1996–2024 and is evaluated exclusively against unseen Jan 2025–May 2026 INCOIS Argo observations. The 2025–2026 evaluation period is completely sequestered from training. We rigorously benchmark the model using standard scientific metrics, including **RMSE**, **MAE**, **R²**, and Pearson **correlation**, consistently achieving a low **reconstruction error** and a high overall **evaluation score**.
 
 ---
 
-## 07 / Local Development Setup
+## 08 / Local Development Setup
 
-To run this project locally, you will need Node.js and Python installed.
+OceanEmbed is structurally isolated into a React UI tier and a FastAPI PyTorch serving tier.
 
 ### 1. Start the Machine Learning Backend
 ```bash
 cd backend
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 uvicorn app.main:app --reload
 ```
+*The backend mounts to `http://localhost:8000` and serves the V6 Hybrid `.pth` weights.*
 
 ### 2. Start the 3D Frontend
 ```bash
@@ -129,28 +127,31 @@ cd frontend
 npm install
 npm run dev
 ```
+*The frontend mounts to `http://localhost:5173`. Ensure you have Node.js v18+ installed.*
 
 ---
 
-## 08 / Future Roadmap
+## 09 / Future Roadmap
 
-- [ ] **Temporal Forecasting:** Expand the model from static spatial reconstruction to true time-series forecasting (predicting subsurface temperatures 7-14 days into the future).
-- [ ] **Global Basin Expansion:** Currently scoped strictly to the North Indian Ocean. We plan to retrain and fine-tune the model weights for the Pacific and Atlantic basins.
-- [ ] **Edge Deployment:** Optimize and compress the Random Forest inference weights for deployment directly on low-power naval edge devices and drifting buoys.
+- [ ] **Coupled Ocean-Atmosphere Thermodynamic Engine:** Expand the V6 Architecture beyond the ocean to simulate bidirectional heat-flux across the air-sea boundary, allowing for true 4D tracking of how trapped subsurface heat directly fuels extreme atmospheric weather systems.
+- [ ] **Acoustic Ray-Tracing Engine:** Build a WebGL-based sonar wave propagation simulator directly into the 3D browser, using our predicted sound velocity profiles to visualize exact submarine detection blind-spots.
+- [ ] **Global Fleet Orchestration API:** Expose the 3D thermal array via a high-speed gRPC API to serve as the primary pathfinding intelligence for swarms of Autonomous Underwater Vehicles (AUVs) navigating extreme ocean pressures.
+- [ ] **Low-Orbit Edge Quantization:** Compress the PyTorch inference weights using INT8 quantization to deploy the model directly onto satellite edge-nodes, broadcasting processed 3D thermal data directly from space.
 
 ---
 
-## 09 / Problem Statement
+## 10 / Problem Statement
 
 | Field | Details |
 | :--- | :--- |
 | **Problem Title** | OceanEmbed - Satellite Embedding-Based Deep Learning Framework for Reconstruction of Subsurface Ocean Temperature from Surface Satellite Observations |
 | **Problem ID** | SIH26066 |
 | **Theme** | Disaster Management |
-| **Department** | Ministry of Earth Sciences (MoES) |
+| **Organization** | Ministry of Earth Sciences (MoES) |
+| **Department** | Indian National Centre for Ocean Information Services (INCOIS) Ocean Valley |
 
 ---
 
 <div align="center">
-  <i>Built with ❤️ by Team CodeStormers for Smart India Hackathon.</i>
+  <i>Scientifically rigorous. Architecturally bulletproof.<br>Built with ❤️ by Team CodeStormers 20 for Smart India Hackathon.</i>
 </div>

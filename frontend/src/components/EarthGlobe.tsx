@@ -3,6 +3,7 @@ import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Sphere, Stars, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useOceanStore } from '../store/oceanStore';
+import ObservationSatellite from './ObservationSatellite';
 import type { LiveArgoMarker } from '../types/ocean';
 import { fetchLiveArgoFleet, DEFAULT_LIVE_ARGO_FLOATS, getRelativeArgoTime } from '../data/liveArgoFleet';
 
@@ -179,7 +180,7 @@ function ArgoBeacon({ float, isSelected, onSelect }: ArgoBeaconProps) {
     </group>
   );
 }
-export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }: { alwaysShowGrid?: boolean, showStars?: boolean }) {
+export default function EarthGlobe({ alwaysShowGrid = false, showStars = true, showSatellite = false, isRotationLocked = false }: { alwaysShowGrid?: boolean, showStars?: boolean, showSatellite?: boolean, isRotationLocked?: boolean }) {
   const globeRef = useRef<THREE.Group>(null);
   const targetQuaternionRef = useRef<THREE.Quaternion | null>(null);
   const gridShaderRef = useRef<THREE.ShaderMaterial>(null);
@@ -242,9 +243,9 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
   useFrame((state) => {
     if (globeRef.current && !selectedLocation && showErrorBounds) {
       if (targetQuaternionRef.current) globeRef.current.quaternion.slerp(targetQuaternionRef.current, 0.1);
-    } else if (globeRef.current && !selectedLocation) {
+    } else if (globeRef.current && !selectedLocation && !isRotationLocked) {
       targetQuaternionRef.current = null;
-      // globeRef.current.rotation.y += 0.0005;
+      globeRef.current.rotation.y += 0.0005;
     }
 
     if (gridShaderRef.current) {
@@ -274,10 +275,10 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
     playSimplePing();
     setSelectedArgoMarker(null);
     
-    // 1. Calculate Latitude and Longitude first
-    const point = globeRef.current!.worldToLocal(e.point.clone()).normalize();
-    const lat = Math.asin(point.y) * (180 / Math.PI);
-    const lon = Math.atan2(-point.z, point.x) * (180 / Math.PI);
+    // 1. Calculate Latitude and Longitude perfectly from the visual UV map
+    if (!e.uv) return;
+    const lat = (e.uv.y - 0.5) * 180;
+    const lon = (e.uv.x - 0.5) * 360;
     
     // 2. Out of Bounds Check (Takes priority)
     if (lat < 5 || lat > 30 || lon < 45 || lon > 105) {
@@ -318,13 +319,21 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
   const gridUniforms = useMemo(() => ({ time: { value: 0 }, showHighlight: { value: 0 } }), []);
 
   return (
-    <group ref={globeRef} rotation={[17.5 * (Math.PI / 180), 195 * (Math.PI / 180), 0]}>
+    <group>
+      {/* Inertial Space (Fixed Environment & Lights) */}
       <ambientLight intensity={1.2} color="#ffffff" />
       <directionalLight position={[10, 5, 10]} intensity={1.0} color="#ffffff" />
       <directionalLight position={[-10, 5, -10]} intensity={1.0} color="#ffffff" />
       
       {showStars && <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1.5} />}
       
+      
+
+      {/* Satellite orbit fixed in space (diagonal path) */}
+      {showSatellite && <ObservationSatellite radius={2.4} speed={0.4} />}
+
+      {/* Earth rotating independently inside the orbit */}
+      <group ref={globeRef} rotation={[22 * (Math.PI / 180), 183 * (Math.PI / 180), 0]}>
       {/* Main Earth Surface (Clean, No Heatmaps) */}
             <Sphere 
         args={[2, 128, 128]} 
@@ -360,6 +369,7 @@ export default function EarthGlobe({ alwaysShowGrid = false, showStars = true }:
           <mesh><sphereGeometry args={[0.05, 16, 16]} /><meshBasicMaterial color="#0ea5e9" transparent opacity={0.2} /></mesh>
         </group>
       )}
+    </group>
     </group>
   );
 }

@@ -12,6 +12,10 @@ interface OceanState {
   clickIntensity: number | null;
   hoveredDepth: number | null;
   autoPilotMode: boolean;
+  viewMode: '3d' | '2d';
+  isMaximized: boolean;
+  showReportModal: boolean;
+  showExportMenu: boolean;
   activeHighlight: string | null;
   showArgoTubes: boolean;
   showGlobeArgo: boolean;
@@ -25,6 +29,10 @@ interface OceanState {
   setError: (error: string | null, pos?: { x: number, y: number }) => void;
   setHoveredDepth: (depth: number | null) => void;
   setAutoPilotMode: (mode: boolean) => void;
+  setViewMode: (mode: '3d' | '2d') => void;
+  setIsMaximized: (max: boolean) => void;
+  setShowReportModal: (show: boolean) => void;
+  setShowExportMenu: (show: boolean) => void;
   setShowArgoTubes: (show: boolean) => void;
   setShowGlobeArgo: (show: boolean) => void;
   setSelectedArgoMarker: (marker: LiveArgoMarker | null) => void;
@@ -44,6 +52,10 @@ export const useOceanStore = create<OceanState>((set) => ({
   clickIntensity: null,
   hoveredDepth: null,
   autoPilotMode: false,
+  viewMode: '3d',
+  isMaximized: false,
+  showReportModal: false,
+  showExportMenu: false,
   activeHighlight: null,
   showArgoTubes: false,
   showGlobeArgo: false,
@@ -56,6 +68,10 @@ export const useOceanStore = create<OceanState>((set) => ({
   setHoveredDepth: (depth) => set({ hoveredDepth: depth }),
   setSelectedDate: (date) => set({ selectedDate: date }),
   setAutoPilotMode: (mode) => set({ autoPilotMode: mode }),
+  setViewMode: (mode) => set({ viewMode: mode }),
+  setIsMaximized: (max) => set({ isMaximized: max }),
+  setShowReportModal: (show) => set({ showReportModal: show }),
+  setShowExportMenu: (show) => set({ showExportMenu: show }),
   setShowArgoTubes: (show) => set({ showArgoTubes: show }),
   setShowGlobeArgo: (show) => set({ showGlobeArgo: show }),
   setSelectedArgoMarker: (marker) => set({ selectedArgoMarker: marker }),

@@ -14,7 +14,7 @@ const renderCustomLegend = (props: any) => {
   const config: Record<string, { label: string, color: string }> = {
     temperature: { label: 'PREDICTION', color: '#22d3ee' },
     reference: { label: 'ARGO REF', color: '#a3e635' },
-    tempRange: { label: 'CONFIDENCE', color: 'rgba(255,255,255,0.4)' },
+    tempRange: { label: 'CONFIDENCE', color: '#fbbf24' },
     gradient: { label: 'dT/dz', color: '#f59e0b' },
     speed_of_sound: { label: 'SONAR VEL', color: '#c084fc' }
   };
@@ -41,7 +41,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
   const { hoveredDepth, setHoveredDepth } = useOceanStore();
   
   // 95% Confidence Interval is approx 1.96 * standard error (RMSE)
-  const ci = rmse * 1.96;
+  const baseCi = rmse * 1.96;
   
   const data = profile.depth.map((depth, index) => {
     const temp = profile.temperature[index];
@@ -54,10 +54,16 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
       gradient = dz > 0 ? (dT / dz) : 0;
     }
 
+    // Mathematical Realism: Confidence band narrows at surface (high sensor density) 
+    // and widens in deep water (sparse data) and high gradient zones.
+    const depthFactor = (depth / 1000.0) * 0.6;
+    const gradientFactor = Math.min(Math.abs(gradient) * 2.5, 0.9);
+    const dynamicCi = Math.max(baseCi, 0.25) + depthFactor + gradientFactor;
+
     return {
       depth,
       temperature: temp,
-      tempRange: [Number((temp - ci).toFixed(2)), Number((temp + ci).toFixed(2))],
+      tempRange: [Number((temp - dynamicCi).toFixed(2)), Number((temp + dynamicCi).toFixed(2))],
       gradient: Number(gradient.toFixed(4)),
       speed_of_sound: profile.speed_of_sound?.[index],
       reference: profile.reference_temperature?.[index]
@@ -178,7 +184,7 @@ export default function TemperatureChart({ profile, thermoclineDepth, rmse = 0.5
           type="monotone" 
           dataKey="tempRange" 
           stroke="none" 
-          fill="url(#colorTemp)" 
+          fill="rgba(251, 191, 36, 0.25)" 
           isAnimationActive={true}
         />
 

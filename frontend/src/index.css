@@ -219,3 +219,10 @@ body[data-custom-cursor='true'], body[data-custom-cursor='true'] * {
 html {
   scroll-behavior: smooth;
 }
+
+
+/* Disable global pinch-to-zoom */
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}

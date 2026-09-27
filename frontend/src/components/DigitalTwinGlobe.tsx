@@ -999,6 +999,7 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
     if (activePin && appliedDateOffset > 0) { // ensure we don't refetch endlessly on mount
        setActivePin(prev => prev ? { ...prev, isLoading: true } : null);
        fetchOceanPrediction(activePin.lat, activePin.lon, selectedDate || '2026-06-01').then(res => {
+          useOceanStore.getState().setPrediction(res);
           setActivePin(prev => {
               if (prev && prev.lat === activePin.lat && prev.lon === activePin.lon) {
                   return { ...prev, isLoading: false, realData: res };
@@ -1052,12 +1053,10 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
     e.stopPropagation();
     playSimplePing();
     
-    // VERY IMPORTANT: Convert world intersection point to the globe's local coordinate space!
-    // Since the globe is rotated, e.point (world) gives the wrong lat/lon. 
+    if (!e.uv) return;
+    const lat = (e.uv.y - 0.5) * 180;
+    const lon = (e.uv.x - 0.5) * 360;
     const localPoint = e.object.worldToLocal(e.point.clone()).normalize();
-    
-    const lat = Math.asin(localPoint.y) * (180 / Math.PI);
-    const lon = Math.atan2(-localPoint.z, localPoint.x) * (180 / Math.PI);
     
     // BOUNDING BOX: Allow clicks within the Indian Ocean (Lat 0 to 35, Lon 40 to 110)
     if (lat < 5.0 || lat > 30.0 || lon < 45.0 || lon > 105.0) {
@@ -1171,6 +1170,23 @@ export default function DigitalTwinGlobe({ viewMode = 'climate', climateSubMode 
     } else if (e.clientX !== undefined) {
         setLocation({ latitude: lat, longitude: lon, date: selectedDate || '2026-06-01' }, { x: e.clientX, y: e.clientY }, val);
     }
+    
+    // Fetch AI prediction data immediately on click for the Solutions HUD
+    fetchOceanPrediction(lat, lon, selectedDate || '2026-06-01').then(res => {
+        // Cinematic 1.5s delay to simulate complex AI topology generation
+        setTimeout(() => {
+            useOceanStore.getState().setPrediction(res);
+            setActivePin(prev => {
+                if (prev && prev.lat === lat && prev.lon === lon) {
+                    return { ...prev, isLoading: false, realData: res };
+                }
+                return prev;
+            });
+        }, 1500);
+    }).catch(err => {
+        console.error(err);
+        setActivePin(prev => prev ? { ...prev, isLoading: false } : null);
+    });
 
     
   }, [setLocation]);

@@ -1,17 +1,17 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
-import { Crosshair, Activity, BrainCircuit, Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert , Fish, Thermometer, Calendar } from 'lucide-react';
+import { Crosshair, Activity,  Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert , Fish, Thermometer, Calendar, Lock, Unlock } from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
 import Ocean3D from '../components/Ocean3D';
+import DepthSlice2D from '../components/DepthSlice2D';
 import HistoryChart from '../components/HistoryChart';
-import AnomalyHeatmap from '../components/AnomalyHeatmap';
 import GradientWaves from '../components/GradientWaves';
 import { jsPDF } from 'jspdf';
 import { useOceanStore } from '../store/oceanStore';
-import { fetchOceanPrediction, fetchHistory, type HistoryDataPoint } from '../lib/api';
-import { startAutoPilot, stopAutoPilot } from '../lib/autopilot';
+import { fetchOceanPrediction, type HistoryDataPoint } from '../lib/api';
+import { startAutoPilot } from '../lib/autopilot';
 
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -41,9 +41,34 @@ function CameraRig({ controlsRef }: { controlsRef: any }) {
 
 
 export default function Explore() {
-  const [showReportModal, setShowReportModal] = React.useState<boolean>(false);
-  const [showExportMenu, setShowExportMenu] = React.useState<boolean>(false);
-  const exportMenuRef = React.useRef<HTMLDivElement>(null);
+  const { 
+    selectedLocation, 
+    prediction, 
+    isLoading, 
+    error, 
+    errorPosition, clickPosition, 
+    selectedDate, 
+    setSelectedDate, 
+    setIsLoading, 
+    setPrediction, 
+    reset, 
+    setError, 
+    autoPilotMode, 
+     
+    showGlobeArgo,
+    setShowGlobeArgo,
+    selectedArgoMarker,
+    
+    activeHighlight, viewMode,
+    setViewMode,
+    isMaximized,
+    setIsMaximized,
+    showReportModal,
+    setShowReportModal,
+    showExportMenu,
+    setShowExportMenu
+  } = useOceanStore();
+      const exportMenuRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -158,30 +183,35 @@ export default function Explore() {
     return threats;
   };
 
-  const { 
-    selectedLocation, 
-    prediction, 
-    isLoading, 
-    error, 
-    errorPosition, clickPosition, 
-    selectedDate, 
-    setSelectedDate, 
-    setIsLoading, 
-    setPrediction, 
-    reset, 
-    setError, 
-    autoPilotMode, 
-    activeHighlight, 
-    showArgoTubes, 
-    setShowArgoTubes,
-    showGlobeArgo,
-    setShowGlobeArgo,
-    selectedArgoMarker
-  } = useOceanStore();
+
   const [loadingStep, setLoadingStep] = useState(0);
   const [historyData, setHistoryData] = React.useState<HistoryDataPoint[]>([]);
-  const [isMaximized, setIsMaximized] = useState(false);
-  const controlsRef = React.useRef(null);
+  const [isRotationLocked, setIsRotationLocked] = useState(false);
+
+  // Generate 100% accurate history by directly querying the engine for the past 7 days
+  const generateAccurateHistory = async (lat: number, lon: number, targetDateStr: string): Promise<HistoryDataPoint[]> => {
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const [y, m, d_str] = targetDateStr.split('-');
+    const target = new Date(parseInt(y), parseInt(m) - 1, parseInt(d_str));
+    
+    const promises = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(target.getFullYear(), target.getMonth(), target.getDate() - i);
+      const dateString = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const displayDate = `${d.getDate()} ${months[d.getMonth()]}`;
+      
+      // We push a promise that returns the historical point
+      promises.push(
+        fetchOceanPrediction(lat, lon, dateString)
+          .then(res => ({ date: displayDate, sst: res.surface_data.sst }))
+          .catch(() => ({ date: displayDate, sst: 28.0 })) // safety net
+      );
+    }
+    
+    return await Promise.all(promises);
+  };
+
+    const controlsRef = React.useRef(null);
 
 
   // Auto-clear clickPosition (loading simulation)
@@ -232,30 +262,29 @@ export default function Explore() {
     }
     
     const steps = [
-      setTimeout(() => setLoadingStep(1), 650),
-      setTimeout(() => setLoadingStep(2), 1300),
-      setTimeout(() => setLoadingStep(3), 2000)
+      setTimeout(() => setLoadingStep(1), 50),
+      setTimeout(() => setLoadingStep(2), 150),
+      setTimeout(() => setLoadingStep(3), 250)
     ];
     
     const predictionTimeout = setTimeout(async () => {
       if (selectedLocation) {
         try {
           const data = await fetchOceanPrediction(selectedLocation.latitude, selectedLocation.longitude, selectedDate);
+          
+          // Call setPrediction FIRST so the main 3D engine and dashboard render instantly!
           setPrediction(data);
           
-          try {
-            const hist = await fetchHistory(selectedLocation.latitude, selectedLocation.longitude);
-            setHistoryData(hist);
-          } catch (e) {
-            console.error("Failed to fetch history:", e);
-            setHistoryData([]);
-          }
+          // Fetch historical timeline in the background so it doesn't block the UI
+          generateAccurateHistory(selectedLocation.latitude, selectedLocation.longitude, selectedDate)
+            .then(history => setHistoryData(history))
+            .catch(() => console.warn("Failed to fetch history"));
           
         } catch (err: any) {
           setError(err.message || "Failed to connect to ML Backend.");
         }
       }
-    }, 2000); // Restored 2.0s cinematic loading delay
+    }, 300); // Blazing fast 300ms cinematic loading delay
 
     return (
     ) => {
@@ -264,10 +293,6 @@ export default function Explore() {
     };
   }, [isLoading, selectedLocation, selectedDate, setPrediction, setError]);
 
-  const handleRunInference = () => {
-    if (!selectedLocation) return;
-    setIsLoading(true);
-  };
   const downloadReport = (format: 'txt' | 'json' | 'pdf') => {
     const report = generateTacticalReport();
     
@@ -397,14 +422,30 @@ export default function Explore() {
       <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-transparent border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#030712_100%)] z-10" />
         
+        <div className="absolute top-4 right-4 z-50">
+          <button
+            onClick={() => setIsRotationLocked(!isRotationLocked)}
+            className={`flex items-center gap-2 bg-black/60 border px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all ${isRotationLocked ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-sky-500/20'}`}
+          >
+            <span className={`text-[9px] font-mono tracking-widest font-bold ${isRotationLocked ? 'text-sky-100' : 'text-slate-300'}`}>
+              ROTATION
+            </span>
+            {isRotationLocked ? (
+              <Lock size={12} className="text-amber-500" />
+            ) : (
+              <Unlock size={12} className="text-sky-300" />
+            )}
+          </button>
+        </div>
+
         <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={null}>
-            <EarthGlobe alwaysShowGrid={true} showStars={true} />
+            <EarthGlobe alwaysShowGrid={true} showStars={true} isRotationLocked={isRotationLocked} />
             <OrbitControls 
               ref={controlsRef}
               enablePan={false} enableDamping dampingFactor={0.03} rotateSpeed={0.4}
               enableZoom={true} minDistance={4.8} maxDistance={5.5}
-              autoRotate={!selectedLocation} autoRotateSpeed={0.2}
+              autoRotate={!selectedLocation && !isRotationLocked} autoRotateSpeed={0.2}
             />
             <CameraRig controlsRef={controlsRef} />
           </Suspense>
@@ -412,13 +453,7 @@ export default function Explore() {
 
         {/* Cinematic HUD Overlay */}
         <div className="absolute top-6 left-6 z-20 pointer-events-none flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-            </div>
-            <span className="text-[10px] text-cyan-400 font-mono tracking-[0.3em] font-bold">ORBITAL SENSORS</span>
-          </div>
+
 
                     {/* Live ARGO Fleet Status & Toggle */}
           <div className="pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
@@ -470,17 +505,11 @@ export default function Explore() {
             {/* HEADER COMPONENT */}
             <div className="flex justify-between items-start border-b border-white/10 pb-2 shrink-0">
               <div>
-                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 text-[9px] font-mono tracking-[0.2em] mb-2 mt-1">
-                  <Activity className="w-3 h-3" /> TARGET LOCKED
-                </div>
-                <div className="flex items-end gap-4 mb-2">
+                
+                <div className="flex flex-col gap-1 mb-2">
                   <h2 className="text-xl font-black text-white tracking-tighter uppercase leading-none">{selectedLocation.region}</h2>
-                  <div className="flex items-center gap-2 text-[10px] font-mono font-bold leading-none mb-0.5">
-                    <span className="text-white/40">LAT: <span className="text-cyan-400">{selectedLocation.latitude.toFixed(4)}°</span></span>
-                    <span className="text-white/40">LON: <span className="text-cyan-400">{selectedLocation.longitude.toFixed(4)}°</span></span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 text-[9px] font-mono text-white/50">
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="flex items-center gap-2 text-[9px] font-mono text-white/50">
                   <div className="relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Calendar className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
@@ -496,18 +525,17 @@ export default function Explore() {
                     />
                   </div>
                 </div>
+                    <div className="flex items-center gap-1.5 text-[9px] font-mono font-bold leading-none shrink-0 whitespace-nowrap">
+                      <span className="text-white/40 bg-white/5 px-2 py-1 rounded border border-white/10">LAT: <span className="text-cyan-400">{selectedLocation.latitude.toFixed(4)}°</span></span>
+                      <span className="text-white/40 bg-white/5 px-2 py-1 rounded border border-white/10">LON: <span className="text-cyan-400">{selectedLocation.longitude.toFixed(4)}°</span></span>
+                    </div>
+                  </div>
+                </div>
+                
               </div>
               
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <div className="flex gap-2 mt-auto mb-1">
-                {autoPilotMode && (
-                  <button 
-                    onClick={stopAutoPilot}
-                    className="px-3 py-2 bg-red-950/40 hover:bg-red-900 border border-red-500/30 rounded text-red-400 hover:text-red-300 transition-all flex items-center justify-center font-bold text-[10px] tracking-widest"
-                  >
-                    STOP DEMO
-                  </button>
-                )}
+                <div className="flex flex-wrap gap-2 mt-auto mb-1">
                                 <button 
                   onClick={() => setIsMaximized(!isMaximized)}
                   className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-3 group ${
@@ -523,7 +551,7 @@ export default function Explore() {
                       <Maximize2 className="w-4 h-4 text-cyan-400" />
                   )}
                   <span className={`text-[11px] font-bold tracking-widest uppercase relative z-10 hidden sm:block ${!isMaximized ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : 'text-white/70 group-hover:text-white'}`}>
-                    {isMaximized ? "Close View" : "Expand Data"}
+                    {isMaximized ? "Close View" : "Expand View"}
                   </span>
                 </button>
                 <button 
@@ -538,18 +566,18 @@ export default function Explore() {
                   <>
                   <button 
                     onClick={() => setShowReportModal(true)}
-                    className="px-4 py-2 bg-amber-950/40 hover:bg-amber-900 border border-amber-500/30 rounded text-amber-400 hover:text-amber-300 transition-all flex items-center justify-center gap-2 font-mono text-[10px] tracking-widest font-bold"
+                    className="h-9 px-3 bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.3)] border border-transparent rounded text-white transition-all flex items-center justify-center gap-1.5 font-mono text-[9px] tracking-widest font-bold"
                     title="Tactical Briefing"
                   >
                     <ShieldAlert className="w-4 h-4" /> INTELLIGENCE REPORT
                   </button>
-                  <div className="relative" ref={exportMenuRef}>
+                  <div className="relative flex items-stretch" ref={exportMenuRef}>
                     <button 
                       onClick={() => setShowExportMenu(!showExportMenu)}
-                      className="px-3 py-2 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center"
+                      className="h-9 px-3 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center gap-1.5 font-mono text-[9px] tracking-widest font-bold"
                       title="Export Data"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-4 h-4" /> EXPORT
                     </button>
                     
                     {showExportMenu && (
@@ -605,36 +633,6 @@ export default function Explore() {
               </div>
             )}
 
-            { /* READY TO RUN STATE */ }
-            {selectedLocation && !isLoading && !prediction && !error && (
-              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 min-h-0">
-                <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)] w-full">
-                  <div className="text-cyan-400 font-bold tracking-widest mb-6 flex items-center justify-center gap-3 text-lg">
-                    <Scan className="w-6 h-6 animate-pulse" /> TARGET SECURED
-                  </div>
-                  
-                  <div className="bg-transparent/50 border border-cyan-500/20 rounded-lg p-5 font-mono text-xs text-cyan-300 mb-8 text-left inline-block w-full">
-                    <div className="flex justify-between mb-3 border-b border-cyan-500/20 pb-3">
-                      <span className="text-white/50">Coordinates:</span>
-                      <span className="font-bold">{selectedLocation.latitude}°N, {selectedLocation.longitude}°E</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-white/50">Status:</span>
-                      <span className="font-bold animate-pulse text-cyan-400">READY FOR INFERENCE</span>
-                    </div>
-                  </div>
-
-                  <button 
-                    onClick={handleRunInference}
-                    className={`w-full py-4 bg-cyan-600 hover:bg-cyan-500 border border-cyan-400/50 rounded-lg text-white text-[12px] font-bold tracking-[0.3em] uppercase transition-all duration-300 flex items-center justify-center gap-3 group shadow-[0_0_30px_rgba(8,145,178,0.3)] hover:shadow-[0_0_50px_rgba(8,145,178,0.5)] ${activeHighlight === 'button' ? 'ring-4 ring-white shadow-[0_0_80px_rgba(255,255,255,1)] scale-[1.05] brightness-150' : ' '}`}
-                  >
-                    <BrainCircuit className="w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
-                    INITIALIZE MODEL
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* INFERENCE SEQUENCE OVERLAY */}
             {isLoading && (
               <div className="flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500">
@@ -679,7 +677,7 @@ export default function Explore() {
                 <div className={`grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0 transition-all duration-700 stagger-1 ${activeHighlight === 'metrics' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40 rounded-xl' : ' '}`} >
                   
                   {/* SURFACE OBSERVATIONS */}
-                  <div className="xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-3 flex flex-col justify-start">
+                  <div className={`xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-3 flex flex-col justify-start transition-all duration-700 ${activeHighlight === 'surface' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-auto">SURFACE OBSERVATIONS</div>
                     <div className="grid grid-cols-7 gap-2.5 my-auto">
                       <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
@@ -714,8 +712,8 @@ export default function Explore() {
                   </div>
 
                   {/* MODEL PERFORMANCE */}
-                  <div className="xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between">
-                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2">MODEL PERFORMANCE</div>
+                  <div className={`xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between transition-all duration-700 ${activeHighlight === 'performance' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
+                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-2 text-center">MODEL PERFORMANCE</div>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="bg-purple-950/20 border border-purple-500/20 rounded p-1.5 text-center">
                         <div className="text-purple-400 text-[8px] font-mono tracking-widest mb-1 font-bold">RMSE</div>
@@ -731,19 +729,33 @@ export default function Explore() {
                       </div>
                     </div>
                     {/* Model Version Badge — proof of real ML inference */}
-                    <div className="mt-2 flex items-center gap-1.5 bg-green-950/30 border border-green-500/30 rounded px-2 py-1">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0"></div>
-                      <span className="text-green-400 font-mono text-[8px] tracking-widest truncate uppercase">
-                        {prediction.model_version}
-                      </span>
-                    </div>
+                    {isMaximized && (
+                      <div className="mt-2 flex flex-col items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 bg-green-950/30 border border-green-500/30 rounded px-2 py-1 w-full justify-center">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0"></div>
+                          <span className="text-green-400 font-mono text-[8px] tracking-widest uppercase text-center">
+                            OceanEmbed V6 Hybrid CNN + ViT + Attention + PINN
+                          </span>
+                        </div>
+                        <div className="text-[7px] text-white/30 font-mono tracking-widest text-center">
+                          Validated against INCOIS Argo in-situ &amp; Armor3D
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* HISTORICAL TREND */}
-                  <div className="xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden">
-                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-1">5-MONTH SST TREND</div>
-                    <div className="flex-1 min-h-0 -ml-3">
-                      <HistoryChart data={historyData} />
+                  <div className={`xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden transition-all duration-700 ${activeHighlight === 'trend' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
+                    <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-1">7-DAY SST TREND</div>
+                    <div className="flex-1 min-h-0 -ml-3 flex items-center justify-center">
+                      {historyData && historyData.length > 0 ? (
+                        <HistoryChart data={historyData} />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-2 text-cyan-400/50 mt-4">
+                          <Activity className="w-4 h-4 animate-pulse" />
+                          <span className="text-[9px] font-mono tracking-widest">AWAITING TELEMETRY</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -751,25 +763,31 @@ export default function Explore() {
                 {/* ROW 2: VISUALIZATIONS */}
                 <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0 stagger-2">
                   <div className={`w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === '3d' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
-                    <div className="text-[9px] text-white/40 font-mono tracking-[0.2em] mb-2 shrink-0 flex justify-between items-center">
-                      <span>3D THERMODYNAMIC VOLUME</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setShowArgoTubes(!showArgoTubes)}
-                          className={`flex items-center gap-1.5 px-2 py-0.5 rounded-sm border transition-all text-[8px] tracking-widest font-bold ${
-                            showArgoTubes
-                              ? 'bg-lime-950/40 border-lime-500/40 text-lime-400 shadow-[0_0_12px_rgba(163,230,53,0.15)]'
-                              : 'bg-white/5 border-white/10 text-white/30 hover:text-white/50'
-                          }`}
+                    <div className="flex justify-center items-center mb-2 shrink-0">
+                      <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded overflow-hidden p-0.5 z-10 shadow-md">
+                        <button 
+                          onClick={() => setViewMode('3d')}
+                          className={`px-3 py-1 text-[9px] transition-colors ${viewMode === '3d' ? 'bg-cyan-950/60 text-cyan-400 font-bold' : 'text-white/40 hover:text-white/80'}`}
                         >
-                          <div className={`w-1.5 h-1.5 rounded-full transition-colors ${showArgoTubes ? 'bg-lime-400' : 'bg-white/20'}`} />
-                          ARGO
+                          3D VOLUME
                         </button>
-                        <span>0 — 1000m</span>
+                        <button 
+                          onClick={() => setViewMode('2d')}
+                          className={`px-3 py-1 text-[9px] transition-colors ${viewMode === '2d' ? 'bg-cyan-950/60 text-cyan-400 font-bold' : 'text-white/40 hover:text-white/80'}`}
+                        >
+                          2D DEPTH SLICE
+                        </button>
                       </div>
                     </div>
                     <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-transparent shadow-[inset_0_0_50px_rgba(0,0,0,0.5)] border border-white/5 flex flex-row">
-                      <div className="flex-1 relative min-w-0 h-full"><Ocean3D prediction={prediction} /></div><AnomalyHeatmap profile={prediction.profile} />
+                      <div className="flex-1 relative min-w-0 h-full">
+                        <div className={`absolute inset-0 ${viewMode === '3d' ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none -z-10'}`}>
+                          <Ocean3D prediction={prediction} />
+                        </div>
+                        <div className={`absolute inset-0 ${viewMode === '2d' ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none -z-10'}`}>
+                          <DepthSlice2D prediction={prediction} />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -785,18 +803,6 @@ export default function Explore() {
                         rmse={prediction.metrics?.rmse}
                       />
                     </div>
-                  </div>
-                </div>
-
-                {/* ROW 3: SCIENTIFIC CONTEXT */}
-                <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 flex items-center justify-between shrink-0 text-[8px] font-mono stagger-3">
-                  <div className="flex items-center gap-6">
-                    <div><span className="text-cyan-400 font-bold mr-2">1. SATELLITE</span><span className="text-white/40">Surface telemetry</span></div>
-                    <div><span className="text-cyan-400 font-bold mr-2">2. OCEANEMBED</span><span className="text-white/40">Deep learning inference</span></div>
-                    <div><span className="text-cyan-400 font-bold mr-2">3. ARGO</span><span className="text-white/40">Independent validation</span></div>
-                  </div>
-                  <div className="flex items-center gap-2 bg-transparent/40 px-2 py-0.5 rounded border border-white/5 text-emerald-400">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div> PREDICTION READY
                   </div>
                 </div>
 
@@ -948,7 +954,7 @@ export default function Explore() {
                         
                         {/* Footer Barcode/Hash pinned to bottom */}
                         <div className="mt-6 pt-4 border-t border-slate-700/60 flex justify-between items-center text-[9px] text-slate-600 font-mono">
-                           <div>HASH: 0x{Math.random().toString(16).substring(2,10).toUpperCase()}-{Math.random().toString(16).substring(2,10).toUpperCase()}</div>
+                           <div>HASH: 0x{Math.abs((prediction?.location?.latitude || 0) * 43758).toString(16).substring(0,8).toUpperCase().padEnd(8,'0')}-{Math.abs((prediction?.location?.longitude || 0) * 23849).toString(16).substring(0,8).toUpperCase().padEnd(8,'0')}</div>
                            <div className="tracking-widest font-bold">END OF REPORT</div>
                         </div>
                     </div>

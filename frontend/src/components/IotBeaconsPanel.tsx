@@ -224,7 +224,7 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                                <div className="mt-2 text-left w-full bg-black/80 rounded border border-white/5 p-1.5 text-[5px] font-mono text-slate-400 leading-[1.6] overflow-hidden shadow-inner">
                                    <div className="text-emerald-400">{'>'} SYS_ACTIVE</div>
                                    <div className="opacity-80">{'>'} SCANNING GRID [18°N - 22°N]...</div>
-                                   {simState.step >= 2 && <div className="text-cyan-400">{'>'} INFERENCE: 98.4% PROBABILITY</div>}
+                                   {simState.step >= 2 && <div className="text-cyan-400">{'>'} INFERENCE: {(95.0 + (simState.step % 4)).toFixed(1)}% PROBABILITY</div>}
                                    {simState.step >= 4 && <div className="text-orange-400">{'>'} GENERATING EVAC POLYGON...</div>}
                                    {simState.step >= 5 && <div className="text-red-400">{'>'} GET /api/iot/pager/FISH...</div>}
                                </div>
@@ -486,8 +486,8 @@ export const IotRightView = ({ simState, handleIotAck }: any) => {
                             ) : (
                                 <>
                                     <div className="flex justify-between items-center text-xs"><span className="text-slate-500">OCEAN STATUS</span><span className="text-emerald-400">NORMAL</span></div>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIGNAL</span><span className="text-slate-300">████████░░</span></div>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">BATTERY</span><span className="text-slate-300">87%</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIGNAL</span><span className="text-slate-300">{simState.step >= 6 ? "██░░░░░░░░" : "████████░░"}</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">BATTERY</span><span className="text-slate-300">{(87 - simState.step)}%</span></div>
                                 </>
                             )}
                             

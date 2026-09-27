@@ -73,12 +73,18 @@ class SatelliteDataService:
                 pass
         
         # Fallback to realistic dynamic simulation if the user clicks a date outside our 5-year dataset, or clicks on LAND
-        # We seed the random generator with the latitude and longitude so the numbers are stable and don't jitter!
-        seed_val = int(abs(lat * 100) + abs(lon * 100))
+        # We seed the random generator with the latitude, longitude AND DATE so the numbers shift realistically over time!
+        try:
+            day_of_year = datetime.strptime(date_str, "%Y-%m-%d").timetuple().tm_yday
+        except:
+            day_of_year = 180
+        seed_val = int(abs(lat * 100) + abs(lon * 100)) + day_of_year
         rng = random.Random(seed_val)
         
         equator_dist = abs(lat) / 30.0
-        sst_base = 30.5 - (equator_dist * 4.0)
+        # Add a seasonal sine wave effect so summer is hotter and winter is cooler
+        season_offset = math.sin(2 * math.pi * (day_of_year - 80) / 365) * 1.5 
+        sst_base = 30.5 - (equator_dist * 4.0) + season_offset
         sst = round(sst_base + rng.uniform(-0.6, 0.6), 2)
         sss_base = 36.2 if lon < 77.0 else 33.5
         sss = round(sss_base + rng.uniform(-0.4, 0.4), 2)

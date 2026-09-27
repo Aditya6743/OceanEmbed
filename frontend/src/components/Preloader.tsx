@@ -11,10 +11,10 @@ const STATUS_STAGES = [
 
 const DEPTH_MARKERS = [
   { depth: '0m', p: 0 },
-  { depth: '100m', p: 15 },
-  { depth: '250m', p: 35 },
-  { depth: '500m', p: 55 },
-  { depth: '750m', p: 75 },
+  { depth: '100m', p: 19 },
+  { depth: '200m', p: 38 },
+  { depth: '500m', p: 57 },
+  { depth: '750m', p: 76 },
   { depth: '1000m', p: 95 },
 ];
 
