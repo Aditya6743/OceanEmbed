@@ -140,6 +140,7 @@ OceanEmbed integrates high-fidelity oceanographic and atmospheric observations u
 - **Acoustic Shadow Zone (SLD) Detection:** Automatically calculates the thermal gradient per meter (`dT/dz`) to precisely locate the *Thermocline*—providing naval tacticians with critical stealth parameters for submarine operations.
 - **Interactive 2D Topographical Slicing:** Transition seamlessly into a hardware-accelerated 2D depth slice, allowing users to scrub horizontally through a physical ocean transect and observe thermal layers in high-fidelity cross-sections.
 - **Marine Heatwave & Anomaly Tracking:** Integrates live predicted profiles against massive 20-year historical climatology baselines to instantly generate dynamic anomaly heatmaps, detecting deeply trapped oceanic heat before it breaks the surface.
+- **IoT Satellite Telemetry & Early Warning System:** Integrates real-time simulated LoRaWAN beacon tracking for vulnerable maritime assets (e.g. fishing vessels, tourist boats), instantly broadcasting automated evacuation alerts to tactical 2D and 3D dashboards when extreme thermal anomalies are detected.
 - **Zero-Latency Cinematic Auto-Pilot:** Jumpstart operations with a highly engineered, cinematic presentation sequence that scripts the user interface through global coordinates, 3D explorations, and 2D slicing, powered by an unbreakable background execution loop.
 
 ---
