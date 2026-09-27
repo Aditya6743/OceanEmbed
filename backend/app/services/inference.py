@@ -226,7 +226,7 @@ class InferenceService:
         else:
             preds = self._mock_profile(sst, lat, lon, doy)
             mld = int(20 + abs(lat) * 2.0 + (abs(math.sin(lat * 12.0 + lon * 78.0)) * 120.0) + (math.sin(doy / 365.25 * math.pi * 2) * 40.0))
-                mld = max(15, min(650, mld))
+            mld = max(15, min(650, mld))
 
         noise = np.random.normal(0.02, 0.18, len(preds))
         refs = [round(float(p + n), 2) for p, n in zip(preds, noise)]
