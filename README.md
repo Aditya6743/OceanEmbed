@@ -7,12 +7,17 @@
   <em>Presented by Team CodeStormers 20 for Smart India Hackathon (SIH26066)</em>
   <br/><br/>
   <p align="center">
+    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
     <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white" alt="PyTorch" />
     <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
     <img src="https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+    <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
     <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white" alt="Three.js" />
     <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
     <img src="https://img.shields.io/badge/Zustand-443E38?style=for-the-badge&logo=react&logoColor=white" alt="Zustand" />
+    <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+    <img src="https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Render" />
   </p>
 </div>
 
@@ -26,7 +31,7 @@ The subsurface ocean is completely opaque to electromagnetic satellite sensors. 
 
 ## 02 / The Solution
 
-**OceanEmbed** completely bypasses the need for physical subsurface sensors. By mathematically proving that deep-water thermal stratifications leave complex, non-linear signatures on the ocean surface, we built a proprietary **V6 Hybrid Deep Learning Engine** that looks purely at surface telemetry (SST, SSH, winds, currents) and instantly infers a continuous, high-resolution 3D temperature profile from **0 to 1000m deep**.
+**OceanEmbed** completely bypasses the need for physical subsurface sensors. By mathematically proving that deep-water thermal stratifications leave complex, non-linear signatures on the ocean surface, we built a proprietary **V6 Hybrid Deep Learning Engine** that looks purely at surface telemetry (SST, SSS, SSH, winds, currents) and instantly infers a continuous, high-resolution 3D temperature profile from **0 to 1000m deep**.
 
 ---
 
@@ -108,7 +113,6 @@ flowchart TD
 | Domain | Stack | Purpose in OceanEmbed |
 | :--- | :--- | :--- |
 | **Frontend UI** | React 18 · TypeScript · Vite · Tailwind CSS · Zustand | Lightning-fast component UI, strict type safety, and highly resilient global state management. |
-| **3D & Spatial** | React Three Fiber · THREE.js · Leaflet | Hardware-accelerated WebGL ocean rendering, Earth mapping, and immersive digital twin environments. |
 | **Data Visualization**| Recharts · HTML5 Canvas | Rigorous scientific charting, statistical bounds visualization, and dynamic 2D topography mapping. |
 | **Deep Learning & AI** | PyTorch · TorchVision | Deep learning architecture utilizing V6 Hybrid CNN+ViT+PINN, spatial attention masks, and massive neural tensor processing. |
 | **API & Serving** | FastAPI · Uvicorn · Python 3.10 | High-concurrency REST API layer delivering sub-100ms real-time 3D volume reconstruction. |
