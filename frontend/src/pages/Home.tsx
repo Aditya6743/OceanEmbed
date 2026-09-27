@@ -80,11 +80,11 @@ export default function Home() {
     <div id="top" className="w-full bg-transparent overflow-x-hidden pt-14 font-sans select-none">
       
       {/* HERO SECTION */}
-      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10 bg-black">
+      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10 bg-transparent">
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
-        <div className="absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
+        <div className="hidden md:block absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
           <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
               
@@ -108,14 +108,14 @@ export default function Home() {
         <div className="relative z-10 w-full pl-8 md:pl-16 xl:pl-24 pr-8 pointer-events-none flex flex-col justify-center h-full">
           
           {/* STRICTLY LEFT ALIGNED, CONTROLLED WIDTH BLOCK */}
-          <div className="w-full max-w-[520px] flex flex-col pointer-events-auto">
+          <div className="w-full max-w-[520px] flex flex-col pointer-events-auto mt-16 md:mt-0">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             >
               {/* Heading with extreme tightness and OCEAN. as cyan accent */}
-              <h1 className="text-6xl md:text-7xl lg:text-[80px] font-black tracking-tighter text-white mb-7 leading-[0.85] drop-shadow-2xl flex flex-col stagger-1">
+              <h1 className="text-4xl md:text-7xl lg:text-[80px] font-black tracking-tighter text-white mb-7 leading-[0.85] drop-shadow-2xl flex flex-col stagger-1">
                 <span>RECONSTRUCTING</span>
                 <span>THE HIDDEN</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">OCEAN.</span>
@@ -214,7 +214,7 @@ export default function Home() {
       </section>
 
       {/* SEAMLESS TRANSITION GRADIENT */}
-      <div className="w-full h-[35vh] bg-gradient-to-b from-black via-black/80 to-transparent pointer-events-none relative z-10"></div>
+      <div className="w-full h-[35vh] bg-transparent pointer-events-none relative z-10"></div>
 
       {/* MODULAR LANDING PAGE SECTIONS */}
       <div className="relative w-full bg-transparent -mt-[15vh] z-20">

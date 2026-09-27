@@ -60,34 +60,35 @@ export default function ArchitectureSection() {
       {/* Subtle depth-of-field background blur revealing the waves beneath */}
       <div className="absolute inset-0 z-0 bg-transparent backdrop-blur-[12px] pointer-events-none" />
 
-      {/* Header Text */}
-      <div className="absolute top-24 left-10 md:left-24 z-20 pointer-events-none">
-        <h2 className="text-5xl md:text-7xl font-light tracking-tight leading-[1.05]">
-          <span className="text-white">Observe the surface.</span><br />
-          <span className="text-cyan-400/80">Predict the deep.</span>
-        </h2>
-        <div className="w-16 h-[2px] bg-gradient-to-r from-cyan-400 to-transparent mt-8" />
-      </div>
-
-      <div className="absolute top-24 right-10 md:right-24 z-20 flex flex-col items-end text-right">
-        <p className="text-white/60 text-sm mb-6 max-w-[300px] leading-relaxed font-sans">
-          From multi-source satellite observations to volumetric subsurface profiles.<br />
-          One connected learning framework.
-        </p>
-        <Link 
-          to="/architecture" 
-          className="group flex items-center gap-3 px-7 py-3.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-400 hover:text-black transition-all text-xs font-mono font-bold tracking-widest text-cyan-400   shadow-[0_0_20px_rgba(34,211,238,0.15)]"
-        >
-          EXPLORE ARCHITECTURE
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
-            <path d="M7 17l9.2-9.2M17 17V7H7" />
-          </svg>
-        </Link>
+      {/* Header Text Area (Flex on Mobile to prevent overlap) */}
+      <div className="relative z-20 flex flex-col md:flex-row md:justify-between px-6 md:px-24 pt-24 gap-8">
+        <div className="pointer-events-none">
+          <h2 className="text-4xl md:text-7xl font-light tracking-tight leading-[1.05]">
+            <span className="text-white">Observe the surface.</span><br />
+            <span className="text-cyan-400/80">Predict the deep.</span>
+          </h2>
+          <div className="w-16 h-[2px] bg-gradient-to-r from-cyan-400 to-transparent mt-6" />
+        </div>
+        <div className="flex flex-col md:items-end md:text-right">
+          <p className="text-white/60 text-sm mb-6 max-w-[300px] leading-relaxed font-sans">
+            From multi-source satellite observations to volumetric subsurface profiles.<br />
+            One connected learning framework.
+          </p>
+          <Link 
+            to="/architecture" 
+            className="group inline-flex w-max items-center justify-center gap-3 px-7 py-3.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-400 hover:text-black transition-all text-xs font-mono font-bold tracking-widest text-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.15)]"
+          >
+            EXPLORE ARCHITECTURE
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+              <path d="M7 17l9.2-9.2M17 17V7H7" />
+            </svg>
+          </Link>
+        </div>
       </div>
 
       {/* SVG Diagram Area */}
-      <div className="relative w-full max-w-[1400px] mt-20 z-10">
-        <svg viewBox="0 0 1200 600" className="w-full h-auto drop-shadow-2xl">
+      <div className="relative w-full max-w-[1400px] mt-10 md:mt-20 z-10 overflow-hidden h-[450px] md:h-auto flex items-center justify-center pb-10">
+        <svg viewBox="0 0 1200 600" className="absolute w-[1100px] max-w-[1100px] md:relative md:w-full md:max-w-none h-auto drop-shadow-2xl">
           <defs>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="8" result="blur" />

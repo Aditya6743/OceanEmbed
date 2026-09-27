@@ -166,7 +166,7 @@ export default function DataSection() {
            
            <div className="flex flex-col items-center w-full">
              <div className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-widest mb-8">SPATIAL INGESTION</div>
-             <div className="w-[125%] h-56 relative mb-8 mx-auto flex items-center justify-center">
+             <div className="w-full h-56 relative mb-8 mx-auto flex items-center justify-center scale-110">
                  <img src="/images/map-perfect.png" alt="Spatial Grid" className="w-full h-full object-contain relative z-10" />
              </div>
              <div className="flex flex-wrap items-center justify-center gap-4 opacity-80 w-full">
