@@ -10,6 +10,7 @@ import Architecture from './pages/Architecture';
 import Preloader from './components/Preloader';
 import CustomCursor from './components/CustomCursor';
 import GradientWaves from './components/GradientWaves';
+import MobileWarningOverlay from './components/MobileWarningOverlay';
 
 function App() {
   const [appReady, setAppReady] = useState(false);
@@ -17,6 +18,7 @@ function App() {
     <Router>
       {!appReady && <Preloader onComplete={() => setAppReady(true)} />}
       <CustomCursor />
+      <MobileWarningOverlay />
       
       <div className="min-h-screen bg-[#030712] text-foreground flex flex-col font-sans relative">
         <div className="fixed inset-0 z-0 pointer-events-none flex flex-col">
