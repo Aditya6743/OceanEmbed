@@ -5,11 +5,13 @@ import { OrbitControls } from '@react-three/drei';
 import DigitalTwinGlobe from '../components/DigitalTwinGlobe';
 import { IotLeftPanel, IotRightView, useIotSimulation } from '../components/IotBeaconsPanel';
 
-import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock, Radio } from 'lucide-react';
+import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock, Radio, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useOceanStore } from '../store/oceanStore';
+import RoutingSarLeftPanel from '../components/RoutingSarLeftPanel';
+import RoutingSar3DOverlay from '../components/RoutingSar3DOverlay';
 
-type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso' | 'iot';
+type ViewMode = 'climate' | 'navy' | 'fishery' | 'cable' | 'enso' | 'iot' | 'sar';
 
 import { useThree } from '@react-three/fiber';
 
@@ -26,7 +28,7 @@ function RotationController({ isRotationLocked }: { isRotationLocked: boolean })
     return null;
 }
 
-function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked }: { activeTab: string, climateMode: string, isRotationLocked: boolean }) {
+function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked, recenterTrigger }: { activeTab: string, climateMode: string, isRotationLocked: boolean, recenterTrigger?: number }) {
     const { camera, controls } = useThree();
     
     useEffect(() => {
@@ -85,7 +87,7 @@ function CameraResetTrigger({ activeTab, climateMode: _c, isRotationLocked }: { 
                 (controls as any).enabled = true;
             }
         };
-    }, [activeTab, _c, controls]);
+    }, [activeTab, _c, controls, recenterTrigger]);
     
     return null;
 }
@@ -101,6 +103,7 @@ export default function Solutions() {
   const [activeTab, setActiveTab] = useState<ViewMode>('climate');
   const [climateMode, setClimateMode] = useState<'cyclone'|'flood'|'heatwave'|'erosion'>('cyclone');
   const [isRotationLocked, setIsRotationLocked] = useState(false);
+  const [recenterTrigger, setRecenterTrigger] = useState(0);
 
 
   const legendConfig: Record<string, { title: string, min: string, mid?: string, max: string, unit: string, gradient: string, themeText: string, themeBorder: string, themeBorderFull: string }> = {
@@ -261,6 +264,11 @@ export default function Solutions() {
   // IoT Beacons Custom Hook
   const { simState, iotLogs, runSimulation, handleIotAck, resetSimulation, toggleMute } = useIotSimulation(activeTab);
 
+  const [sarSimState, setSarSimState] = useState<'idle' | 'running' | 'complete'>('idle');
+  const [sarActiveMode, setSarActiveMode] = useState<'routing' | 'sar'>('routing');
+  const [sarTimeHour, setSarTimeHour] = useState(1);
+  const [showCurrents, setShowCurrents] = useState(false);
+  const [showThermalRisk, setShowThermalRisk] = useState(false);
   const navigate = useNavigate();
 
   const today = new Date();
@@ -345,7 +353,7 @@ export default function Solutions() {
           </div>
           
           {/* PREMIUM DATE PICKER */}
-          {activeTab !== 'iot' && (
+          {activeTab !== 'iot' && activeTab !== 'sar' && (
             <div className="ml-auto relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Calendar className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
@@ -363,7 +371,7 @@ export default function Solutions() {
         </div>
         
         {/* Right Section (Matches 60% Panel) - perfectly centers the buttons over the globe */}
-        <div className="hidden md:flex w-[65%] justify-center gap-3 overflow-x-auto no-scrollbar pr-8">
+        <div className="hidden md:flex w-[65%] justify-start 2xl:justify-center gap-3 overflow-x-auto no-scrollbar px-8">
           <button 
             onClick={() => handleTabChange('climate')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
@@ -413,11 +421,19 @@ export default function Solutions() {
           >
             <Radio size={12} /> IoT BEACONS
           </button>
+          <button 
+            onClick={() => handleTabChange('sar')}
+            className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
+              activeTab === 'sar' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'bg-slate-900/50 text-slate-500 border border-slate-800 hover:text-slate-300 hover:bg-slate-800/50'
+            }`}
+          >
+            <Navigation size={12} /> ROUTING & SAR
+          </button>
         </div>
       </div>
 
       {/* Control Panel / Insights Sidebar (Left Panel 40%) */}
-      <div className={`h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' ? 'w-full md:w-[45%]' : 'w-full md:w-[35%]'}`}>
+      <div className={`h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' ? 'w-full md:w-[45%]' : activeTab === 'sar' ? 'w-full md:w-[40%]' : 'w-full md:w-[35%]'}`}>
         <div className="w-[96%] mx-auto h-full flex flex-col relative">
           {/* SECTION LOADING OVERLAY */}
           {isSectionLoading && (
@@ -432,11 +448,26 @@ export default function Solutions() {
 
           {activeTab === 'iot' && (
             <IotLeftPanel 
-                runSimulation={runSimulation} 
+                runSimulation={runSimulation}
                 resetSimulation={resetSimulation}
                 simState={simState} 
                 iotLogs={iotLogs}
                 toggleMute={toggleMute}
+            />
+          )}
+          {activeTab === 'sar' && (
+            <RoutingSarLeftPanel 
+               onInteract={() => { setIsRotationLocked(true); setRecenterTrigger(p => p + 1); }}
+               simState={sarSimState}
+               setSimState={setSarSimState} 
+               activeMode={sarActiveMode}
+               setActiveMode={setSarActiveMode}
+               sarTimeHour={sarTimeHour}
+               setSarTimeHour={setSarTimeHour}
+               showCurrents={showCurrents}
+               setShowCurrents={setShowCurrents}
+               showThermalRisk={showThermalRisk}
+               setShowThermalRisk={setShowThermalRisk}
             />
           )}
           {activeTab === 'climate' && (
@@ -1080,7 +1111,7 @@ export default function Solutions() {
               </div>
             </div>
           )}
-            {activeTab !== 'iot' && (
+            {activeTab !== 'iot' && activeTab !== 'sar' && (
               <div className="mt-auto pt-4 border-t border-slate-800 shrink-0">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">{currentLegend.title}</span>
                 <div className={`h-2 rounded-full w-full ${currentLegend.gradient}`}></div>
@@ -1097,9 +1128,9 @@ export default function Solutions() {
 
 
       {/* 3D Visualization (Right Panel 60%) */}
-      <div className={`h-full pt-20 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' ? 'w-full md:w-[55%]' : 'w-full md:w-[65%]'}`}>
+      <div className={`h-full pt-20 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' ? 'w-full md:w-[55%]' : activeTab === 'sar' ? 'w-full md:w-[60%]' : 'w-full md:w-[65%]'}`}>
                 {/* Lock Auto-Rotate Button */}
-                {activeTab !== 'iot' && (
+        {activeTab !== 'iot' && (
                 <div className="absolute top-24 right-6 z-20 pointer-events-auto">
           <button
             onClick={() => setIsRotationLocked(!isRotationLocked)}
@@ -1137,7 +1168,7 @@ export default function Solutions() {
         <div className={activeTab === 'iot' ? 'hidden' : 'w-full h-full'}>
           <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
-            <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} />
+            <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} recenterTrigger={recenterTrigger} />
             <RotationController isRotationLocked={isRotationLocked} />
             
             <DigitalTwinGlobe 
@@ -1145,6 +1176,7 @@ export default function Solutions() {
               climateSubMode={climateMode} 
               isRotationLocked={isRotationLocked}
             />
+            {activeTab === 'sar' && <RoutingSar3DOverlay simState={sarSimState} activeMode={sarActiveMode} sarTimeHour={sarTimeHour} showCurrents={showCurrents} showThermalRisk={showThermalRisk} />}
             <OrbitControls makeDefault 
 
                 enablePan={false} enableDamping={true} dampingFactor={0.03} rotateSpeed={0.4}
