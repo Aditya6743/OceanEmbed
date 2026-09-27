@@ -18,7 +18,7 @@ COPY requirements.txt .
 
 # CRITICAL FOR RENDER: Install the CPU-only version of PyTorch first.
 # Standard PyTorch includes CUDA binaries (2.5GB+), which will crash the Render deployment (Out of Memory).
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --upgrade pip && pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Install the rest of the requirements
 RUN pip install --no-cache-dir -r requirements.txt

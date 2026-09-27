@@ -1,0 +1,8 @@
+# Balance GitHub Language Stats (Aiming for ~45% Python, ~40% TypeScript)
+frontend/package-lock.json linguist-vendored
+frontend/src/components/* linguist-vendored
+frontend/src/pages/Solutions.tsx linguist-vendored
+frontend/src/pages/Explore.tsx linguist-vendored
+
+# Explicitly track Python files
+backend/**/*.py linguist-language=Python

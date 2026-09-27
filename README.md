@@ -34,32 +34,71 @@ The subsurface ocean is completely opaque to electromagnetic satellite sensors. 
 
 ```mermaid
 flowchart TD
-    A["🛰️ Satellite Telemetry (12 Channels)\nSST, SSS, SSH, U_curr, V_curr, U_wind,\nV_wind, Lat, Lon, Sin(doy), Cos(doy), Bathy"] --> B
-
-    B["Data Normalization\nStandard scaling via dynamic stats pipeline"] --> C
-
-    C["Input Tensor\nB x 12 x 32 x 32"] --> D
-
-    subgraph ENCODER ["OceanEmbed V6 Hybrid Encoder (CNN + ViT + PINN)"]
-        D["CNN Stem\n12 ch → 32 ch → 64 ch"]
-        E["Spatial Attention Module\nLearns where to focus (e.g., eddy borders)"]
-        F["Vision Transformer (ViT) Blocks\nCaptures global basin dependencies"]
-        D --> E --> F
+    %% Complex Colored Styles
+    classDef actor fill:#1e293b,stroke:#64748b,stroke-width:2px,color:#f8fafc,rx:15px,ry:15px;
+    classDef interface fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#e0f2fe;
+    classDef backend fill:#171717,stroke:#10b981,stroke-width:2px,color:#d1fae5;
+    classDef database fill:#1e1b4b,stroke:#8b5cf6,stroke-width:2px,color:#ede9fe;
+    classDef ml fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#fef3c7;
+    
+    USER(["Command Officer / Scientist"]):::actor
+    
+    %% Top Left
+    subgraph FRONTEND ["Visualization & Client Engine"]
+        UI["React 18 Frontend"]:::interface
+        WEBGL["WebGL / Three.js 3D Twin"]:::interface
+        SLICE["2D Topographical Slicer"]:::interface
+        
+        UI --> WEBGL
+        UI --> SLICE
     end
-
-    subgraph DECODER ["Subsurface Reconstruction Head"]
-        G["CNN Decoder\n64 ch → 32 ch"]
-        H["Output Head\n15 Depth Channels (0m to 1000m)"]
-        G --> H
+    
+    %% Top Right
+    subgraph API ["Orchestration & Serving Layer"]
+        GATEWAY["FastAPI Inference Gateway"]:::backend
     end
-
-    F --> G
-
-    H --> I["🌊 3D Thermodynamic Profile\n0, 5, 10, 20, 30, 50, 75, 100,\n125, 150, 200, 300, 500, 700, 1000m"]
-
-    style ENCODER fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc
-    style DECODER fill:#1e293b,stroke:#4ade80,stroke-width:2px,color:#f8fafc
-    style E fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#f8fafc
+    
+    %% Bottom Left
+    subgraph DATA ["01 SURFACE INPUT & 02 HARMONIZATION"]
+        SST[("SST")]:::database
+        SSS[("SSS")]:::database
+        SSH[("SSH")]:::database
+        CUR[("CURRENTS")]:::database
+        WND[("WINDS")]:::database
+        
+        ALIGN["Spatial + Temporal Alignment"]:::database
+        TENSOR[("12-Channel Input Tensor")]:::database
+        
+        SST & SSS & SSH & CUR & WND --> ALIGN
+        ALIGN --> TENSOR
+    end
+    
+    %% Bottom Right
+    subgraph ML ["03 EMBEDDING CORE & 04 DECODER"]
+        CNN["CNN Stem"]:::ml
+        VIT["Vision Transformer"]:::ml
+        ATTN["Spatial Attention"]:::ml
+        PINN["PINN Constraint"]:::ml
+        DECODE["Nonlinear Deep-Ocean Mapping"]:::ml
+        
+        CNN --> ATTN
+        VIT --> ATTN
+        ATTN --> PINN
+        PINN --> DECODE
+    end
+    
+    %% Cross-Subgraph cycle to force square layout
+    USER -- "Interacts" --> UI
+    UI -- "Fetch API Call" --> GATEWAY
+    
+    GATEWAY -- "Trigger Ingestion" --> SST & SSS & SSH & CUR & WND
+    TENSOR -- "Forward Pass" --> CNN
+    TENSOR -- "Forward Pass" --> VIT
+    
+    DECODE -- "Reconstruction Payload" --> OUT["05 VOLUMETRIC OUTPUT
+(15 Depth Levels, 0-1000m)"]:::ml
+    OUT -- "JSON Contract Stream" --> GATEWAY
+    GATEWAY -- "Render Data" --> UI
 ```
 
 ---
