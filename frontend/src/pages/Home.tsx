@@ -80,7 +80,7 @@ export default function Home() {
     <div id="top" className="w-full bg-transparent overflow-x-hidden pt-14 font-sans select-none">
       
       {/* HERO SECTION */}
-      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10 bg-transparent">
+      <section className="relative w-full h-[calc(100vh-3.5rem)] flex items-center z-10 bg-transparent md:bg-black">
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
@@ -214,7 +214,7 @@ export default function Home() {
       </section>
 
       {/* SEAMLESS TRANSITION GRADIENT */}
-      <div className="w-full h-[35vh] bg-transparent pointer-events-none relative z-10"></div>
+      <div className="w-full h-[35vh] bg-transparent md:bg-gradient-to-b md:from-black md:via-black/80 md:to-transparent pointer-events-none relative z-10"></div>
 
       {/* MODULAR LANDING PAGE SECTIONS */}
       <div className="relative w-full bg-transparent -mt-[15vh] z-20">

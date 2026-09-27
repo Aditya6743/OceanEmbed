@@ -416,10 +416,10 @@ export default function Explore() {
 
   return (
     
-    <div className="w-full h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans overflow-hidden">
+    <div className="w-full h-auto min-h-screen md:h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans md:overflow-hidden">
       
       {/* RIGHT PANEL (Now rendered on Right via flex-row-reverse) - INTERACTIVE GLOBE */}
-      <div className={`w-full md:w-1/2 h-[50vh] md:h-[calc(100vh-3.5rem)] sticky top-14 relative bg-transparent border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
+      <div className={`w-full md:w-1/2 h-[45vh] md:h-[calc(100vh-3.5rem)] relative bg-transparent border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#030712_100%)] z-10" />
         
         <div className="absolute top-4 right-4 z-50">
@@ -487,7 +487,7 @@ export default function Explore() {
       </div>
 
       {/* RIGHT PANEL - NO SCROLL DASHBOARD */}
-      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-full bg-transparent relative p-4 flex flex-col overflow-hidden`}>
+      <div className={`w-full ${isMaximized ? 'md:w-full' : 'md:w-1/2'} h-auto min-h-[100vh] md:h-full bg-transparent relative p-4 flex flex-col overflow-visible md:overflow-hidden`}>
         
 
 
@@ -500,15 +500,15 @@ export default function Explore() {
             </p>
           </div>
         ) : (
-          <div className="relative z-10 flex flex-col gap-3 h-full animate-in fade-in slide-in-from-bottom-8 duration-700 pb-2">
+          <div className="relative z-10 flex flex-col gap-4 flex-1 h-auto md:h-full animate-in fade-in slide-in-from-bottom-8 duration-700 pb-2">
             
             {/* HEADER COMPONENT */}
-            <div className="flex justify-between items-start border-b border-white/10 pb-2 shrink-0">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-4 gap-4 shrink-0">
               <div>
                 
                 <div className="flex flex-col gap-1 mb-2">
                   <h2 className="text-xl font-black text-white tracking-tighter uppercase leading-none">{selectedLocation.region}</h2>
-                  <div className="flex items-center gap-3 mt-2">
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
                     <div className="flex items-center gap-2 text-[9px] font-mono text-white/50">
                   <div className="relative flex items-center bg-black/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded p-0.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)] shrink-0 transition-all group overflow-hidden">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -671,7 +671,7 @@ export default function Explore() {
 
                                     {/* PREDICTION RESULTS */}
             {prediction && !isLoading && !error && (
-              <div className="flex-1 flex flex-col justify-center gap-3 min-h-0">
+              <div className="flex-1 flex flex-col justify-start md:justify-center gap-4 min-h-0 mt-4 md:mt-0">
                 
                 {/* ROW 1: SURFACE OBSERVATIONS + PERFORMANCE + HISTORY */}
                 <div className={`grid grid-cols-1 xl:grid-cols-4 gap-3 shrink-0 transition-all duration-700 stagger-1 ${activeHighlight === 'metrics' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40 rounded-xl' : ' '}`} >
@@ -679,7 +679,7 @@ export default function Explore() {
                   {/* SURFACE OBSERVATIONS */}
                   <div className={`xl:col-span-2 bg-white/[0.02] border border-white/5 rounded-lg p-3 flex flex-col justify-start transition-all duration-700 ${activeHighlight === 'surface' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-auto">SURFACE OBSERVATIONS</div>
-                    <div className="grid grid-cols-7 gap-2.5 my-auto">
+                    <div className="grid grid-cols-4 md:grid-cols-7 gap-2 md:gap-2.5 my-auto mt-2 md:mt-auto">
                       <div className="bg-[#0f172a]/80 border border-slate-700/50 rounded-md py-2 px-1 text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.5)] hover:border-cyan-500/30 hover:bg-cyan-950/20 transition-all">
                         <div className="text-slate-400 text-[8px] font-mono tracking-widest mb-1">SST</div>
                         <div className="text-cyan-50 font-mono text-[13px] font-bold">{prediction.surface_data.sst.toFixed(1)}</div>
@@ -747,7 +747,7 @@ export default function Explore() {
                   {/* HISTORICAL TREND */}
                   <div className={`xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden transition-all duration-700 ${activeHighlight === 'trend' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-1">7-DAY SST TREND</div>
-                    <div className="flex-1 min-h-0 -ml-3 flex items-center justify-center">
+                    <div className="h-[200px] xl:h-full xl:flex-1 -ml-3 mt-4 flex items-center justify-center w-[105%]">
                       {historyData && historyData.length > 0 ? (
                         <HistoryChart data={historyData} />
                       ) : (
@@ -762,7 +762,7 @@ export default function Explore() {
 
                 {/* ROW 2: VISUALIZATIONS */}
                 <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-3 min-h-0 stagger-2">
-                  <div className={`w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === '3d' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
+                  <div className={`hidden xl:flex w-full bg-white/[0.02] border border-white/10 rounded-xl p-3 flex flex-col min-h-0 relative shadow-2xl transition-all duration-700 ${activeHighlight === '3d' ? 'ring-4 ring-cyan-400 shadow-[0_0_60px_rgba(34,211,238,0.7)] z-50 scale-[1.02] bg-cyan-950/40' : ' '}`} >
                     <div className="flex justify-center items-center mb-2 shrink-0">
                       <div className="flex items-center gap-1 bg-black/40 border border-white/10 rounded overflow-hidden p-0.5 z-10 shadow-md">
                         <button 
@@ -796,7 +796,7 @@ export default function Explore() {
                       <div className="text-[9px] text-white/40 font-mono tracking-[0.2em]">TEMPERATURE vs DEPTH</div>
                       <div className="text-[8px] text-lime-400/80 font-mono tracking-widest border border-lime-500/30 px-1.5 py-0.5 rounded-sm bg-lime-950/30">ARGO VALIDATION</div>
                     </div>
-                    <div className="flex-1 min-h-0">
+                    <div className="h-[400px] xl:h-full xl:flex-1 w-full mt-4">
                       <TemperatureChart 
                         profile={prediction.profile} 
                         thermoclineDepth={prediction.estimated_thermocline} 
