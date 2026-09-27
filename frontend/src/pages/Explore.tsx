@@ -534,11 +534,11 @@ export default function Explore() {
                 
               </div>
               
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <div className="flex flex-wrap gap-2 mt-auto mb-1">
+              <div className="flex flex-col items-center md:items-end gap-2 shrink-0 w-full md:w-auto">
+                <div className="flex flex-nowrap justify-center md:justify-end gap-2.5 sm:gap-3 mt-auto mb-1 w-full">
                                 <button 
                   onClick={() => setIsMaximized(!isMaximized)}
-                  className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-3 group ${
+                  className={`relative px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-3 group ${
                     !isMaximized 
                       ? 'bg-black/40 border border-white/10 hover:bg-black/60 hover:border-white/20' 
                       : 'bg-slate-800/80 backdrop-blur-md border border-white/10 hover:bg-slate-700'
@@ -557,7 +557,7 @@ export default function Explore() {
                 <button 
                   onClick={reset}
                   disabled={isLoading}
-                  className="px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded text-white/50 hover:text-white transition-all flex items-center justify-center"
+                  className="px-2.5 sm:px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded text-white/50 hover:text-white transition-all flex items-center justify-center"
                   title="Clear Selection"
                 >
                   <X className="w-4 h-4" />
@@ -566,18 +566,16 @@ export default function Explore() {
                   <>
                   <button 
                     onClick={() => setShowReportModal(true)}
-                    className="h-9 px-3 bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.3)] border border-transparent rounded text-white transition-all flex items-center justify-center gap-1.5 font-mono text-[9px] tracking-widest font-bold"
-                    title="Tactical Briefing"
+                    className="h-9 px-2.5 sm:px-3 bg-cyan-600 hover:bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.3)] border border-transparent rounded text-white transition-all flex items-center justify-center gap-1 sm:gap-1.5 font-mono text-[9px] tracking-widest font-bold" title="Tactical Briefing"
                   >
-                    <ShieldAlert className="w-4 h-4" /> INTELLIGENCE REPORT
+                    <ShieldAlert className="w-4 h-4" /> <span className="hidden sm:inline">INTELLIGENCE REPORT</span><span className="sm:hidden">REPORT</span>
                   </button>
                   <div className="relative flex items-stretch" ref={exportMenuRef}>
                     <button 
                       onClick={() => setShowExportMenu(!showExportMenu)}
-                      className="h-9 px-3 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center gap-1.5 font-mono text-[9px] tracking-widest font-bold"
-                      title="Export Data"
+                      className="h-9 px-2.5 sm:px-3 bg-cyan-950/40 hover:bg-cyan-900 border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 transition-all flex items-center justify-center gap-1 sm:gap-1.5 font-mono text-[9px] tracking-widest font-bold" title="Export Data"
                     >
-                      <Download className="w-4 h-4" /> EXPORT
+                      <Download className="w-4 h-4" /> <span className="hidden sm:inline">EXPORT</span>
                     </button>
                     
                     {showExportMenu && (
