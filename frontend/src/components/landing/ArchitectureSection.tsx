@@ -61,7 +61,7 @@ export default function ArchitectureSection() {
       <div className="absolute inset-0 z-0 bg-transparent backdrop-blur-[12px] pointer-events-none" />
 
       {/* Header Text Area (Flex on Mobile to prevent overlap) */}
-      <div className="relative z-20 flex flex-col md:flex-row md:justify-between px-6 md:px-24 pt-24 gap-8">
+      <div className="relative z-20 w-full max-w-[1100px] mx-auto flex flex-col md:flex-row md:justify-between px-6 md:px-8 pt-24 gap-8">
         <div className="pointer-events-none">
           <h2 className="text-4xl md:text-7xl font-light tracking-tight leading-[1.05]">
             <span className="text-white">Observe the surface.</span><br />
