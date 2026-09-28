@@ -752,7 +752,7 @@ export default function Explore() {
                   {/* HISTORICAL TREND */}
                   <div className={`xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden transition-all duration-700 ${activeHighlight === 'trend' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-1">7-DAY SST TREND</div>
-                    <div className="h-[200px] xl:h-full xl:flex-1 -ml-3 mt-4 flex items-center justify-center w-[105%]">
+                    <div className="h-[150px] md:h-[120px] xl:h-[150px] -ml-3 mt-2 flex items-center justify-center w-[105%] shrink-0">
                       {historyData && historyData.length > 0 ? (
                         <HistoryChart data={historyData} />
                       ) : (
