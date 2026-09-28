@@ -81,6 +81,7 @@ export const startAutoPilot = () => {
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // 7. Show 2D Depth Slice
+      useOceanStore.getState().setActiveHighlight(null); // CRITICAL: Clear 3D highlight to prevent audio loop when viewMode changes!
       useOceanStore.getState().setViewMode('2d');
       const storeState = useOceanStore.getState();
       const availableDepths = storeState.prediction?.profile?.depth || [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000];
@@ -103,10 +104,17 @@ export const startAutoPilot = () => {
       await wait(1500); // Pause at bottom
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
-      // Close expanded view before moving to report/export
+      // 10. Highlight the main graph (Temperature vs Depth) WHILE STILL MAXIMIZED
+      useOceanStore.getState().setActiveHighlight('charts');
+      await wait(4000);
+      if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
+      
+      // Close expanded view after the graph highlight
       useOceanStore.getState().setActiveHighlight(null);
       useOceanStore.getState().setIsMaximized(false);
       await wait(1200); // Wait for minimize animation
+      if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
+      await wait(500);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // 11. Intelligence Report Button (Highlight -> Click -> Wait -> Close)
@@ -155,5 +163,6 @@ export const stopAutoPilot = () => {
     store.setIsMaximized(false); 
     store.setShowReportModal(false);
     store.setShowExportMenu(false);
+    store.setViewMode('3d'); // Reset to default 3D view so the user can take over
   }
 };

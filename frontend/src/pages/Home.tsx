@@ -64,8 +64,19 @@ export default function Home() {
     };
   }, []);
 
-  const handleExplore = () => {
-    useOceanStore.getState().setAutoPilotMode(false);
+    const handleExplore = () => {
+    const store = useOceanStore.getState();
+    if (!store.selectedLocation) {
+      store.setLocation({
+        latitude: 15.2,
+        longitude: 65.5,
+        date: store.selectedDate || '2026-05-01',
+        region: "INDIAN OCEAN"
+      });
+    }
+    store.setAutoPilotMode(false);
+    store.setIsLoading(false); // Force it to show the INITIALIZE button on Explore page!
+    useOceanStore.setState({ clickPosition: null }); // Clear floating cursor from hero globe click
     navigate('/explore');
   };
 

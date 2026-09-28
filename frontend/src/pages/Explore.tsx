@@ -1,6 +1,6 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Html } from '@react-three/drei';
 import { Crosshair, Activity,  Zap, Scan, X, Download, Maximize2, Minimize2, ShieldAlert , Fish, Thermometer, Calendar, Lock, Unlock } from 'lucide-react';
 import EarthGlobe from '../components/EarthGlobe';
 import TemperatureChart from '../components/TemperatureChart';
@@ -11,7 +11,7 @@ import GradientWaves from '../components/GradientWaves';
 import { jsPDF } from 'jspdf';
 import { useOceanStore } from '../store/oceanStore';
 import { fetchOceanPrediction, type HistoryDataPoint } from '../lib/api';
-import { startAutoPilot, stopAutoPilot } from '../lib/autopilot';
+import { startAutoPilot } from '../lib/autopilot';
 
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -247,10 +247,16 @@ export default function Explore() {
 
   // Clear errors when navigating away from this page
   React.useEffect(() => {
+    // Clear any lingering click position from the home page
+    useOceanStore.setState({ clickPosition: null });
+    
     return () => {
       useOceanStore.getState().setError(null);
-      stopAutoPilot();
       useOceanStore.getState().setViewMode("3d");
+      useOceanStore.getState().setActiveHighlight(null);
+      useOceanStore.getState().setIsMaximized(false);
+      useOceanStore.getState().setShowReportModal(false);
+      useOceanStore.getState().setShowExportMenu(false);
     };
   }, []);
 
@@ -276,9 +282,9 @@ export default function Explore() {
     }
     
     const steps = [
-      setTimeout(() => setLoadingStep(1), 200),
-      setTimeout(() => setLoadingStep(2), 600),
-      setTimeout(() => setLoadingStep(3), 1000)
+      setTimeout(() => setLoadingStep(1), 500),
+      setTimeout(() => setLoadingStep(2), 1000),
+      setTimeout(() => setLoadingStep(3), 1500)
     ];
     
     const predictionTimeout = setTimeout(async () => {
@@ -298,7 +304,7 @@ export default function Explore() {
           setError(err.message || "Failed to connect to ML Backend.");
         }
       }
-    }, 1300); // 1300ms cinematic loading delay
+    }, 2000); // 2000ms cinematic loading delay
 
     return (
     ) => {
@@ -453,7 +459,14 @@ export default function Explore() {
         </div>
 
         <Canvas eventSource={earthContainerRef as any} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
-          <Suspense fallback={null}>
+          <Suspense fallback={
+            <Html center>
+              <div className="flex flex-col items-center justify-center gap-4 pointer-events-none w-48">
+                <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin"></div>
+                <div className="text-cyan-400 font-mono text-[10px] tracking-[0.2em] animate-pulse">INITIALIZING 3D ENGINE</div>
+              </div>
+            </Html>
+          }>
             <EarthGlobe alwaysShowGrid={true} showStars={true} isRotationLocked={isRotationLocked} />
             <OrbitControls 
               ref={controlsRef}
@@ -514,7 +527,7 @@ export default function Explore() {
             </p>
           </div>
         ) : (
-          <div className="relative z-10 flex flex-col gap-4 flex-1 h-auto md:h-full animate-in fade-in slide-in-from-bottom-8 duration-700 pb-2">
+          <div className={`relative ${activeHighlight === 'charts' ? 'z-[60]' : 'z-10'} flex flex-col gap-4 flex-1 h-auto md:h-full animate-in fade-in slide-in-from-bottom-8 duration-700 pb-2`}>
             
             {/* HEADER COMPONENT */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-white/10 pb-4 gap-4 shrink-0">
@@ -549,7 +562,7 @@ export default function Explore() {
               </div>
               
               <div className="flex flex-col items-center md:items-end gap-2 shrink-0 w-full md:w-auto">
-                <div className="flex flex-nowrap justify-center md:justify-end gap-2.5 sm:gap-3 mt-auto mb-1 w-full">
+                <div className="flex flex-wrap justify-center md:justify-end gap-2.5 sm:gap-3 mt-auto mb-1 w-full">
                                 <button 
                   onClick={() => setIsMaximized(!isMaximized)}
                   className={`relative px-3 sm:px-5 py-2 sm:py-2.5 rounded-full transition-all duration-300 flex items-center justify-center gap-3 group ${
@@ -621,7 +634,7 @@ export default function Explore() {
 
             { /* ERROR STATE */ }
             {error && !isLoading && (
-              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 py-10 min-h-0">
+              <div className="flex-1 flex flex-col justify-center items-center text-center animate-in zoom-in-95 duration-500 pb-20 md:pb-32 min-h-0">
                 <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)]">
                   <div className="text-orange-400 font-bold tracking-widest mb-3 flex items-center justify-center gap-3 text-lg">
                     <Crosshair className="w-5 h-5" /> INVALID TARGET
@@ -647,7 +660,7 @@ export default function Explore() {
 
             {/* INFERENCE SEQUENCE OVERLAY */}
             {isLoading && (
-              <div className="flex-1 flex flex-col justify-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="flex-1 flex flex-col justify-center pb-20 md:pb-32 animate-in fade-in zoom-in-95 duration-500">
                 <div className="bg-transparent/60 backdrop-blur-md border border-cyan-500/30 rounded-xl p-8 font-mono text-xs shadow-[0_0_50px_rgba(8,145,178,0.15)] max-w-md w-full mx-auto">
                   <div className="flex items-center gap-3 text-cyan-400 mb-6 border-b border-cyan-500/20 pb-4">
                     <Zap className="w-4 h-4 animate-pulse" />
@@ -660,19 +673,19 @@ export default function Explore() {
                     </div>
                     {loadingStep >= 1 && (
                       <div className="flex items-center gap-4 text-white/80 animate-in fade-in">
-                        <span className="opacity-40 w-12 text-right">0.60s</span>
+                        <span className="opacity-40 w-12 text-right">0.50s</span>
                         <span>EXTRACTING TELEMETRY (SST/SSH/SSS) <span className="text-emerald-400 ml-2">✓</span></span>
                       </div>
                     )}
                     {loadingStep >= 2 && (
                       <div className="flex items-center gap-4 text-white/80 animate-in fade-in">
-                        <span className="opacity-40 w-12 text-right">1.40s</span>
+                        <span className="opacity-40 w-12 text-right">1.00s</span>
                         <span>TENSOR NORMALIZATION <span className="text-emerald-400 ml-2">✓</span></span>
                       </div>
                     )}
                     {loadingStep >= 3 && (
                       <div className="flex items-center gap-4 text-cyan-400 animate-in fade-in">
-                        <span className="opacity-40 w-12 text-right text-white/40">2.20s</span>
+                        <span className="opacity-40 w-12 text-right text-white/40">1.50s</span>
                         <span className="animate-pulse">EXECUTING FORWARD PASS...</span>
                       </div>
                     )}
@@ -681,7 +694,29 @@ export default function Explore() {
               </div>
             )}
 
-                                    {/* PREDICTION RESULTS */}
+                                    
+          {/* INITIALIZE BUTTON STATE */}
+          {selectedLocation && !prediction && !isLoading && !error && (
+            <div className="flex-1 flex flex-col items-center justify-center pb-20 md:pb-32 relative z-10 animate-in fade-in zoom-in-95 duration-500">
+              <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-xl p-8 max-w-md backdrop-blur-md shadow-[0_0_50px_rgba(8,145,178,0.1)] text-center w-full">
+                <Zap className="w-12 h-12 text-cyan-400 mx-auto mb-6 animate-pulse" />
+                <h3 className="text-xl font-bold text-white mb-3 tracking-[0.2em] uppercase">Target Locked</h3>
+                <p className="text-xs text-white/60 font-mono mb-8 leading-relaxed">
+                  Coordinate {selectedLocation.latitude}°, {selectedLocation.longitude}° acquired. Neural engine standing by for inference sequence.
+                </p>
+                <button 
+                  onClick={() => useOceanStore.getState().setIsLoading(true)}
+                  className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold tracking-[0.2em] text-[11px] uppercase rounded-md shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all flex items-center justify-center gap-3 group"
+                >
+                  <Activity className="w-4 h-4 group-hover:animate-spin" />
+                  INITIALIZE NEURAL ENGINE
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* PREDICTION RESULTS */}
+
             {prediction && !isLoading && !error && (
               <div className="flex-1 flex flex-col justify-start md:justify-center gap-4 mt-4 md:mt-0 pb-10">
                 
@@ -872,7 +907,7 @@ export default function Explore() {
             onClick={() => setShowReportModal(false)}
         >
             <div 
-                className="w-[700px] max-w-[95vw] bg-[#020617]/80 backdrop-blur-3xl border border-cyan-500/20 rounded-xl shadow-[0_0_60px_rgba(8,145,178,0.15)] overflow-hidden relative"
+                className="w-[700px] max-w-[95vw] max-h-[90vh] flex flex-col bg-[#020617]/80 backdrop-blur-3xl border border-cyan-500/20 rounded-xl shadow-[0_0_60px_rgba(8,145,178,0.15)] overflow-hidden relative"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Modal Background Waves */}
@@ -913,28 +948,30 @@ export default function Explore() {
                     </div>
                 </div>
                 
-                <div className="px-6 py-2 relative z-10 flex justify-center items-center h-full">
-                    <div className="w-full max-w-4xl bg-[#0a0a0a]/95 backdrop-blur-xl border border-slate-700/80 p-8 relative font-mono shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col justify-between" style={{ minHeight: "75vh" }}>
+                <div className="px-4 md:px-6 py-4 md:py-8 relative z-10 flex justify-center items-start h-full overflow-y-auto overflow-x-hidden hide-scrollbar">
+                    <div className="w-full max-w-4xl my-auto bg-[#0a0a0a]/95 backdrop-blur-xl border border-slate-700/80 p-4 md:p-8 relative font-mono shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col justify-between" style={{ minHeight: "75vh" }}>
                         <div>
-                            {/* Tactical Corner Brackets */}
+
+
+                  {/* Tactical Corner Brackets */}
                             <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-cyan-500/50"></div>
                             <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-cyan-500/50"></div>
                             <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-cyan-500/50"></div>
                             <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-cyan-500/50"></div>
                             
                             {/* Header */}
-                            <div className="border-b border-slate-700/60 pb-4 mb-4 flex justify-between items-end">
+                            <div className="border-b border-slate-700/60 pb-4 mb-4 flex flex-col md:flex-row justify-start md:justify-between items-start md:items-end gap-2">
                                 <div>
-                                    <div className="text-cyan-500 text-xl font-bold tracking-widest whitespace-nowrap drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">OCEANEMBED INTELLIGENCE REPORT</div>
-                                    <div className="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Automated Threat Analysis - V6 Engine</div>
+                                    <div className="text-cyan-500 text-sm sm:text-lg md:text-xl font-bold tracking-widest text-center md:text-left drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]">OCEANEMBED INTELLIGENCE REPORT</div>
+                                    <div className="text-slate-500 text-[10px] uppercase tracking-widest mt-1 text-center md:text-left">Automated Threat Analysis - V6 Engine</div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-center md:text-right w-full md:w-auto mt-2 md:mt-0">
                                     <div className="text-slate-400 text-[10px] block font-bold">{new Date().toISOString().split('T')[0]} {new Date().toISOString().split('T')[1].substring(0,8)}Z</div>
                                 </div>
                             </div>
 
                             {/* Location Meta */}
-                            <div className="bg-slate-900/60 p-3 border border-cyan-900/30 mb-5 text-[11px] flex gap-8 text-slate-400 shadow-inner">
+                            <div className="bg-slate-900/60 p-3 border border-cyan-900/30 mb-5 text-[11px] flex flex-wrap gap-4 md:gap-8 text-slate-400 shadow-inner">
                                 <div><span className="text-slate-500">TARGET:</span> <span className="text-white font-bold">{selectedLocation?.region || 'UNKNOWN'}</span></div>
                                 <div><span className="text-slate-500">LAT:</span> <span className="text-cyan-400 font-bold">{selectedLocation?.latitude.toFixed(4)}°</span></div>
                                 <div><span className="text-slate-500">LON:</span> <span className="text-cyan-400 font-bold">{selectedLocation?.longitude.toFixed(4)}°</span></div>

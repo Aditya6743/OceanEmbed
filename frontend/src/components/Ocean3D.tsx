@@ -344,7 +344,7 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
   const [isDiving, setIsDiving] = useState(false);
   const { autoPilotMode, activeHighlight } = useOceanStore();
 
-  if (!prediction) return null;
+  if (!prediction) return <div ref={containerRef} className="w-full h-full relative" />;
 
   const handleDive = () => {
     if (isDiving) return;
@@ -381,3 +381,4 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
     </div>
   );
 }
+// HMR trigger
