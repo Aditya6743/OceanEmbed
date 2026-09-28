@@ -97,7 +97,7 @@ export default function Home() {
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
         <div ref={canvasContainerRef} className="hidden md:block absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
-          <Canvas eventSource={canvasContainerRef as any} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+          <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
               
               <EarthGlobe showSatellite />

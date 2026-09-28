@@ -1136,7 +1136,7 @@ export default function Solutions() {
              />
           )}
           {!is2DMode && activeTab === 'iot' && <IotOverlays simState={simState} handleIotAck={handleIotAck} />}
-          <Canvas eventSource={document.getElementById("solutions-canvas-container") as any} className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+          <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} recenterTrigger={recenterTrigger} />
             <RotationController isRotationLocked={isRotationLocked} />

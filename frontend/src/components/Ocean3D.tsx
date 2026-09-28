@@ -371,7 +371,7 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
         {isDiving ? "DIVING..." : "DEEP DIVE"}
       </button>
 
-      <Canvas eventSource={containerRef as any} camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
+      <Canvas camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
         <ambientLight intensity={1.5} />
         <directionalLight position={[5, 10, 5]} intensity={2} color="#ffffff" />
         <directionalLight position={[-5, -5, -5]} intensity={1.5} color="#0ea5e9" />

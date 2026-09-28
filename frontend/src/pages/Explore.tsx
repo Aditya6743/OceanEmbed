@@ -458,7 +458,7 @@ export default function Explore() {
           </button>
         </div>
 
-        <Canvas eventSource={earthContainerRef as any} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={
             <Html center>
               <div className="flex flex-col items-center justify-center gap-4 pointer-events-none w-48">
