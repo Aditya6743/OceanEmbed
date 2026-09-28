@@ -52,8 +52,8 @@ export default function Navbar() {
           
           <Link to="/" onClick={(e) => handleNavClick(e, 'top', '/')} className="flex items-center gap-0 opacity-90 cursor-pointer hover:opacity-100 transition-opacity">
             <img src="/logo_cropped.png" alt="OceanEmbed Logo" className="-mt-1.5 ml-2 h-[26px] w-auto object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]" />
-            <span className="-ml-[8px] font-semibold text-[15px] tracking-[0.15em] uppercase">
-              <span className="text-white">OCEAN</span><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">EMBED</span>
+            <span className="-ml-[8px] font-black text-[18px] tracking-[0.2em] uppercase text-white mt-[1px]">
+              OCEAN<span className="text-cyan-400">EMBED</span>
             </span>
           </Link>
           
