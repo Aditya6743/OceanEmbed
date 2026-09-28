@@ -344,7 +344,7 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
   const [isDiving, setIsDiving] = useState(false);
   const { autoPilotMode, activeHighlight } = useOceanStore();
 
-  if (!prediction) return <div ref={containerRef} className="w-full h-full relative" />;
+
 
   const handleDive = () => {
     if (isDiving) return;
@@ -362,20 +362,22 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
   return (
     <div ref={containerRef} className="w-full h-full relative bg-transparent group">
       {/* Interactive Dive Button */}
-      <button 
-        onClick={handleDive}
-        disabled={isDiving}
-        className="absolute top-4 right-4 z-50 bg-cyan-950/80 border border-cyan-500/50 hover:bg-cyan-900 hover:scale-105 transition-all text-cyan-400 px-3 py-1.5 rounded-full flex items-center gap-2 text-[10px] font-bold tracking-widest backdrop-blur-sm shadow-[0_0_15px_rgba(34,211,238,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <ArrowDownCircle size={14} className={isDiving ? "animate-bounce" : ""} />
-        {isDiving ? "DIVING..." : "DEEP DIVE"}
-      </button>
+      {prediction && (
+        <button 
+          onClick={handleDive}
+          disabled={isDiving}
+          className="absolute top-4 right-4 z-50 bg-cyan-950/80 border border-cyan-500/50 hover:bg-cyan-900 hover:scale-105 transition-all text-cyan-400 px-3 py-1.5 rounded-full flex items-center gap-2 text-[10px] font-bold tracking-widest backdrop-blur-sm shadow-[0_0_15px_rgba(34,211,238,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ArrowDownCircle size={14} className={isDiving ? "animate-bounce" : ""} />
+          {isDiving ? "DIVING..." : "DEEP DIVE"}
+        </button>
+      )}
 
       <Canvas camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
         <ambientLight intensity={1.5} />
         <directionalLight position={[5, 10, 5]} intensity={2} color="#ffffff" />
         <directionalLight position={[-5, -5, -5]} intensity={1.5} color="#0ea5e9" />
-        <WaterColumn prediction={prediction} isDiving={isDiving} setIsDiving={setIsDiving} />
+        {prediction && <WaterColumn prediction={prediction} isDiving={isDiving} setIsDiving={setIsDiving} />}
         <OrbitControls enableZoom={false} minDistance={4} maxDistance={10} enablePan={false} autoRotate={false} />
       </Canvas>
     </div>
