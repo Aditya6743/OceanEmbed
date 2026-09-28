@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
-import HowItWorks from './pages/HowItWorks';
+import ProjectVision from './pages/ProjectVision';
 import Explore from './pages/Explore';
 import Solutions from './pages/Solutions';
+import NotFound from './pages/NotFound';
 import Architecture from './pages/Architecture';
 import Preloader from './components/Preloader';
 import CustomCursor from './components/CustomCursor';
@@ -29,7 +30,7 @@ function App() {
       {!isMobile && <CustomCursor />}
       <MobileWarningOverlay />
       
-      <div className="min-h-screen bg-[#030712] text-foreground flex flex-col font-sans relative">
+      <div className="min-h-screen w-full overflow-x-hidden bg-[#030712] text-foreground flex flex-col font-sans relative">
         <div className="fixed inset-0 z-0 pointer-events-none flex flex-col">
           <div className="absolute inset-0">
             <GradientWaves 
@@ -56,10 +57,11 @@ function App() {
           <main className="flex-1 flex flex-col">
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/project-vision" element={<ProjectVision />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/architecture" element={<Architecture />} />
               <Route path="/solutions" element={<Solutions />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
         </div>

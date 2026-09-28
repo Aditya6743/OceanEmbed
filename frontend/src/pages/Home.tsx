@@ -45,6 +45,7 @@ export default function Home() {
 
   const navigate = useNavigate();
   const controlsRef = React.useRef(null);
+  const canvasContainerRef = React.useRef<HTMLDivElement>(null);
   const { error, errorPosition, setError } = useOceanStore();
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
@@ -84,8 +85,8 @@ export default function Home() {
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
-        <div className="hidden md:block absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
-          <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        <div ref={canvasContainerRef} className="hidden md:block absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
+          <Canvas eventSource={canvasContainerRef as any} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
               
               <EarthGlobe showSatellite />
@@ -141,7 +142,7 @@ export default function Home() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
               </button>
               
-              <button onClick={() => navigate('/how-it-works')} className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors">PROJECT VISION</button>
+              <button onClick={() => navigate('/project-vision')} className="px-8 py-4 text-white/70 hover:text-white text-[11px] tracking-[0.2em] font-semibold transition-colors">PROJECT VISION</button>
             </motion.div>
 
             {/* Refined, compact Location HUD strictly aligned left */}

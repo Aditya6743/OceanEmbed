@@ -164,7 +164,7 @@ function DepthPlate({ layer, isHovered, isDimmed, isThermocline, hoveredDepth }:
 function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: PredictionResponse, isDiving: boolean, setIsDiving: (d: boolean) => void }) {
 
   const groupRef = useRef<THREE.Group>(null);
-  const { hoveredDepth, setHoveredDepth, showArgoTubes } = useOceanStore();
+  const { hoveredDepth, setHoveredDepth, showArgoTubes, viewMode } = useOceanStore();
   const [, setAnimating] = useState(true);
   
 
@@ -205,6 +205,10 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
     
     // Drive the dive physically to perfectly sync with the 6.0s audio sweep
     if (isDiving) {
+      if (viewMode !== "3d") {
+        setIsDiving(false);
+        return;
+      }
       diveProgressRef.current += delta / 4.5; // Slowed down to 6.0 seconds for smoother descent
       if (diveProgressRef.current >= 1.0) {
         diveProgressRef.current = 1.0;
@@ -336,6 +340,7 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
 }
 
 export default function Ocean3D({ prediction }: { prediction?: PredictionResponse }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isDiving, setIsDiving] = useState(false);
   const { autoPilotMode, activeHighlight } = useOceanStore();
 
@@ -355,7 +360,7 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
   }, [autoPilotMode, activeHighlight, isDiving]);
 
   return (
-    <div className="w-full h-full relative bg-transparent group">
+    <div ref={containerRef} className="w-full h-full relative bg-transparent group">
       {/* Interactive Dive Button */}
       <button 
         onClick={handleDive}
@@ -366,7 +371,7 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
         {isDiving ? "DIVING..." : "DEEP DIVE"}
       </button>
 
-      <Canvas camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
+      <Canvas eventSource={containerRef as any} camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
         <ambientLight intensity={1.5} />
         <directionalLight position={[5, 10, 5]} intensity={2} color="#ffffff" />
         <directionalLight position={[-5, -5, -5]} intensity={1.5} color="#0ea5e9" />

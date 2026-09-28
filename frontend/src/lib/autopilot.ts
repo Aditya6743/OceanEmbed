@@ -22,13 +22,18 @@ export const startAutoPilot = () => {
 
   const demoSequence = async () => {
     try {
+      // 0. Initial Reset
+      useOceanStore.getState().reset();
       useOceanStore.getState().setViewMode('3d');
       useOceanStore.getState().setIsMaximized(false);
       useOceanStore.getState().setActiveHighlight(null);
       useOceanStore.getState().setShowReportModal(false);
       useOceanStore.getState().setShowExportMenu(false);
 
-      // 1. Pick a point in the square grid
+      await wait(500);
+      if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
+
+      // 1. Pick a point in the square grid (this natively triggers isLoading=true)
       useOceanStore.getState().setLocation({
         latitude: 15.0,
         longitude: 65.0,
@@ -36,18 +41,9 @@ export const startAutoPilot = () => {
         region: 'ARABIAN SEA'
       });
 
+      // Highlight the globe to show where we clicked
       useOceanStore.getState().setActiveHighlight('globe');
-      await wait(1500);
-      if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
-
-      // 2. Glow the "Initialize Model" button
-      useOceanStore.getState().setActiveHighlight('button');
-      await wait(1000);
-      if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
       
-      // Press the button explicitly!
-      useOceanStore.getState().setIsLoading(true);
-
       // Wait for ML inference to complete
       while (useOceanStore.getState().isLoading) {
         await wait(100);
@@ -67,7 +63,7 @@ export const startAutoPilot = () => {
       await wait(2500);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
-      // 5. Show 5-Month SSD Trend
+      // 5. Show 7-Day SST Trend
       useOceanStore.getState().setActiveHighlight('trend');
       await wait(2500);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
@@ -75,13 +71,13 @@ export const startAutoPilot = () => {
       // 5.5 Expand View so the visualizers look massive and cinematic
       useOceanStore.getState().setActiveHighlight(null);
       useOceanStore.getState().setIsMaximized(true);
-      await wait(1500); // Wait for expansion animation
+      await wait(1200); // Wait for expansion animation
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // 6. Show 3D Volume
       useOceanStore.getState().setViewMode('3d');
       useOceanStore.getState().setActiveHighlight('3d');
-      await wait(5000); // Allow full 3D deep dive rotation before moving on
+      await wait(6000); // Allow full 3D deep dive rotation before moving on
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // 7. Show 2D Depth Slice
@@ -90,50 +86,50 @@ export const startAutoPilot = () => {
       const availableDepths = storeState.prediction?.profile?.depth || [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000];
       
       window.dispatchEvent(new CustomEvent('autopilot-depth', { detail: availableDepths[0] }));
-      await wait(1500); // Wait 1.5s before starting slider as requested
+      await wait(1500); // Wait before starting slider
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
-      const steps = availableDepths.length - 1;
-      const delayPerStep = 4000 / steps; // 4 seconds total
+      const maxD = availableDepths[availableDepths.length - 1] || 1000;
+      const steps = 50;
+      const delayPerStep = 5000 / steps;
       for (let i = 1; i <= steps; i++) {
         if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
-        window.dispatchEvent(new CustomEvent('autopilot-depth', { detail: availableDepths[i] }));
+        const targetDepth = (i / steps) * maxD;
+        const boundedDepth = availableDepths.reduce((prev, curr) => Math.abs(curr - targetDepth) < Math.abs(prev - targetDepth) ? curr : prev);
+        window.dispatchEvent(new CustomEvent('autopilot-depth', { detail: boundedDepth }));
         await wait(delayPerStep);
       }
       
-      await wait(1000); // Pause at bottom
-      if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
-
-      // 8. Show Temperature vs Depth Graph
-      useOceanStore.getState().setActiveHighlight('charts');
-      await wait(3500);
+      await wait(1500); // Pause at bottom
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // Close expanded view before moving to report/export
       useOceanStore.getState().setActiveHighlight(null);
       useOceanStore.getState().setIsMaximized(false);
-      await wait(1000); // Wait for minimize animation
+      await wait(1200); // Wait for minimize animation
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // 11. Intelligence Report Button (Highlight -> Click -> Wait -> Close)
       useOceanStore.getState().setActiveHighlight('report');
-      await wait(1500);
+      await wait(1000);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
       useOceanStore.getState().setShowReportModal(true);
-      await wait(2500);
+      await wait(3500);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
       useOceanStore.getState().setShowReportModal(false);
+      useOceanStore.getState().setActiveHighlight(null);
       await wait(1000);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
 
       // 12. Export Button (Highlight -> Click -> Wait -> Close)
       useOceanStore.getState().setActiveHighlight('export');
-      await wait(1500);
+      await wait(1000);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
       useOceanStore.getState().setShowExportMenu(true);
       await wait(2500);
       if (isCancelled || !useOceanStore.getState().autoPilotMode) return;
       useOceanStore.getState().setShowExportMenu(false);
+      useOceanStore.getState().setActiveHighlight(null);
       await wait(1000);
 
       // Stop cleanly

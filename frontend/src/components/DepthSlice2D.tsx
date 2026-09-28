@@ -163,6 +163,7 @@ export default function DepthSlice2D({ prediction }: { prediction?: PredictionRe
     const handleAutopilotDepth = (e: any) => {
       setSliderDepth(e.detail);
       setActiveDepth(e.detail);
+      useOceanStore.setState({ hoveredDepth: e.detail });
     };
     window.addEventListener('autopilot-depth', handleAutopilotDepth);
     return () => window.removeEventListener('autopilot-depth', handleAutopilotDepth);
@@ -563,10 +564,12 @@ export default function DepthSlice2D({ prediction }: { prediction?: PredictionRe
     const rect = trackRef.current.getBoundingClientRect();
     let pct = (clientX - rect.left) / rect.width;
     pct = Math.max(0, Math.min(1, pct));
-    const index = Math.round(pct * (availableDepths.length - 1));
-    const newDepth = availableDepths[index];
+    const maxDepth = availableDepths[availableDepths.length - 1] || 1000;
+    const targetDepth = pct * maxDepth;
+    const newDepth = availableDepths.reduce((prev, curr) => Math.abs(curr - targetDepth) < Math.abs(prev - targetDepth) ? curr : prev);
     
     setSliderDepth(newDepth);
+    useOceanStore.setState({ hoveredDepth: newDepth });
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     
@@ -630,11 +633,11 @@ export default function DepthSlice2D({ prediction }: { prediction?: PredictionRe
             <div className="absolute left-0 right-0 h-[2px] bg-white/10 rounded"></div>
             <div 
               className="absolute left-0 h-[2px] bg-cyan-500 rounded shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-all duration-75"
-              style={{ width: `${(availableDepths.indexOf(sliderDepth) / (availableDepths.length - 1)) * 100}%` }}
+              style={{ width: `${(sliderDepth / (availableDepths[availableDepths.length - 1] || 1000)) * 100}%` }}
             ></div>
             <div 
               className="absolute w-[12px] h-[12px] rounded-full bg-black border-2 border-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] transition-transform duration-75 group-hover:scale-125 z-10"
-              style={{ left: `${(availableDepths.indexOf(sliderDepth) / (availableDepths.length - 1)) * 100}%`, transform: 'translateX(-50%)' }}
+              style={{ left: `${(sliderDepth / (availableDepths[availableDepths.length - 1] || 1000)) * 100}%`, transform: 'translateX(-50%)' }}
             ></div>
           </div>
         </div>

@@ -5,7 +5,7 @@ export default function Footer() {
     { name: 'Home', path: '/' },
     { name: 'Interactive Dashboard', path: '/explore' },
     { name: 'Neural Architecture', path: '/architecture' },
-    { name: 'Project Vision', path: '/how-it-works' },
+    { name: 'Project Vision', path: '/project-vision' },
     { name: 'Global Solutions', path: '/solutions' }
   ];
 

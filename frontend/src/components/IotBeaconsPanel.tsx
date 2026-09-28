@@ -187,7 +187,7 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                 </div>
 
                 {/* Architecture - Horizontal Layout */}
-                <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-6 py-12 min-h-[350px] flex flex-col justify-center shrink-0 relative overflow-hidden">
+                <div className="bg-[#0a0a0a] border border-white/5 rounded-xl p-3 py-6 md:p-6 md:py-12 min-h-[200px] md:min-h-[350px] flex flex-col justify-center shrink-0 relative overflow-hidden">
                     {/* Grid Background */}
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:16px_16px]"></div>
 
@@ -198,7 +198,7 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                         {/* Box 1: Data Source */}
                         <div className="flex flex-col items-center z-10 w-[20%] relative">
                             <div className="absolute -top-4 text-[6px] text-slate-400 border border-slate-700 px-1 py-0.5 rounded bg-black tracking-widest uppercase">DATA SOURCE</div>
-                            <div className="border border-blue-500/30 bg-blue-950/40 rounded-xl p-3 py-6 min-h-[160px] w-full flex flex-col justify-center items-center text-center shadow-[0_0_10px_rgba(59,130,246,0.1)]">
+                            <div className="border border-blue-500/30 bg-blue-950/40 rounded-xl p-1 py-2 md:p-3 md:py-6 min-h-[60px] md:min-h-[160px] w-full flex flex-col justify-center items-center text-center shadow-[0_0_10px_rgba(59,130,246,0.1)]">
                                <Activity size={12} className="text-blue-400 mb-1" />
                                <div className="text-[7px] font-bold text-white leading-tight">SATELLITE</div>
                                <div className="text-[5px] text-blue-400 mt-1 uppercase">Live Telemetry</div>
@@ -213,7 +213,7 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                         {/* Box 2: Core Intelligence (Dynamic) */}
                         <div className="flex flex-col items-center z-10 w-[38%] relative">
                             <div className="absolute -top-4 text-[6px] text-red-400/80 border border-red-500/30 px-1 py-0.5 rounded bg-black tracking-widest uppercase">CORE INTELLIGENCE</div>
-                            <div className={`border rounded-xl p-4 py-8 min-h-[220px] w-full flex flex-col items-center justify-center text-center transition-all duration-500 ${simState.step >= 2 ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.25)] bg-red-950/40' : 'border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)] bg-indigo-950/40'}`}>
+                            <div className={`border rounded-xl p-1.5 py-3 md:p-4 md:py-8 min-h-[100px] md:min-h-[220px] w-full flex flex-col items-center justify-center text-center transition-all duration-500 ${simState.step >= 2 ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.25)] bg-red-950/40' : 'border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)] bg-indigo-950/40'}`}>
                                <Activity size={14} className={simState.step >= 2 ? 'text-red-400 mb-1 animate-pulse' : 'text-indigo-400 mb-1'} />
                                <div className="text-[9px] font-black text-white tracking-widest">OCEANEMBED V6</div>
                                <div className={`text-[6px] font-bold mt-1 px-1.5 py-0.5 rounded-sm uppercase tracking-wider ${simState.step >= 2 ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-300'}`}>
@@ -239,7 +239,7 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                         {/* Box 3: Gateway */}
                         <div className="flex flex-col items-center z-10 w-[15%] relative">
                             <div className="absolute -top-4 text-[6px] text-slate-400 border border-slate-700 px-1 py-0.5 rounded bg-black tracking-widest uppercase">GATEWAY</div>
-                            <div className={`border rounded-xl p-3 py-6 min-h-[160px] w-full flex flex-col justify-center items-center text-center transition-all duration-500 ${simState.step >= 5 ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] bg-emerald-950/20' : 'border-slate-700 bg-slate-900/50'}`}>
+                            <div className={`border rounded-xl p-1 py-2 md:p-3 md:py-6 min-h-[60px] md:min-h-[160px] w-full flex flex-col justify-center items-center text-center transition-all duration-500 ${simState.step >= 5 ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)] bg-emerald-950/20' : 'border-slate-700 bg-slate-900/50'}`}>
                                <Wifi size={10} className={simState.step >= 5 ? 'text-emerald-400 mb-1' : 'text-slate-500 mb-1'} />
                                <div className="text-[7px] font-bold text-white leading-tight">REST API</div>
                                <div className="text-[5px] text-emerald-400 mt-1 bg-emerald-500/10 border border-emerald-500/30 px-1 py-0.5 rounded text-center">LoRaWAN HUB</div>
@@ -257,15 +257,15 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
                         {/* Box 4: Endpoints */}
                         <div className="flex flex-col items-center z-10 w-[20%] relative">
                             <div className="absolute -top-5 text-[6px] text-slate-400 border border-slate-700 px-1 py-0.5 rounded bg-black tracking-widest uppercase whitespace-nowrap">ACTIVE ENDPOINTS</div>
-                            <div className="flex flex-col gap-4 w-full mt-1">
-                                <div className={`border rounded-lg p-3 py-4 min-h-[72px] text-left transition-all flex flex-col justify-center ${simState.step >= 7 ? 'border-orange-500 bg-orange-950/30 shadow-[0_0_10px_rgba(249,115,22,0.15)]' : 'border-slate-700 bg-slate-900/50'}`}>
+                            <div className="flex flex-col gap-1 md:gap-4 w-full mt-1">
+                                <div className={`border rounded-lg p-1 py-1.5 md:p-3 md:py-4 min-h-[36px] md:min-h-[72px] text-left transition-all flex flex-col justify-center ${simState.step >= 7 ? 'border-orange-500 bg-orange-950/30 shadow-[0_0_10px_rgba(249,115,22,0.15)]' : 'border-slate-700 bg-slate-900/50'}`}>
                                     <div className="flex items-center gap-1 mb-0.5">
                                         <RadioReceiver size={7} className={simState.step >= 7 ? 'text-orange-400' : 'text-slate-500'}/>
                                         <div className="text-[5px] font-bold text-white leading-tight">MARINE PAGER<br/><span className="text-[4.5px] text-emerald-400">LoRaWAN (No WiFi)</span></div>
                                     </div>
                                     <div className={`text-[4px] uppercase ${simState.step >= 7 ? 'text-orange-400 animate-pulse' : 'text-slate-600'}`}>{simState.step >= 7 ? 'Vibrating' : 'Connected'}</div>
                                 </div>
-                                <div className={`border rounded-lg p-3 py-4 min-h-[72px] text-left transition-all flex flex-col justify-center ${simState.step >= 8 ? 'border-red-500 bg-red-950/30 shadow-[0_0_10px_rgba(220,38,38,0.15)]' : 'border-slate-700 bg-slate-900/50'}`}>
+                                <div className={`border rounded-lg p-1 py-1.5 md:p-3 md:py-4 min-h-[36px] md:min-h-[72px] text-left transition-all flex flex-col justify-center ${simState.step >= 8 ? 'border-red-500 bg-red-950/30 shadow-[0_0_10px_rgba(220,38,38,0.15)]' : 'border-slate-700 bg-slate-900/50'}`}>
                                     <div className="flex items-center gap-1 mb-0.5">
                                         <ShieldAlert size={7} className={simState.step >= 8 ? 'text-red-400' : 'text-slate-500'}/>
                                         <div className="text-[5px] font-bold text-white">COASTAL SIREN</div>
@@ -335,37 +335,48 @@ export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs
 };
 
 export const IotOverlays = ({ simState, handleIotAck }: any) => {
-    const isAlert = simState.step >= 7 && simState.phase !== 'ACKNOWLEDGED';
+    const isAlert = simState.step >= 7;
     const isAck = simState.phase === 'ACKNOWLEDGED';
     const isFail = simState.phase === 'DELIVERY FAILED';
-    
+
     return (
-        <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-            {/* Top Right: Alert Packet */}
-            <div className="absolute top-12 left-1/2 -translate-x-1/2 pointer-events-auto">
-                {simState.step >= 4 && (
-                    <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-lg p-4 w-64 shadow-2xl animate-in slide-in-from-top-4">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-2">ALERT PACKET</div>
-                        <div className="font-mono text-[10px] flex flex-col gap-1.5">
-                            <div className="flex justify-between"><span className="text-slate-500">ID</span><span className="text-slate-200">OCN-26066-042</span></div>
+        <div className="absolute inset-0 pointer-events-none z-20">
+            {/* Top Status Banner */}
+            {simState.isRunning && !isAck && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-auto">
+                    <div className="bg-black/80 backdrop-blur-md border border-cyan-500/30 text-cyan-400 px-4 py-2 rounded-full text-[10px] font-mono tracking-[0.2em] shadow-[0_0_15px_rgba(34,211,238,0.2)] flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></div>
+                        {simState.step < 6 ? 'ANALYZING TELEMETRY...' : 'BROADCASTING WARNING...'}
+                    </div>
+                </div>
+            )}
+
+            {/* Notification Popups Overlay */}
+            {isAlert && !isAck && !isFail && (
+                <div className="absolute top-24 md:top-[200px] right-2 md:right-6 pointer-events-auto animate-in slide-in-from-right-8 fade-in duration-500 scale-[0.75] md:scale-100 origin-top-right z-[50]">
+                    <div className="bg-black/90 backdrop-blur-md border border-red-500/50 p-3 md:p-4 rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.3)] min-w-[220px] md:min-w-[280px]">
+                        <div className="flex items-center gap-2 text-red-400 font-bold tracking-widest text-[10px] mb-2">
+                            <Bell size={14} className="animate-pulse" /> CRITICAL ALERT DISPATCHED
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-300 flex flex-col gap-1">
                             <div className="flex justify-between"><span className="text-slate-500">TYPE</span><span className="text-orange-400">CYCLONE</span></div>
                             <div className="flex justify-between"><span className="text-slate-500">SEVERITY</span><span className="text-red-400">HIGH</span></div>
                             <div className="flex justify-between"><span className="text-slate-500">SOURCE</span><span className="text-indigo-400">OCEANEMBED V6</span></div>
                             <div className="flex justify-between mt-2 pt-2 border-t border-white/5"><span className="text-slate-500">STATUS</span><span className="text-cyan-400 animate-pulse">{simState.step >= 6 ? 'DELIVERED' : 'BROADCASTING'}</span></div>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* Bottom Row Flex Container: Anchored to map section bounds */}
-            <div className="absolute bottom-10 left-8 right-12 flex justify-between items-end pointer-events-none">
+            {/* Bottom Row Container: Absolute inset on mobile, relative bottom-anchored flex on desktop */}
+            <div className="absolute inset-0 md:inset-auto md:bottom-10 md:left-8 md:right-12 md:flex md:justify-between md:items-end pointer-events-none">
                 
                 {/* Left side of the globe section: Fisherman */}
-                <div className="pointer-events-auto">
-                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 shadow-2xl ${isFail ? 'bg-black/80 border-slate-700 opacity-90' : isAlert ? 'bg-black/80 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.15)]' : 'bg-black/80 border-slate-700/50'}`}>
-                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${isFail ? 'bg-white/5 border-slate-700/50 text-slate-500' : isAlert ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' : 'bg-white/5 border-white/5 text-slate-400'}`}>
+                <div className="absolute bottom-2 left-2 md:static pointer-events-auto scale-[0.55] md:scale-100 origin-bottom-left">
+                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 shadow-2xl ${isFail ? "bg-black/80 border-slate-700 opacity-90" : isAlert ? "bg-black/80 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.15)]" : "bg-black/80 border-slate-700/50"}`}>
+                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${isFail ? "bg-white/5 border-slate-700/50 text-slate-500" : isAlert ? "bg-orange-500/10 border-orange-500/20 text-orange-400" : "bg-white/5 border-white/5 text-slate-400"}`}>
                             <div className="flex items-center gap-1.5"><RadioReceiver size={14} /> MARINE PAGER <span className="text-[7px] border border-current opacity-70 px-1 rounded tracking-normal ml-0.5">LORA / NO-WIFI</span></div>
-                            {isFail ? <span>OFFLINE</span> : isAlert ? <span className="animate-pulse">⚠ ALERT</span> : <span>CONNECTED</span>}
+                            {isFail ? <span>OFFLINE</span> : isAlert ? <span className="animate-pulse text-orange-400">⚠ ALERT</span> : <span>CONNECTED</span>}
                         </div>
                         <div className="p-4 flex flex-col flex-1 justify-center gap-3 font-mono">
                             {isFail ? (
@@ -387,7 +398,7 @@ export const IotOverlays = ({ simState, handleIotAck }: any) => {
                                     <div className="flex justify-between items-center text-xs"><span className="text-slate-500">BATTERY</span><span className="text-slate-300">{(87 - simState.step)}%</span></div>
                                 </>
                             )}
-                            
+
                             {isAlert && !isAck && (
                                 <button onClick={handleIotAck} className="mt-2 py-2 w-full rounded border border-orange-400 text-orange-400 text-[10px] font-bold hover:bg-orange-400 hover:text-black transition-colors pointer-events-auto">
                                     ACKNOWLEDGE ALERT
@@ -403,9 +414,9 @@ export const IotOverlays = ({ simState, handleIotAck }: any) => {
                 </div>
 
                 {/* Right side of the globe section: Coastal Warning Station */}
-                <div className="pointer-events-auto">
-                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 shadow-2xl ${simState.step >= 8 && !isAck ? 'bg-black/80 border-red-500/50 shadow-[0_0_20px_rgba(220,38,38,0.15)]' : 'bg-black/80 border-slate-700/50'}`}>
-                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${simState.step >= 8 && !isAck ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/5 border-white/5 text-slate-400'}`}>
+                <div className="absolute bottom-2 right-2 md:static pointer-events-auto scale-[0.55] md:scale-100 origin-bottom-right">
+                    <div className={`w-72 min-h-[155px] flex flex-col rounded-xl border backdrop-blur-md overflow-hidden transition-all duration-500 shadow-2xl ${simState.step >= 8 && !isAck ? "bg-black/80 border-red-500/50 shadow-[0_0_20px_rgba(220,38,38,0.15)]" : "bg-black/80 border-slate-700/50"}`}>
+                        <div className={`p-2 text-[10px] font-bold tracking-widest uppercase flex items-center justify-between border-b ${simState.step >= 8 && !isAck ? "bg-red-500/10 border-red-500/20 text-red-400" : "bg-white/5 border-white/5 text-slate-400"}`}>
                             <div className="flex items-center gap-2"><ShieldAlert size={14} /> COASTAL WARNING STATION</div>
                         </div>
                         <div className="p-4 flex flex-col flex-1 justify-center gap-3 font-mono">

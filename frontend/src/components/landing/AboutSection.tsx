@@ -48,7 +48,7 @@ export default function AboutSection() {
         {/* Call to Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mt-4">
           <button 
-            onClick={() => { window.scrollTo(0, 0); navigate('/how-it-works'); }}
+            onClick={() => { window.scrollTo(0, 0); navigate('/project-vision'); }}
             className="group flex items-center gap-3 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-white font-mono text-[10px] md:text-xs tracking-[0.2em] uppercase transition-all backdrop-blur-md transform-gpu will-change-transform shadow-lg w-full sm:w-auto justify-center"
           >
             <span>Read Full Project Vision</span>

@@ -30,12 +30,13 @@ export default function HistoryChart({ data }: HistoryChartProps) {
           tickFormatter={(val) => {
             if (!val) return '';
             if (val.includes('-')) {
-                // If it's YYYY-MM-DD, parse month
+                // If it's YYYY-MM-DD, parse date and month
                 const parts = val.split('-');
-                if (parts.length >= 2) {
+                if (parts.length >= 3) {
+                    const day = parseInt(parts[2]);
                     const monthIdx = parseInt(parts[1]) - 1;
                     const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-                    return months[monthIdx] || val;
+                    return `${day} ${months[monthIdx]}`;
                 }
             }
             return val;

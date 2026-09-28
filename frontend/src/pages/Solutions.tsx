@@ -281,18 +281,18 @@ export default function Solutions() {
   }, [selectedDate]);
 
   return (
-    <div className="w-full h-[100dvh] bg-transparent flex flex-col md:flex-row font-sans text-slate-300 overflow-hidden relative">
+    <div className="w-full min-h-[100dvh] md:h-[100dvh] h-auto bg-transparent flex flex-col-reverse md:flex-row font-sans text-slate-300 overflow-y-auto overflow-x-hidden md:overflow-hidden relative">
       
       {/* Top Navbar */}
-      <div className="h-20 border-b border-white/10 bg-black/20 backdrop-blur-md flex items-center z-20 absolute top-0 w-full">
+      <div className="h-auto md:h-20 py-3 md:py-0 border-b border-white/10 bg-black/20 backdrop-blur-md flex flex-col md:flex-row items-start md:items-center z-50 fixed md:absolute top-0 w-full gap-3 md:gap-0">
         {/* Left Section (Matches 40% Panel) */}
-        <div className="w-full md:w-[35%] px-4 md:px-8 flex items-center justify-between md:justify-start gap-4">
+        <div className="w-full md:w-[35%] px-4 md:px-8 flex items-center justify-between md:justify-start gap-4 shrink-0">
           <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-900/50 border border-white/10 hover:bg-slate-800 hover:text-white transition-all text-slate-400 shrink-0">
             <ArrowLeft size={18} />
           </button>
           <div className="shrink-0">
-            <h1 className="text-xl font-black tracking-widest uppercase text-white whitespace-nowrap">Advanced <span className="text-sky-300">Analysis</span></h1>
-            <p className="text-slate-400 text-[10px] uppercase tracking-widest mt-1">AI Tactical Hub</p>
+            <h1 className="text-sm md:text-xl font-black tracking-widest uppercase text-white whitespace-nowrap">Advanced <span className="text-sky-300">Analysis</span></h1>
+            <p className="text-slate-400 text-[8px] md:text-[10px] uppercase tracking-widest mt-0.5 md:mt-1">AI Tactical Hub</p>
           </div>
           
           {/* PREMIUM DATE PICKER */}
@@ -307,14 +307,14 @@ export default function Solutions() {
                 max={maxDateStr}
                 value={selectedDate}
                 onChange={(e) => { setSelectedDate(e.target.value); if (selectedLocation) setIsLoading(true); }}
-                className="bg-transparent text-cyan-100 font-mono text-xs py-1.5 pl-9 pr-3 outline-none focus:outline-none appearance-none cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer z-10"
+                className="bg-transparent text-cyan-100 font-mono text-[10px] md:text-xs py-1.5 pl-8 md:pl-9 pr-2 md:pr-3 outline-none focus:outline-none appearance-none cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer z-10"
               />
             </div>
           )}
         </div>
         
         {/* Right Section (Matches 60% Panel) - perfectly centers the buttons over the globe */}
-        <div className="hidden md:flex w-[65%] justify-start 2xl:justify-center gap-3 overflow-x-auto no-scrollbar px-8">
+        <div className="flex md:flex w-full md:w-[65%] justify-start 2xl:justify-center gap-2 md:gap-3 overflow-x-auto no-scrollbar px-4 md:px-8 shrink-0">
           <button 
             onClick={() => handleTabChange('climate')}
             className={`flex items-center whitespace-nowrap gap-2 px-5 py-2 rounded-full text-[10px] font-bold tracking-widest transition-all ${
@@ -376,7 +376,7 @@ export default function Solutions() {
       </div>
 
       {/* Control Panel / Insights Sidebar (Left Panel 40%) */}
-      <div className={`h-full bg-transparent border-r border-white/10 pt-24 px-8 pb-4 z-10 overflow-y-auto overflow-x-hidden shadow-2xl relative custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' || activeTab === 'sar' ? 'w-full md:w-[40%]' : 'w-full md:w-[35%]'}`}>
+      <div className={`h-auto md:h-full min-h-[50vh] bg-[#050b14] md:bg-transparent border-t md:border-t-0 md:border-r border-white/10 pt-8 md:pt-24 px-4 md:px-8 pb-12 md:pb-4 z-10 md:overflow-y-auto overflow-x-hidden shadow-2xl relative md:custom-scrollbar pointer-events-auto transition-all duration-300 ${activeTab === 'iot' || activeTab === 'sar' ? 'w-full md:w-[40%]' : 'w-full md:w-[35%]'}`}>
         <div className="w-[96%] mx-auto h-full flex flex-col relative">
           {/* SECTION LOADING OVERLAY */}
           {isSectionLoading && (
@@ -541,7 +541,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 0.12m</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 0.2) + 0.05).toFixed(2)}m</div>
                       </div>
                     </div>
                   </div>
@@ -617,7 +617,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 1.2°C</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 2) + 0.1).toFixed(1)}°C</div>
                       </div>
                     </div>
                   </div>
@@ -693,7 +693,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-emerald-400 font-mono font-bold">↗ 0.3m/s</div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 0.5) + 0.1).toFixed(2)}m/s</div>
                       </div>
                     </div>
                   </div>
@@ -775,7 +775,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-rose-400 font-mono font-bold">↘ 2.1m</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 4) + 0.5).toFixed(1)}m</div>
                       </div>
                     </div>
                   </div>
@@ -855,7 +855,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-emerald-400 font-mono font-bold">↗ 0.15m/d</div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 0.3) + 0.05).toFixed(2)}m/d</div>
                       </div>
                     </div>
                   </div>
@@ -935,7 +935,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-emerald-400 font-mono font-bold">↘ 0.02°C</div>
+                        <div className="text-[10px] text-emerald-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 0.05) + 0.01).toFixed(2)}°C</div>
                       </div>
                     </div>
                   </div>
@@ -1016,7 +1016,7 @@ export default function Solutions() {
                       </div>
                       <div className="bg-black/20 rounded p-1.5 border border-white/5">
                         <div className="text-[8px] text-slate-500 uppercase tracking-widest mb-0.5">24H Trend</div>
-                        <div className="text-[10px] text-rose-400 font-mono font-bold">↗ 0.04°C</div>
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">{liveData.tchp % 2 > 1 ? "↗" : "↘"} {((liveData.tchp % 0.08) + 0.01).toFixed(2)}°C</div>
                       </div>
                     </div>
                   </div>
@@ -1071,10 +1071,10 @@ export default function Solutions() {
 
 
       {/* 3D Visualization (Right Panel 60%) */}
-      <div className={`h-full pt-20 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' || activeTab === 'sar' ? 'w-full md:w-[60%]' : 'w-full md:w-[65%]'}`}>
+      <div className={`h-[55vh] md:h-full pt-[110px] md:pt-20 shrink-0 relative z-0 bg-black transition-all duration-300 ${activeTab === 'iot' || activeTab === 'sar' ? 'w-full md:w-[60%]' : 'w-full md:w-[65%]'}`}>
                 {/* Lock Auto-Rotate Button */}
         
-        <div className="absolute top-24 right-6 z-20 pointer-events-auto flex flex-col gap-2 items-center">
+        <div className="absolute top-[120px] md:top-24 right-4 md:right-6 z-20 pointer-events-auto flex flex-col gap-2 items-center">
           <button
             onClick={() => setIsRotationLocked(!isRotationLocked)}
             className={`flex items-center gap-2 bg-black/60 border px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg transition-all ${isRotationLocked ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'border-white/10 hover:border-sky-500/20'}`}
@@ -1106,7 +1106,7 @@ export default function Solutions() {
         {/* ARGO HUD Overlay */}
         
         {/* ARGO HUD Overlay - Visible on all tabs now */}
-        <div className="absolute top-24 left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
+        <div className="absolute top-[120px] md:top-24 left-4 md:left-6 z-20 pointer-events-auto flex items-center gap-3 bg-black/60 border border-white/10 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg">
           <span className={`text-[9px] font-mono tracking-widest font-bold ${showGlobeArgo ? 'text-lime-400' : 'text-slate-400'}`}>
             LIVE ARGO FLEET
           </span>
@@ -1121,7 +1121,7 @@ export default function Solutions() {
                 
         
         
-        <div className="w-full h-full relative">
+        <div id="solutions-canvas-container" className="w-full h-full relative">
           {is2DMode && activeTab === 'iot' && (
              <IotRightView simState={simState} handleIotAck={handleIotAck} onClose={() => setIs2DMode(false)} />
           )}
@@ -1136,7 +1136,7 @@ export default function Solutions() {
              />
           )}
           {!is2DMode && activeTab === 'iot' && <IotOverlays simState={simState} handleIotAck={handleIotAck} />}
-          <Canvas className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+          <Canvas eventSource={document.getElementById("solutions-canvas-container") as any} className="w-full h-full" camera={{ position: [0, 0, 5.35], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
             <CameraResetTrigger activeTab={activeTab} climateMode={climateMode} isRotationLocked={isRotationLocked} recenterTrigger={recenterTrigger} />
             <RotationController isRotationLocked={isRotationLocked} />

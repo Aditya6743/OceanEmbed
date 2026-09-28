@@ -10,8 +10,8 @@ import HistoryChart from '../components/HistoryChart';
 import GradientWaves from '../components/GradientWaves';
 import { jsPDF } from 'jspdf';
 import { useOceanStore } from '../store/oceanStore';
-import { fetchOceanPrediction, fetchHistory, type HistoryDataPoint } from '../lib/api';
-import { startAutoPilot } from '../lib/autopilot';
+import { fetchOceanPrediction, type HistoryDataPoint } from '../lib/api';
+import { startAutoPilot, stopAutoPilot } from '../lib/autopilot';
 
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
@@ -188,37 +188,42 @@ export default function Explore() {
   const [historyData, setHistoryData] = React.useState<HistoryDataPoint[]>([]);
   const [isRotationLocked, setIsRotationLocked] = useState(false);
 
-  // Generate 100% accurate history by directly querying the engine for the past 7 days
+  // Generate 100% accurate history by calling the exact same endpoint as the 3D block
   const generateAccurateHistory = async (lat: number, lon: number, targetDateStr: string): Promise<HistoryDataPoint[]> => {
-    try {
-      const history = await fetchHistory(lat, lon);
-      if (history && history.length > 0) return history;
-    } catch (e) {
-      // fallback below
-    }
-
-    // Fast fallback if backend is offline or history is empty
-    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     const [y, m, d_str] = targetDateStr.split('-');
     const target = new Date(parseInt(y), parseInt(m) - 1, parseInt(d_str));
     
-    const results = [];
+    // We construct 7 days ending on the target date
+    const dates: string[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(target.getFullYear(), target.getMonth(), target.getDate() - i);
-      const displayDate = `${d.getDate()} ${months[d.getMonth()]}`;
-      
-      // Simulate historical variance deterministically based on date offset
-      const var1 = Math.sin(lat * 12 + i * 2) * 0.8;
-      const var2 = Math.cos(lon * 78 - i) * 0.5;
-      const baseSST = 27.5 + var1 + var2;
-      const sst = Math.max(16.0, Math.min(34.5, baseSST));
-      
-      results.push({ date: displayDate, sst: +sst.toFixed(2) });
+      // Format to YYYY-MM-DD safely avoiding timezone shifts
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      dates.push(`${yyyy}-${mm}-${dd}`);
     }
-    return results;
+
+    try {
+      // Query fetchOceanPrediction concurrently for all 7 days.
+      // This guarantees 100% integration: if backend is online, it uses backend. If offline, uses fallback.
+      // Promise.all ensures they run concurrently, so even if offline, it only takes 3s to timeout.
+      const predictions = await Promise.all(
+        dates.map(date => fetchOceanPrediction(lat, lon, date))
+      );
+      
+      return predictions.map((pred, idx) => ({
+        date: dates[idx],
+        sst: pred.surface_data.sst
+      }));
+    } catch (err) {
+      console.warn("Failed to generate historical trend concurrently", err);
+      return [];
+    }
   };
 
     const controlsRef = React.useRef(null);
+  const earthContainerRef = React.useRef<HTMLDivElement>(null);
 
 
   // Auto-clear clickPosition (loading simulation)
@@ -244,6 +249,8 @@ export default function Explore() {
   React.useEffect(() => {
     return () => {
       useOceanStore.getState().setError(null);
+      stopAutoPilot();
+      useOceanStore.getState().setViewMode("3d");
     };
   }, []);
 
@@ -426,8 +433,8 @@ export default function Explore() {
     <div className="w-full h-auto min-h-screen md:h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans md:overflow-hidden">
       
       {/* RIGHT PANEL (Now rendered on Right via flex-row-reverse) - INTERACTIVE GLOBE */}
-      <div className={`w-full md:w-1/2 h-[45vh] md:h-[calc(100vh-3.5rem)] relative bg-transparent border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_20%,#030712_100%)] z-10" />
+      <div ref={earthContainerRef} className={`w-full md:w-1/2 h-[45vh] md:h-[calc(100vh-3.5rem)] relative bg-black border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
+        
         
         <div className="absolute top-4 right-4 z-50">
           <button
@@ -445,7 +452,7 @@ export default function Explore() {
           </button>
         </div>
 
-        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        <Canvas eventSource={earthContainerRef as any} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={null}>
             <EarthGlobe alwaysShowGrid={true} showStars={true} isRotationLocked={isRotationLocked} />
             <OrbitControls 
@@ -752,7 +759,7 @@ export default function Explore() {
                   {/* HISTORICAL TREND */}
                   <div className={`xl:col-span-1 bg-white/[0.02] border border-white/5 rounded-lg p-2.5 flex flex-col justify-between overflow-hidden transition-all duration-700 ${activeHighlight === 'trend' ? 'ring-2 ring-cyan-400 shadow-[0_0_30px_rgba(34,211,238,0.5)] z-50 bg-cyan-950/40' : ''}`}>
                     <div className="text-[9px] text-white/50 font-mono tracking-[0.2em] uppercase mb-1">7-DAY SST TREND</div>
-                    <div className="h-[150px] md:h-[120px] xl:h-[150px] -ml-3 mt-2 flex items-center justify-center w-[105%] shrink-0">
+                    <div className="h-[100px] xl:h-full min-h-[70px] xl:flex-1 -ml-3 mt-2 flex items-center justify-center w-[105%]">
                       {historyData && historyData.length > 0 ? (
                         <HistoryChart data={historyData} />
                       ) : (
