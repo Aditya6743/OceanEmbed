@@ -46,6 +46,7 @@ export default function Home() {
   const navigate = useNavigate();
   const controlsRef = React.useRef(null);
   const canvasContainerRef = React.useRef<HTMLDivElement>(null);
+  const [eventTarget, setEventTarget] = React.useState<HTMLElement | null>(null);
   const { error, errorPosition, setError } = useOceanStore();
   const selectedLocation = useOceanStore(state => state.selectedLocation);
 
@@ -96,8 +97,8 @@ export default function Home() {
         
         {/* MASSIVE EARTH LAYER BEHIND TEXT */}
         {/* By pinning to the left and extending width to 125vw, the center of the Canvas (Earth) shifts right to 62.5%, while the Canvas itself covers the entire left side so stars are everywhere! */}
-        <div ref={canvasContainerRef} className="hidden md:block absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
-          <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        <div ref={(el) => { canvasContainerRef.current = el; setEventTarget(el); }} className="hidden md:block absolute top-0 bottom-0 left-0 w-[100vw] md:w-[120vw] xl:w-[130vw] z-0 pointer-events-auto">
+          {eventTarget && (<Canvas eventSource={eventTarget} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
             <Suspense fallback={null}>
               
               <EarthGlobe showSatellite />
@@ -112,7 +113,7 @@ export default function Home() {
               />
               <CameraRig controlsRef={controlsRef} />
             </Suspense>
-          </Canvas>
+          </Canvas>)}
           
         </div>
 

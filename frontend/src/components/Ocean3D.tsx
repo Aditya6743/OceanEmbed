@@ -340,7 +340,8 @@ function WaterColumn({ prediction, isDiving, setIsDiving }: { prediction: Predic
 }
 
 export default function Ocean3D({ prediction }: { prediction?: PredictionResponse }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [eventTarget, setEventTarget] = useState<HTMLElement | null>(null);
+  
   const [isDiving, setIsDiving] = useState(false);
   const { autoPilotMode, activeHighlight } = useOceanStore();
 
@@ -360,7 +361,7 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
   }, [autoPilotMode, activeHighlight, isDiving]);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative bg-transparent group">
+    <div ref={setEventTarget} className="w-full h-full relative bg-transparent group">
       {/* Interactive Dive Button */}
       {prediction && (
         <button 
@@ -373,13 +374,13 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
         </button>
       )}
 
-      <Canvas camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
+      {eventTarget && (<Canvas eventSource={eventTarget}  camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
         <ambientLight intensity={1.5} />
         <directionalLight position={[5, 10, 5]} intensity={2} color="#ffffff" />
         <directionalLight position={[-5, -5, -5]} intensity={1.5} color="#0ea5e9" />
         {prediction && <WaterColumn prediction={prediction} isDiving={isDiving} setIsDiving={setIsDiving} />}
         <OrbitControls enableZoom={false} minDistance={4} maxDistance={10} enablePan={false} autoRotate={false} />
-      </Canvas>
+      </Canvas>)}
     </div>
   );
 }

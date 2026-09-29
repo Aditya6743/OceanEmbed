@@ -224,6 +224,7 @@ export default function Explore() {
 
     const controlsRef = React.useRef(null);
   const earthContainerRef = React.useRef<HTMLDivElement>(null);
+  const [eventTarget, setEventTarget] = React.useState<HTMLElement | null>(null);
 
 
   // Auto-clear clickPosition (loading simulation)
@@ -439,7 +440,7 @@ export default function Explore() {
     <div className="w-full h-auto min-h-screen md:h-screen bg-transparent flex flex-col md:flex-row pt-14 selection:bg-cyan-500/30 font-sans md:overflow-hidden">
       
       {/* RIGHT PANEL (Now rendered on Right via flex-row-reverse) - INTERACTIVE GLOBE */}
-      <div ref={earthContainerRef} className={`w-full md:w-1/2 h-[45vh] md:h-[calc(100vh-3.5rem)] relative bg-black border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
+      <div ref={(el) => { earthContainerRef.current = el; setEventTarget(el); }} className={`w-full md:w-1/2 h-[45vh] md:h-[calc(100vh-3.5rem)] relative bg-black border-l border-white/[0.05] ${isMaximized ? 'hidden md:hidden' : ' '} transition-all duration-700 ${activeHighlight === 'globe' ? 'ring-4 ring-cyan-400 shadow-[inset_20px_0_50px_rgba(0,0,0,0.8),_0_0_60px_rgba(34,211,238,0.7)] z-50' : 'shadow-[inset_20px_0_50px_rgba(0,0,0,0.8)]'}`} >
         
         
         <div className="absolute top-4 right-4 z-50">
@@ -458,7 +459,7 @@ export default function Explore() {
           </button>
         </div>
 
-        <Canvas camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        {eventTarget && (<Canvas eventSource={eventTarget} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={
             <Html center>
               <div className="flex flex-col items-center justify-center gap-4 pointer-events-none w-48">
@@ -476,7 +477,7 @@ export default function Explore() {
             />
             <CameraRig controlsRef={controlsRef} />
           </Suspense>
-        </Canvas>
+        </Canvas>)}
 
         {/* Cinematic HUD Overlay */}
         <div className="absolute top-6 left-6 z-20 pointer-events-none flex flex-col gap-2">

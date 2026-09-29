@@ -338,6 +338,7 @@ function OceanEmbedSystem({ isExploded, onModuleClick }: { isExploded: boolean, 
 // --------------------------------------------------------
 export default function Architecture() {
   const [isExploded, setIsExploded] = useState(false);
+  const [eventTarget, setEventTarget] = useState<HTMLElement | null>(null);
   const [activeModule, setActiveModule] = useState<number | null>(null);
   const [isTouring, setIsTouring] = useState(false);
   const controlsRef = useRef<any>(null);
@@ -408,8 +409,8 @@ export default function Architecture() {
         </p>
       </div>
 
-      <div className="absolute inset-0 z-10 translate-y-12">
-        <Canvas camera={{ position: [0.45, 7.5, 20], fov: 40 }} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} dpr={[1, 1.5]} performance={{ min: 0.5 }} onPointerMissed={handlePointerMissed}>
+      <div ref={setEventTarget} className="absolute inset-0 z-10 translate-y-12">
+        {eventTarget && (<Canvas eventSource={eventTarget} camera={{ position: [0.45, 7.5, 20], fov: 40 }} gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} dpr={[1, 1.5]} performance={{ min: 0.5 }} onPointerMissed={handlePointerMissed}>
           <ambientLight intensity={0.6} />
           <directionalLight position={[10, 15, 10]} intensity={1.5} color="#ffffff" />
           <directionalLight position={[-10, -10, -5]} intensity={0.5} color="#06b6d4" />
@@ -428,7 +429,7 @@ export default function Architecture() {
             autoRotate={false} 
             target={[0.45, 0, 0]}
           />
-        </Canvas>
+        </Canvas>)}
       </div>
       {/* Fixed 2D Assembled Label */}
       <div className={`absolute top-44 left-1/2 -translate-x-1/2 z-20 pointer-events-none transition-all duration-700 ease-out ${(!isExploded && activeModule === null && !isTouring) ? 'opacity-100 scale-100' : 'opacity-0 scale-95 translate-y-4'}`}>
