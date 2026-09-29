@@ -10,6 +10,7 @@ import HistoryChart from '../components/HistoryChart';
 import GradientWaves from '../components/GradientWaves';
 import { jsPDF } from 'jspdf';
 import { useOceanStore } from '../store/oceanStore';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { fetchOceanPrediction, type HistoryDataPoint } from '../lib/api';
 import { startAutoPilot } from '../lib/autopilot';
 
@@ -459,7 +460,8 @@ export default function Explore() {
           </button>
         </div>
 
-        {eventTarget && (<Canvas eventSource={eventTarget} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
+        <ErrorBoundary message="Digital Twin Engine Unavailable">
+          {eventTarget && (<Canvas eventSource={eventTarget} camera={{ position: [0, 0, 5.5], fov: 45 }} dpr={[1, 2]} performance={{ min: 0.5 }}>
           <Suspense fallback={
             <Html center>
               <div className="flex flex-col items-center justify-center gap-4 pointer-events-none w-48">
@@ -478,6 +480,7 @@ export default function Explore() {
             <CameraRig controlsRef={controlsRef} />
           </Suspense>
         </Canvas>)}
+        </ErrorBoundary>
 
         {/* Cinematic HUD Overlay */}
         <div className="absolute top-6 left-6 z-20 pointer-events-none flex flex-col gap-2">

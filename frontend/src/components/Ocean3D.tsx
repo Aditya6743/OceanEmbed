@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import type { PredictionResponse } from '../types/ocean';
 import { useOceanStore } from '../store/oceanStore';
 import { ArrowDownCircle } from 'lucide-react';
+import ErrorBoundary from './ErrorBoundary';
 import ArgoTubes, { getTempColor } from './ArgoTubes';
 
 const playDiveSound = () => {
@@ -374,13 +375,15 @@ export default function Ocean3D({ prediction }: { prediction?: PredictionRespons
         </button>
       )}
 
-      {eventTarget && (<Canvas eventSource={eventTarget}  camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
+      <ErrorBoundary message="Autopilot unavailable at the moment">
+        {eventTarget && (<Canvas eventSource={eventTarget}  camera={{ position: [0, 0.5, 6.5], fov: 45 }}>
         <ambientLight intensity={1.5} />
         <directionalLight position={[5, 10, 5]} intensity={2} color="#ffffff" />
         <directionalLight position={[-5, -5, -5]} intensity={1.5} color="#0ea5e9" />
         {prediction && <WaterColumn prediction={prediction} isDiving={isDiving} setIsDiving={setIsDiving} />}
         <OrbitControls enableZoom={false} minDistance={4} maxDistance={10} enablePan={false} autoRotate={false} />
       </Canvas>)}
+      </ErrorBoundary>
     </div>
   );
 }
