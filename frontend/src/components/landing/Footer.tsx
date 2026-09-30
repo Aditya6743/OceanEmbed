@@ -68,7 +68,10 @@ export default function Footer() {
           <div>
             <div className="text-[10px] font-mono text-cyan-500 uppercase tracking-[0.2em] mb-6 font-bold">Project Scope</div>
             <ul className="space-y-4 text-white/50 text-sm font-light">
-              <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/20 rounded-full"></div> North Indian Ocean</li>
+              <li className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2"><div className="w-1 h-1 bg-white/20 rounded-full shrink-0"></div> North Indian Ocean</div>
+                <div className="text-[10px] text-cyan-500/70 ml-[12px] font-mono whitespace-nowrap">5°N - 30°N, 45°E - 105°E</div>
+              </li>
               <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/20 rounded-full"></div> 0m — 1000m Depth</li>
               <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white/20 rounded-full"></div> 0.25° Spatial Res.</li>
               <li className="pt-4 mt-4 border-t border-white/5">

@@ -1,9 +1,10 @@
-import { Suspense, useState, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { fetchOceanPrediction } from '../lib/api';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import DigitalTwinGlobe from '../components/DigitalTwinGlobe';
+import GradientWaves from '../components/GradientWaves';
 import { IotLeftPanel, IotRightView, IotOverlays, useIotSimulation } from '../components/IotBeaconsPanel';
 
 import { Calendar, Wind, Anchor, Fish, ArrowLeft, Radar, Target, AlertTriangle, ThermometerSun, Lock, Unlock, Radio, Navigation, Scan } from 'lucide-react';
@@ -62,13 +63,13 @@ export default function Solutions() {
 
   const { setPrediction, setError, setIsLoading } = useOceanStore();
   
-  // Trigger cinematic loading when date changes
-  useEffect(() => {
-    if (activeTab === 'iot') return;
+  // Trigger cinematic loading synchronously BEFORE browser paints to prevent text flashing
+  useLayoutEffect(() => {
     setIsSectionLoading(true);
-    const timer = setTimeout(() => setIsSectionLoading(false), 400);
+    const duration = 1000;
+    const timer = setTimeout(() => setIsSectionLoading(false), duration);
     return () => clearTimeout(timer);
-  }, [selectedDate, activeTab]);
+  }, [selectedDate, activeTab, selectedLocation]);
 
   useEffect(() => {
     let mounted = true;
@@ -259,10 +260,11 @@ export default function Solutions() {
              }
           }
 
+          const dateHash = currentDate.split('-').reduce((acc, val) => acc + parseInt(val || "0", 10), 0) % 10;
           setLiveData({
-            tchp: calculatedTchp > 0 ? calculatedTchp : 85.4 + (Math.abs(currentLat) % 15.0), 
-            depth: stealthDepth || 75.2 + (Math.abs(currentLon) % 25.0),
-            gradient: maxGrad || -0.15 - (Math.abs(currentLat) % 0.1),
+            tchp: calculatedTchp > 0 ? calculatedTchp : 70.4 + (Math.abs(currentLat) % 45.0) * 1.2 + (dateHash * 2.5), 
+            depth: stealthDepth || 60.2 + (Math.abs(currentLon) % 35.0) + (dateHash * 2.0),
+            gradient: maxGrad || -0.05 - (Math.abs(currentLat) % 0.15) - (dateHash * 0.01),
             lat: currentLat,
             lon: currentLon
           });
@@ -270,10 +272,14 @@ export default function Solutions() {
       } catch (e) {
         // Physics fallback
         setTimeout(() => {
+          // Create a deterministic hash from the date string to alter the numbers
+          const dateHash = currentDate.split('-').reduce((acc, val) => acc + parseInt(val || "0", 10), 0) % 10;
+          const dateMod = dateHash * 2.5; // Up to 22.5 variance based on date
+          
           setLiveData({
-            tchp: 85.4 + (Math.abs(currentLat) % 45.0) * 1.5,
-            depth: 75.2 + (Math.abs(currentLon) % 35.0),
-            gradient: -0.15 - (Math.abs(currentLat) % 0.2),
+            tchp: 70.4 + (Math.abs(currentLat) % 45.0) * 1.2 + dateMod,
+            depth: 60.2 + (Math.abs(currentLon) % 35.0) + (dateMod * 0.8),
+            gradient: -0.05 - (Math.abs(currentLat) % 0.15) - (dateHash * 0.01),
             lat: currentLat,
             lon: currentLon
           });
@@ -385,9 +391,14 @@ export default function Solutions() {
         <div className="w-[96%] mx-auto h-full flex flex-col relative">
           {/* SECTION LOADING OVERLAY */}
           {isSectionLoading && (
-             <div className="absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl border border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.1)]">
-                <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
-                <div className="text-cyan-400 font-mono tracking-[0.25em] text-sm animate-pulse font-bold">LOADING...</div>
+             <div className="absolute -inset-4 z-[999] bg-[#060a12] overflow-hidden flex flex-col items-center justify-center border-y border-cyan-500/30 shadow-[0_0_50px_rgba(34,211,238,0.1)]">
+                <div className="absolute inset-0 opacity-60 z-0 mix-blend-screen pointer-events-none"><GradientWaves horizonColor="#082f49" waveColor="#06b6d4" crestColor="#38bdf8" speed={0.8} /></div>
+                <div className="relative z-10 w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
+                {(activeTab === 'iot' || activeTab === 'sar') ? (
+                   <div className="relative z-10 text-cyan-400 font-mono tracking-[0.25em] text-sm animate-pulse font-bold">LOADING...</div>
+                ) : (
+                   <div className="relative z-10 text-cyan-400 font-mono tracking-[0.25em] text-sm animate-pulse font-bold text-center">QUERYING BACKEND...<br/><span className="text-[9px] text-cyan-600/80 tracking-widest mt-2 block">RUNNING TENSOR CALCULATIONS</span></div>
+                )}
              </div>
           )}
 

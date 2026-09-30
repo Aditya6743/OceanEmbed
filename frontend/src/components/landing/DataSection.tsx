@@ -26,7 +26,7 @@ export default function DataSection() {
         {/* ================================================== */}
         {/* DESKTOP PIPELINE (STRICT FLEXBOX LAYOUT) */}
         {/* ================================================== */}
-        <div className="hidden lg:flex w-full h-[450px] items-center justify-between relative z-10">
+        <div className="hidden lg:flex w-full h-[450px] items-center justify-between relative z-10 pointer-events-none select-none">
            
            {/* 1. LEFT - SURFACE OBSERVATIONS (10%) */}
            <div className="w-[10%] shrink-0 h-[240px] relative z-20">
@@ -53,7 +53,7 @@ export default function DataSection() {
 
            {/* 2. CONVERGING CURVES (15%) */}
            <div className="w-[15%] shrink-0 h-[240px] relative z-0">
-              <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <svg className="absolute pointer-events-none select-none inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                  <path d="M 0 0 C 50 0, 50 50, 100 50" fill="none" stroke="#f97316" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                  <path d="M 0 25 C 50 25, 50 50, 100 50" fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                  <path d="M 0 50 L 100 50" fill="none" stroke="#22d3ee" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
@@ -69,7 +69,7 @@ export default function DataSection() {
               </div>
               
               <div className="w-[130%] h-64 relative flex items-center justify-center">
-                 <img src="/images/map-perfect.png" alt="Spatial Grid" className="w-full h-full object-contain relative z-10 drop-shadow-[0_15px_30px_rgba(0,0,0,0.5)]" />
+                 <img draggable="false" src="/images/map-perfect.png" alt="Spatial Grid" className="w-full h-full object-contain relative z-10 pointer-events-none select-none drop-shadow-[0_15px_30px_rgba(0,0,0,0.5)]" />
               </div>
 
               <div className="flex items-center justify-center gap-6 absolute -bottom-16 opacity-80 w-full">
@@ -125,7 +125,7 @@ export default function DataSection() {
 
            {/* 6. SPLIT CURVES (5%) */}
            <div className="w-[5%] shrink-0 h-[240px] relative z-0">
-              <svg className="absolute inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <svg className="absolute pointer-events-none select-none inset-0 w-full h-full overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                  <path d="M 0 50 C 40 50, 60 20, 100 20" fill="none" stroke="#f97316" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
                  <path d="M 0 50 C 40 50, 60 80, 100 80" fill="none" stroke="#3b82f6" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
               </svg>
@@ -160,7 +160,7 @@ export default function DataSection() {
         {/* ================================================== */}
         {/* MOBILE PIPELINE (VERTICAL STACK) */}
         {/* ================================================== */}
-        <div className="flex lg:hidden flex-col items-center gap-16 relative mt-16">
+        <div className="flex lg:hidden flex-col items-center gap-16 relative mt-16 pointer-events-none select-none">
            <div className="flex flex-col items-center gap-6 w-full max-w-sm">
              <div className="flex flex-wrap justify-center gap-4 w-full">
                {['SST', 'SSS', 'SSH', 'CURRENTS', 'WINDS'].map(v => (
@@ -175,7 +175,7 @@ export default function DataSection() {
            <div className="flex flex-col items-center w-full">
              <div className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-widest mb-8">SPATIAL INGESTION</div>
              <div className="w-full h-56 relative mb-8 mx-auto flex items-center justify-center scale-110">
-                 <img src="/images/map-perfect.png" alt="Spatial Grid" className="w-full h-full object-contain relative z-10" />
+                 <img draggable="false" src="/images/map-perfect.png" alt="Spatial Grid" className="w-full h-full object-contain relative z-10 pointer-events-none select-none" />
              </div>
              <div className="flex flex-wrap items-center justify-center gap-4 opacity-80 w-full">
                  <span className="text-white font-mono text-[10px] font-bold tracking-widest">0.25° × 0.25°</span>
