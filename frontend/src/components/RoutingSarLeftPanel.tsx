@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigation, LifeBuoy, ShieldAlert, Thermometer, Route, Play, RefreshCw, MoveRight } from 'lucide-react';
+import { useOceanStore } from '../store/oceanStore';
 
 interface RoutingSarLeftPanelProps {
   activeMode: 'routing' | 'sar';
@@ -17,6 +18,15 @@ interface RoutingSarLeftPanelProps {
 
 export default function RoutingSarLeftPanel({ simState, setSimState, activeMode, setActiveMode, sarTimeHour, setSarTimeHour, showCurrents, setShowCurrents, showThermalRisk, setShowThermalRisk, onInteract }: RoutingSarLeftPanelProps) {
       const [progress, setProgress] = useState(0);
+  const { selectedLocation } = useOceanStore();
+  const latMod = selectedLocation ? Math.abs(selectedLocation.latitude % 5) : 1;
+  const baseSpeed = 0.8 + (latMod * 0.2); // Knots
+  const r1 = (baseSpeed * 1).toFixed(1);
+  const r6 = (baseSpeed * 6).toFixed(1);
+  const r24 = (baseSpeed * 24).toFixed(1);
+  const area = (Math.PI * Math.pow(parseFloat(r24), 2) / 10).toFixed(1); // Scaled for UI
+  const dir = selectedLocation ? (selectedLocation.longitude % 2 === 0 ? '{dir}' : 'NW (315°)') : '{dir}';
+        
 
   const playUISound = (type: 'click' | 'start' | 'expand') => {
     try {
@@ -322,26 +332,26 @@ export default function RoutingSarLeftPanel({ simState, setSimState, activeMode,
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Search Priority Area</span>
-                    <span className="text-[13px] text-rose-400 font-bold font-mono">15.2 SQ NM</span>
+                    <span className="text-[13px] text-rose-400 font-bold font-mono">{area} SQ NM</span>
                   </div>
                   <div>
                     <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Current Direction</span>
-                    <span className="text-[13px] text-white font-bold font-mono">NE (045°)</span>
+                    <span className="text-[13px] text-white font-bold font-mono">{dir}</span>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4 border-t border-white/5 pt-3">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-slate-400 font-mono">+1 Hour</span>
-                    <span className="text-[10px] text-white font-mono">Radius: 0.8 NM</span>
+                    <span className="text-[10px] text-white font-mono">Radius: {r1} NM</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] text-slate-400 font-mono">+6 Hours</span>
-                    <span className="text-[10px] text-white font-mono">Radius: 3.2 NM</span>
+                    <span className="text-[10px] text-white font-mono">Radius: {r6} NM</span>
                   </div>
                   <div className="flex justify-between items-center bg-rose-500/10 px-2 py-1 -mx-2 rounded border border-rose-500/20">
                     <span className="text-[10px] text-rose-400 font-bold font-mono">+24 Hours (Est.)</span>
-                    <span className="text-[10px] text-rose-400 font-bold font-mono">Radius: 15.2 NM</span>
+                    <span className="text-[10px] text-rose-400 font-bold font-mono">Radius: {r24} NM</span>
                   </div>
                 </div>
 

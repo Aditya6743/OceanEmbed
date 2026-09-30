@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertTriangle, ShieldAlert, CheckCircle2, Bell, RadioReceiver, Activity, Wifi, ArrowLeft, Radio } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, Tooltip } from 'react-leaflet';
+import { useOceanStore } from '../store/oceanStore';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -140,6 +141,9 @@ export const useIotSimulation = (activeTab: string) => {
 
 
 export const IotLeftPanel = ({ simState, runSimulation, resetSimulation, iotLogs, toggleMute }: any) => {
+    // We already injected the vars before, so let's just make sure they are used.
+    
+        
     return (
         <div className="flex flex-col h-full animate-in fade-in slide-in-from-left-4 duration-500">
             <div className="mb-4 shrink-0">
@@ -434,7 +438,7 @@ export const IotOverlays = ({ simState, handleIotAck }: any) => {
                                 </>
                             ) : (
                                 <>
-                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">LOCATION</span><span className="text-slate-300">MUMBAI COAST</span></div>
+                                    <div className="flex justify-between items-center text-xs"><span className="text-slate-500">LOCATION</span><span className="text-slate-300">LOCAL COAST</span></div>
                                     <div className="flex justify-between items-center text-xs"><span className="text-slate-500">STATUS</span><span className="text-slate-300">STANDBY</span></div>
                                     <div className="flex justify-between items-center text-xs"><span className="text-slate-500">SIREN</span><span className="text-slate-600">INACTIVE</span></div>
                                 </>
@@ -448,6 +452,13 @@ export const IotOverlays = ({ simState, handleIotAck }: any) => {
 };
 
 export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
+  const store = useOceanStore();
+  const baseLat = store.selectedLocation ? store.selectedLocation.latitude : 17.0;
+  const baseLon = store.selectedLocation ? store.selectedLocation.longitude : 78.0;
+    const b1 = [baseLat - 1.0, baseLon - 10.0];
+  const b2 = [baseLat - 5.0, baseLon - 6.0];
+    const gateway = [baseLat, baseLon];
+  
     
     const [isLoadingMap, setIsLoadingMap] = useState(true);
     
@@ -457,9 +468,9 @@ export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
     }, []);
 
     // Beacon Coordinates
-    const gateway = [18.92, 72.82]; // Mumbai
-    const b1 = [16.0, 68.0];
-    const b2 = [12.0, 72.0];
+    
+    
+    
     
     const isAlert = simState.step >= 7 && simState.phase !== 'ACKNOWLEDGED';
     const isAck = simState.phase === 'ACKNOWLEDGED';
@@ -495,7 +506,7 @@ export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
             {/* 2D Leaflet Map */}
             <div className={`absolute inset-0 z-0 transition-opacity duration-1000 ${isLoadingMap ? 'opacity-0' : 'opacity-100'}`}>
                 <MapContainer 
-                    center={[17.0, 78.0]} 
+                    center={[baseLat, baseLon]} 
                     zoom={5} 
                     minZoom={4}
                     maxZoom={8}
@@ -527,7 +538,7 @@ export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
                         <Tooltip permanent direction="right" className="bg-transparent border-0 shadow-none !p-0">
                             <div className="pointer-events-none ml-2 flex flex-col animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
                                 <span className="text-cyan-300 font-black text-[12px] tracking-wider mb-0.5 drop-shadow-md">GATEWAY #01</span>
-                                <span className="text-white/80">MUMBAI HUB</span>
+                                <span className="text-white/80">COASTAL HUB</span>
                                 <span className="text-emerald-400 font-bold tracking-widest my-0.5">LoRaWAN LINK</span>
                                 <span className="text-white/80">STATUS: <span className={isAck ? 'text-cyan-400' : simState.step >= 6 ? 'text-orange-400 animate-pulse' : 'text-emerald-400'}>{isAck ? 'ACKNOWLEDGED' : simState.step >= 6 ? 'TRANSMITTING' : 'ONLINE'}</span></span>
                             </div>
@@ -540,7 +551,7 @@ export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
                             <div className="flex flex-col animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
                                 <span className="text-orange-400 font-black text-[12px] tracking-wider mb-0.5 drop-shadow-md">FISHERMAN #402</span>
                                 <span className="text-white/80">STATUS: <span className={isFail ? 'text-slate-400' : isAlert ? 'text-red-400 font-bold' : 'text-emerald-400'}>{isFail ? 'OFFLINE' : isAlert ? 'EVACUATE' : 'ONLINE'}</span></span>
-                                <span className="text-white/80">LAT: 16.0000 | LON: 68.0000</span>
+                                <span className="text-white/80">LAT: {(baseLat - 1).toFixed(4)} | LON: {(baseLon - 10).toFixed(4)}</span>
                                 <span className="text-white/80">SIG: {isFail ? '--' : '-67 dBm'} | BAT: 87%</span>
                             </div>
                         </Popup>
@@ -551,7 +562,7 @@ export const IotRightView = ({ simState, handleIotAck, onClose }: any) => {
                             <div className="flex flex-col animate-in fade-in zoom-in-95 duration-300 ease-out backdrop-blur-md bg-black/85 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-mono text-white/90 font-medium drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] whitespace-nowrap">
                                 <span className="text-sky-400 font-black text-[12px] tracking-wider mb-0.5">TOURIST BOAT #77</span>
                                 <span className="text-white/80">STATUS: <span className={isAlert ? 'text-red-400 font-bold' : 'text-emerald-400'}>{isAlert ? 'EVACUATE' : 'ONLINE'}</span></span>
-                                <span className="text-white/80">LAT: 12.0000 | LON: 72.0000</span>
+                                <span className="text-white/80">LAT: {(baseLat - 5).toFixed(4)} | LON: {(baseLon - 6).toFixed(4)}</span>
                                 <span className="text-white/80">SIG: -42 dBm | BAT: 92%</span>
                             </div>
                         </Popup>
