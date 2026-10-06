@@ -586,10 +586,16 @@ export default function Explore() {
                   </span>
                 </button>
                 <button 
-                  onClick={reset}
+                  onClick={() => {
+                    if (isMaximized) {
+                      setIsMaximized(false);
+                    } else {
+                      reset();
+                    }
+                  }}
                   disabled={isLoading}
                   className="px-2.5 sm:px-3 py-2 bg-white/5 hover:bg-white/10 disabled:opacity-50 border border-white/10 rounded text-white/50 hover:text-white transition-all flex items-center justify-center"
-                  title="Clear Selection"
+                  title={isMaximized ? "Close View" : "Clear Selection"}
                 >
                   <X className="w-4 h-4" />
                 </button>
